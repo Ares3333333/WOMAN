@@ -3,6 +3,13 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  // Не подхватывать postcss.config из корня монорепо (там Tailwind для Next.js) —
+  // иначе на PaaS/Vite падает: модуль tailwindcss не установлен в telegram-mini-app.
+  css: {
+    postcss: {
+      plugins: [],
+    },
+  },
   server: {
     port: 5174,
     host: true,

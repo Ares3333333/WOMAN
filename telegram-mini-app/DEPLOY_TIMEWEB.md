@@ -64,7 +64,8 @@ Node стартует из `server/`, статика читается из `../d
 |------------|-------------|
 | `git`, `clone`, `403`, `not found` | Доступ к репозиторию (приватный GitHub, права интеграции). |
 | `npm ci` / `package-lock` | Временно замени сборку на: `npm install && npm run build && npm install --omit=dev --prefix server`, закоммить актуальные `package-lock.json` и запушь. |
-| `vite`, `tsc`, `build` | Версия Node (поставь **20**), нехватка RAM на тарифе (**Killed** / **ENOMEM**) — тариф с большим RAM. |
+| `vite`, `tsc`, `build`, `tailwindcss` не найден | Монорепо: в **корне** репозитория может быть свой `postcss.config` с Tailwind (для Next.js). Vite поднимался к нему и требовал `tailwindcss` в `telegram-mini-app`. В проекте это отключено в `vite.config.ts` (`css.postcss.plugins: []`). Если ошибка осталась — сделай `git pull` последнего коммита. |
+| `vite`, `tsc`, `build` (прочее) | Версия Node (поставь **20**), нехватка RAM (**Killed** / **ENOMEM**) — тариф с большим RAM. |
 | Сборка ОК, падает **старт** | Команда запуска: `npm start --prefix server`, путь к проекту **`telegram-mini-app`** без лишнего `/` в начале. |
 | Контейнер перезапускается | Health check **`/health`**, приложение слушает **0.0.0.0** и **PORT** с платформы (у нас в коде так и задумано). |
 
