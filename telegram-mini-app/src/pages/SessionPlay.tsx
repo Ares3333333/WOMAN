@@ -20,7 +20,6 @@ export function SessionPlayPage() {
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const session = slug ? SESSION_BY_SLUG[slug] : undefined;
-
   const canAccess = session ? canUserAccessSession(session, state) : false;
 
   useEffect(() => {
@@ -77,19 +76,32 @@ export function SessionPlayPage() {
     hapticLight(app);
   }, [session, canAccess, fullText, locale, completeSession, selfCareToday, app]);
 
+  const openPremium = () => {
+    const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
+    if (bot) {
+      try {
+        app.openTelegramLink(`${bot}?start=premium`);
+      } catch {
+        window.open(`${bot}?start=premium`, "_blank");
+      }
+    }
+  };
+
   if (!session) {
     return (
-      <p>
-        <Link to="/paths">{t("back")}</Link>
-      </p>
+      <div className="page-head">
+        <Link to="/paths" className="session-back">
+          ← {t("back")}
+        </Link>
+      </div>
     );
   }
 
   if (session.sensual && state.sensualMode === "hidden") {
     return (
       <div className="page-head">
-        <p className="sub">{t("sensualNote")}</p>
-        <Link to="/profile" className="btn btn-primary" style={{ marginTop: 16 }}>
+        <p className="session-page-lead">{t("sensualNote")}</p>
+        <Link to="/profile" className="btn btn-primary btn-command">
           {t("profileTitle")}
         </Link>
       </div>
@@ -98,36 +110,24 @@ export function SessionPlayPage() {
 
   if (!session.freeTier && !state.premium) {
     return (
-      <div className="page-head">
-        <Link to="/paths" style={{ fontSize: "0.85rem" }}>
+      <div className="page-head session-play-page">
+        <Link to="/paths" className="session-back">
           ← {t("back")}
         </Link>
-        <h1 style={{ marginTop: 12 }}>{session.title[L]}</h1>
-        <p className="sub">{session.short[L]}</p>
-        <div className="premium-gate-card">
-          <p className="premium-gate-eyebrow">{t("premiumGateEyebrow")}</p>
+        <p className="page-eyebrow">{t("premiumGateEyebrow")}</p>
+        <h1 className="path-detail-title">{session.title[L]}</h1>
+        <p className="session-page-lead">{session.short[L]}</p>
+
+        <div className="premium-gate-card premium-gate-card--v2">
           <h2 className="premium-gate-heading">{t("premiumGateTitle")}</h2>
           <p className="sub premium-gate-lead">{t("premiumGateLead")}</p>
-          <ul className="premium-bullet-list">
+          <ul className="home-premium-bullets">
             <li>{t("premiumGateBullet1")}</li>
             <li>{t("premiumGateBullet2")}</li>
             <li>{t("premiumGateBullet3")}</li>
           </ul>
           <p className="sub gate-privacy">{t("premiumGatePrivacy")}</p>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => {
-              const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
-              if (bot) {
-                try {
-                  app.openTelegramLink(`${bot}?start=premium`);
-                } catch {
-                  window.open(`${bot}?start=premium`, "_blank");
-                }
-              }
-            }}
-          >
+          <button type="button" className="btn btn-primary btn-command" onClick={openPremium}>
             {t("premiumGateCta")}
           </button>
           <button type="button" className="btn btn-ghost" style={{ marginTop: 10 }} onClick={() => nav("/profile")}>
@@ -147,36 +147,32 @@ export function SessionPlayPage() {
   }
 
   return (
-    <div className="page-head">
-      <Link to="/paths" style={{ fontSize: "0.85rem" }}>
+    <div className="page-head session-play-page">
+      <Link to="/paths" className="session-back">
         ← {t("back")}
       </Link>
-      <h1 style={{ marginTop: 12 }}>{session.title[L]}</h1>
-      <p className="sub">{session.short[L]}</p>
-      <p className="sub" style={{ fontSize: "0.78rem" }}>
+      <p className="page-eyebrow">{t("sessionAbout")}</p>
+      <h1 className="path-detail-title">{session.title[L]}</h1>
+      <p className="session-page-lead">{session.short[L]}</p>
+      <p className="session-page-lead" style={{ fontSize: "0.78rem", marginTop: -4 }}>
         {t("playerTts")}
       </p>
 
-      <button
-        type="button"
-        className="btn btn-primary"
-        style={{ marginTop: 20 }}
-        onClick={() => (playing ? stop() : play())}
-      >
-        {playing ? t("playerPause") : t("playerPlay")}
-      </button>
+      <div className="play-cta-frame">
+        <button type="button" className="btn btn-primary btn-command" onClick={() => (playing ? stop() : play())}>
+          {playing ? t("playerPause") : t("playerPlay")}
+        </button>
+      </div>
 
       {done ? (
-        <p style={{ marginTop: 16, color: "var(--tg-link)", fontSize: "0.9rem", lineHeight: 1.45 }}>
-          {t("sessionCompleteLine")}
-        </p>
+        <p className="session-complete-line">{t("sessionCompleteLine")}</p>
       ) : null}
 
-      <h2 style={{ marginTop: 28, fontSize: "1rem" }}>{t("sessionTranscript")}</h2>
+      <h2 className="transcript-heading">{t("sessionTranscript")}</h2>
       <div className="transcript">{fullText}</div>
 
       {session.script.journal ? (
-        <p className="sub" style={{ marginTop: 16 }}>
+        <p className="sub journal-block">
           <strong>{t("sessionJournal")}:</strong> {session.script.journal[L]}
         </p>
       ) : null}

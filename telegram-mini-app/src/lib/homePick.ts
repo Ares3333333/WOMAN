@@ -80,3 +80,28 @@ export function homeTimeKey(): "Morning" | "Afternoon" | "Evening" {
   if (h < 18) return "Afternoon";
   return "Evening";
 }
+
+/** Additional picks for home «support» row — same mood bias, excludes primary slug */
+export function pickAlternateSessions(
+  sessions: MiniSession[],
+  state: ProgressState,
+  mood: OnboardingMood | undefined,
+  excludeSlug: string,
+  limit: number
+): MiniSession[] {
+  const pillars = mood ? mapMoodToPillars(mood) : [];
+  const accessible = (s: MiniSession) => canUserAccessSession(s, state);
+  let pool = sessions.filter((s) => s.slug !== excludeSlug && accessible(s));
+  if (pillars.length > 0) {
+    const preferred = pool.filter((s) => pillars.includes(s.pillarId));
+    if (preferred.length > 0) pool = preferred;
+  }
+  const scored = [...pool].sort((a, b) => {
+    const ac = state.completedSlugs.includes(a.slug) ? 1 : 0;
+    const bc = state.completedSlugs.includes(b.slug) ? 1 : 0;
+    if (ac !== bc) return ac - bc;
+    if (a.freeTier !== b.freeTier) return (b.freeTier ? 1 : 0) - (a.freeTier ? 1 : 0);
+    return 0;
+  });
+  return scored.slice(0, limit);
+}

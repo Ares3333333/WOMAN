@@ -36,19 +36,23 @@ export function ProfilePage() {
     : {};
 
   return (
-    <div className="page-head">
-      <h1 {...titleHandlers}>{t("profileTitle")}</h1>
-      <p className="sub" style={{ fontSize: "0.72rem" }}>
-        {state.premium ? t("profilePremiumActive") : t("profilePremium")} · {t("profileAge")}
+    <div className="page-head profile-page">
+      <p className="profile-eyebrow">{t("profilePageEyebrow")}</p>
+      <h1 {...titleHandlers} style={{ marginBottom: 8 }}>
+        {t("profileTitle")}
+      </h1>
+      <p className="sub" style={{ fontSize: "0.8rem", marginBottom: 6 }}>
+        {state.premium ? t("profilePremiumActive") : t("profilePremium")}
+      </p>
+      <p className="sub" style={{ fontSize: "0.72rem", marginBottom: 20 }}>
+        {t("profileAge")}
       </p>
 
       <div className="profile-premium-card">
-        <h2 style={{ marginTop: 0, fontSize: "1.08rem" }}>{t("profilePremium")}</h2>
-        <p className="sub" style={{ marginBottom: 12 }}>
-          {t("profilePremiumBody")}
-        </p>
+        <h2 className="profile-card-heading">{t("profilePremium")}</h2>
+        <p className="sub profile-card-lead">{t("profilePremiumBody")}</p>
         {!state.premium ? (
-          <ul className="premium-bullet-list" style={{ marginTop: 0 }}>
+          <ul className="home-premium-bullets">
             <li>{t("profileCircleBullet1")}</li>
             <li>{t("profileCircleBullet2")}</li>
             <li>{t("profileCircleBullet3")}</li>
@@ -57,7 +61,7 @@ export function ProfilePage() {
         {!state.premium ? (
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-primary btn-command"
             onClick={() => {
               if (bot) {
                 try {
@@ -91,11 +95,9 @@ export function ProfilePage() {
         ) : null}
       </div>
 
-      <h2 style={{ marginTop: 28, fontSize: "1rem" }}>{t("profileReminderTitle")}</h2>
-      <p className="sub" style={{ fontSize: "0.82rem", marginBottom: 10 }}>
-        {t("profileReminderSub")}
-      </p>
-      <div className="select-row">
+      <h2 className="profile-section-title">{t("profileReminderTitle")}</h2>
+      <p className="profile-section-sub">{t("profileReminderSub")}</p>
+      <div className="select-row select-row--profile">
         {(
           [
             ["off", "profileReminderOff"],
@@ -114,8 +116,8 @@ export function ProfilePage() {
         ))}
       </div>
 
-      <h2 style={{ marginTop: 28, fontSize: "1rem" }}>{t("profileLang")}</h2>
-      <div className="select-row">
+      <h2 className="profile-section-title">{t("profileLang")}</h2>
+      <div className="select-row select-row--profile">
         <button type="button" className={lang === "ru" ? "on" : ""} onClick={() => setLang("ru")}>
           Русский
         </button>
@@ -124,11 +126,9 @@ export function ProfilePage() {
         </button>
       </div>
 
-      <h2 style={{ marginTop: 24, fontSize: "1rem" }}>{t("profileSensualSectionTitle")}</h2>
-      <p className="sub" style={{ fontSize: "0.82rem" }}>
-        {t("profileSensualSectionSub")}
-      </p>
-      <div className="select-row">
+      <h2 className="profile-section-title">{t("profileSensualSectionTitle")}</h2>
+      <p className="profile-section-sub">{t("profileSensualSectionSub")}</p>
+      <div className="select-row select-row--profile">
         {(
           [
             ["welcome", "profileSensualWelcome"],
@@ -147,9 +147,7 @@ export function ProfilePage() {
         ))}
       </div>
 
-      <p className="sub" style={{ marginTop: 32, fontSize: "0.75rem" }}>
-        {isTelegram ? t("profileEnvTelegram") : t("profileEnvLocal")}
-      </p>
+      <p className="sub profile-env-line">{isTelegram ? t("profileEnvTelegram") : t("profileEnvLocal")}</p>
       <button
         type="button"
         className="btn btn-ghost"

@@ -50,8 +50,9 @@ export function PathListPage() {
 
   return (
     <div className="page-head path-list-page">
+      <p className="page-eyebrow">{t("pathsCatalogEyebrow")}</p>
       <h1>{t("pathsTitle")}</h1>
-      <p className="sub">{t("pathsSub")}</p>
+      <p className="sub paths-catalog-lead">{t("pathsSub")}</p>
       <ul className="path-list-ul">{items}</ul>
     </div>
   );

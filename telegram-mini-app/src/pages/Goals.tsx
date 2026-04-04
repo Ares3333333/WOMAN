@@ -16,40 +16,36 @@ export function GoalsPage() {
   const weekPct = Math.min(100, (state.weekCompletions / 3) * 100);
 
   return (
-    <div className="page-head">
+    <div className="page-head goals-page">
+      <p className="page-eyebrow">{t("goalsPageEyebrow")}</p>
       <h1>{t("goalsTitle")}</h1>
-      <p className="sub">{t("goalsSub")}</p>
+      <p className="sub paths-catalog-lead">{t("goalsSub")}</p>
 
-      <div
-        style={{
-          padding: 20,
-          borderRadius: "var(--radius-xl)",
-          background: "color-mix(in srgb, var(--tg-secondary) 88%, transparent)",
-          marginTop: 8,
-        }}
-      >
-        <p className="metric-label">{t("goalsStreak")}</p>
-        <p style={{ margin: 0, fontSize: "2.5rem", fontFamily: "var(--font-display)" }}>{state.streak}</p>
+      <div className="goals-hero-card">
+        <p className="goals-section-label">{t("goalsStreak")}</p>
+        <p className="goals-hero-value">{state.streak}</p>
       </div>
 
-      <div style={{ marginTop: 20 }}>
-        <p style={{ margin: "0 0 4px", fontSize: "0.75rem", color: "var(--tg-hint)" }}>{t("goalsWeek")}</p>
+      <div style={{ marginTop: 24 }}>
+        <p className="goals-section-label">{t("goalsWeek")}</p>
         <div className="wave-meter">
           <span style={{ width: `${weekPct}%` }} />
         </div>
-        <p style={{ margin: "8px 0 0", fontSize: "0.85rem" }}>
+        <p className="goals-hint-line">
           {state.weekCompletions} / 3 — {t("goalsWeeklyHint")}
         </p>
       </div>
 
-      <div style={{ marginTop: 20 }}>
-        <p style={{ margin: "0 0 4px", fontSize: "0.75rem", color: "var(--tg-hint)" }}>{t("goalsDrops")}</p>
-        <p style={{ margin: 0, fontSize: "1.5rem", fontFamily: "var(--font-display)" }}>{state.calmDrops}</p>
+      <div style={{ marginTop: 22 }}>
+        <p className="goals-section-label">{t("goalsDrops")}</p>
+        <p className="goals-hero-value" style={{ fontSize: "1.65rem" }}>
+          {state.calmDrops}
+        </p>
       </div>
 
       <button
         type="button"
-        className="btn btn-primary"
+        className="btn btn-primary btn-command"
         style={{ marginTop: 28 }}
         disabled={marked}
         onClick={() => {

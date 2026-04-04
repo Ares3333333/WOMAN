@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { IconChevron } from "../components/MiniNavIcons";
 import { SessionMetaRow } from "../components/SessionMetaRow";
 import { PROGRAM_PATHS } from "../data/programs";
 import { SESSION_BY_SLUG, type MiniSession } from "../data/sessions";
@@ -30,19 +31,26 @@ export function PathDetailPage() {
 
   return (
     <div className="page-head path-detail-page">
-      <Link to="/paths" className="path-back-link">
+      <Link to="/paths" className="session-back">
         ← {t("back")}
       </Link>
-      <p className="path-detail-pillar">{t(`pillarLabel_${path.pillarId}`)}</p>
+      <p className="page-eyebrow">{t(`pillarLabel_${path.pillarId}`)}</p>
       <h1 className="path-detail-title">{pathTitle(path.id)}</h1>
       <p className="sub path-detail-intro">{intro !== introKey ? intro : t("pathsSub")}</p>
-      {sessions.map((s) => (
-        <Link key={s.slug} to={`/session/${s.slug}`} className={`card session-card-link ${s.gradient}`}>
-          <h2 className="session-card-title">{s.title[L]}</h2>
-          <p className="session-card-desc">{s.short[L]}</p>
-          <SessionMetaRow session={s} t={t} className="session-card-meta" />
-        </Link>
-      ))}
+      <ul className="path-session-list">
+        {sessions.map((s) => (
+          <li key={s.slug}>
+            <Link to={`/session/${s.slug}`} className="home-support-row path-session-link">
+              <div className="home-support-copy">
+                <span className="home-support-title">{s.title[L]}</span>
+                <p className="path-session-desc">{s.short[L]}</p>
+                <SessionMetaRow session={s} t={t} className="session-meta-tight" />
+              </div>
+              <IconChevron className="home-support-chevron" />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

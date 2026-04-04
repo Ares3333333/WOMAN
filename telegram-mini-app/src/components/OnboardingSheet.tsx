@@ -15,7 +15,7 @@ const MOOD_KEYS: Record<OnboardingMood, string> = {
   body: "onboardingMoodBody",
 };
 
-const STEP_COUNT = 6;
+const STEP_COUNT = 4;
 
 export function OnboardingSheet({ onClose }: Props) {
   const { t } = useI18n();
@@ -34,9 +34,12 @@ export function OnboardingSheet({ onClose }: Props) {
 
   const titleId = `onboarding-step-${step}-title`;
 
+  const titleKeys = ["onboardingV2s0Title", "onboardingV2s1Title", "onboardingV2s2Title", "onboardingV2s3Title"] as const;
+  const subKeys = ["onboardingV2s0Sub", "onboardingV2s1Sub", "onboardingV2s2Sub", "onboardingV2s3Sub"] as const;
+
   const sheet = (
     <div className="onboarding-overlay" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-      <div className="onboarding-panel">
+      <div className="onboarding-panel onboarding-panel--v2">
         <div className="onboarding-panel-top">
           <span className="onboarding-eyebrow">{t("onboardingEyebrow")}</span>
           <button type="button" className="onboarding-skip-link" onClick={() => finish()}>
@@ -51,14 +54,14 @@ export function OnboardingSheet({ onClose }: Props) {
         </div>
 
         <h2 id={titleId} className="onboarding-title">
-          {t(`onboardingStep${step}Title`)}
+          {t(titleKeys[step])}
         </h2>
-        <p className="onboarding-sub">{t(`onboardingStep${step}Sub`)}</p>
+        <p className="onboarding-sub">{t(subKeys[step])}</p>
 
-        {step === 3 ? (
+        {step === 1 ? (
           <>
             <p className="onboarding-chips-label">{t("onboardingChipsLabel")}</p>
-            <div className="chip-grid">
+            <div className="chip-grid chip-grid--v2">
               {ONBOARDING_MOOD_ORDER.map((m) => (
                 <button
                   key={m}
@@ -76,7 +79,7 @@ export function OnboardingSheet({ onClose }: Props) {
         <button type="button" className="btn btn-primary onboarding-cta" onClick={goNext}>
           {step === STEP_COUNT - 1
             ? t("onboardingContinue")
-            : step === 3 && !selectedMood
+            : step === 1 && !selectedMood
               ? t("onboardingContinueHint")
               : t("onboardingNext")}
         </button>
