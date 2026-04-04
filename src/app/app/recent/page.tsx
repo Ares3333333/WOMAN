@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { AppPageHeader } from "@/components/app-page-header";
 import { EmptyState } from "@/components/empty-state";
 import { SessionCard } from "@/components/session-card";
 import { Button } from "@/components/ui/button";
@@ -15,18 +16,18 @@ export default async function RecentPage() {
   const rows = await prisma.playbackHistory.findMany({
     where: { userId: session.user.id },
     orderBy: { lastPlayedAt: "desc" },
-    include: { session: true },
+    include: { session: { include: { category: true } } },
   });
 
   return (
-    <div className="space-y-6 pb-8">
-      <h1 className="font-display text-3xl font-medium">{t("app.recent.title")}</h1>
+    <div className="space-y-8 pb-10">
+      <AppPageHeader title={t("app.recent.title")} description={t("app.recent.subtitle")} />
       {rows.length === 0 ? (
         <EmptyState
           title={t("app.recent.emptyTitle")}
           description={t("app.recent.emptyDesc")}
           action={
-            <Button asChild>
+            <Button asChild size="lg" className="rounded-full">
               <Link href="/app/library">{t("app.recent.browse")}</Link>
             </Button>
           }
@@ -38,9 +39,14 @@ export default async function RecentPage() {
               key={r.id}
               href={`/app/sessions/${r.session.slug}`}
               title={r.session.title}
-              description={r.completed ? t("app.home.completed") : t("app.home.inProgress")}
+              description={r.session.shortDescription}
               durationMinutes={r.session.durationMinutes}
               gradientKey={r.session.coverGradient}
+              variant="compact"
+              categoryLabel={r.session.category.name}
+              intensity={r.session.intensity}
+              premium={!r.session.freeTier}
+              stateLabel={r.completed ? t("app.home.completed") : t("app.home.inProgress")}
             />
           ))}
         </div>

@@ -46,19 +46,24 @@ export default async function LearnPage() {
             <p className="text-xs text-muted-foreground">
               {ordered.length} {t("app.programs.sessionWord")}
             </p>
-            <div className="grid gap-3">
-              {ordered.map((s) => {
+            <div className="grid gap-3 md:gap-4">
+              {ordered.map((s, i) => {
                 const locked =
                   !canAccessPremiumSession(user?.subscriptionStatus ?? "none", s.freeTier) && !s.freeTier;
+                const variant =
+                  i === 0 ? "featured" : !s.freeTier ? "premiumSpotlight" : "standard";
                 return (
                   <SessionCard
                     key={s.id}
-                    href={locked ? "/app/settings" : `/app/sessions/${s.slug}`}
+                    href={locked ? "/app/premium?from=learn" : `/app/sessions/${s.slug}`}
                     title={s.title}
                     description={s.shortDescription}
                     durationMinutes={s.durationMinutes}
                     gradientKey={s.coverGradient}
                     premium={!s.freeTier}
+                    variant={variant}
+                    categoryLabel={s.category.name}
+                    intensity={s.intensity}
                   />
                 );
               })}

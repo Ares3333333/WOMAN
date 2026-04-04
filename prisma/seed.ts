@@ -5,23 +5,58 @@ import { SEED_SESSIONS } from "./seed-content";
 const prisma = new PrismaClient();
 
 const CATEGORIES = [
-  { slug: "stress-relief", name: "Stress Relief", description: "Downshift overwhelm", sortOrder: 1 },
-  { slug: "breathing", name: "Breathing", description: "Breath-led calm", sortOrder: 2 },
-  { slug: "grounding", name: "Grounding", description: "Steady the moment", sortOrder: 3 },
-  { slug: "sleep", name: "Sleep", description: "Night wind-down", sortOrder: 4 },
-  { slug: "emotional-reset", name: "Emotional Reset", description: "Gentle emotional care", sortOrder: 5 },
-  { slug: "body-awareness", name: "Body Awareness", description: "Return to the body", sortOrder: 6 },
+  {
+    slug: "stress-relief",
+    name: "Quiet downshift",
+    description: "For wired days, overload, and the need to lower the inner volume.",
+    sortOrder: 1,
+  },
+  {
+    slug: "breathing",
+    name: "Breath-led pauses",
+    description: "Small anchors between obligations — pace you choose, always.",
+    sortOrder: 2,
+  },
+  {
+    slug: "grounding",
+    name: "Here, now",
+    description: "Gentle return to the present when attention scatters.",
+    sortOrder: 3,
+  },
+  {
+    slug: "sleep",
+    name: "Evening & rest",
+    description: "Wind-down and bedside listens — rest without bargaining with yourself.",
+    sortOrder: 4,
+  },
+  {
+    slug: "emotional-reset",
+    name: "Emotional aftercare",
+    description: "Space after weight, news, or fatigue — not therapy, held tone.",
+    sortOrder: 5,
+  },
+  {
+    slug: "body-awareness",
+    name: "Embodied presence",
+    description: "Sensation-first listening — curiosity, not correction.",
+    sortOrder: 6,
+  },
   {
     slug: "sensual-wellness",
-    name: "Sensual Wellness",
-    description: "Consent-first embodiment, non-explicit",
+    name: "Soft embodiment",
+    description: "Warm, consent-first, never explicit — you lead every boundary.",
     sortOrder: 7,
   },
-  { slug: "morning-reset", name: "Morning Reset", description: "Soft starts", sortOrder: 8 },
+  {
+    slug: "morning-reset",
+    name: "First light",
+    description: "Threshold moments before the day asks for performance.",
+    sortOrder: 8,
+  },
   {
     slug: "confidence-soft-power",
-    name: "Confidence & Soft Power",
-    description: "Quiet strength",
+    name: "Clear & kind",
+    description: "Voice, limits, and steadiness without bracing.",
     sortOrder: 9,
   },
 ];
@@ -35,13 +70,13 @@ const DEMO_ACCOUNTS: {
   {
     email: "demo@soracalm.app",
     password: "demo123456",
-    name: "Demo (free library)",
+    name: "Explorer guest",
     subscriptionStatus: "none",
   },
   {
     email: "premium@soracalm.app",
     password: "premium123456",
-    name: "Signature preview (full access)",
+    name: "Signature member (preview)",
     subscriptionStatus: "active",
   },
 ];
@@ -125,14 +160,16 @@ async function main() {
     create: {
       name: "Explorer",
       slug: "free",
-      description: "Curated free sessions — enough to feel the product before upgrading.",
+      description:
+        "A curated opening set — enough to feel how the room holds you before you choose more.",
       stripePriceId: null,
       featuresJson: JSON.stringify({ sessions: "curated_free" }),
       sortOrder: 1,
     },
     update: {
       name: "Explorer",
-      description: "Curated free sessions — enough to feel the product before upgrading.",
+      description:
+        "A curated opening set — enough to feel how the room holds you before you choose more.",
     },
   });
 
@@ -142,7 +179,7 @@ async function main() {
       name: "Signature · Monthly",
       slug: "premium",
       description:
-        "$100/month at launch — full library (24+ guided sessions), deep sleep & reset tracks, boundaries & confidence paths, early access to new drops. Stripe checkout wires in production.",
+        "The residence tier — full library, longer evenings, sequenced paths, and first look at new work as it ships. Intended ~$100/month; secure checkout when enabled for your deployment.",
       stripePriceId: process.env.STRIPE_PRICE_PREMIUM ?? null,
       featuresJson: JSON.stringify({
         sessions: "full",
@@ -156,7 +193,7 @@ async function main() {
     update: {
       name: "Signature · Monthly",
       description:
-        "$100/month at launch — full library (24+ guided sessions), deep sleep & reset tracks, boundaries & confidence paths, early access to new drops. Stripe checkout wires in production.",
+        "The residence tier — full library, longer evenings, sequenced paths, and first look at new work as it ships. Intended ~$100/month; secure checkout when enabled for your deployment.",
       stripePriceId: process.env.STRIPE_PRICE_PREMIUM ?? null,
     },
   });
@@ -167,7 +204,7 @@ async function main() {
       name: "Add-on · Deep calm lab",
       slug: "addons",
       description:
-        "Optional ~$49 one-time: printable workbook, extended masterclasses, and bonus wind-down series — sold separately when billing is live.",
+        "A companion shelf — printable workbooks, extended series, deeper wind-downs — for listeners who want something to hold beyond the headphones. ~$49 one-time when payments open (indicative), outside Signature.",
       stripePriceId: process.env.STRIPE_PRICE_ADDON ?? null,
       featuresJson: JSON.stringify({ type: "addon", priceUsdApprox: 49 }),
       sortOrder: 3,
@@ -175,7 +212,7 @@ async function main() {
     update: {
       name: "Add-on · Deep calm lab",
       description:
-        "Optional ~$49 one-time: printable workbook, extended masterclasses, and bonus wind-down series — sold separately when billing is live.",
+        "A companion shelf — printable workbooks, extended series, deeper wind-downs — for listeners who want something to hold beyond the headphones. ~$49 one-time when payments open (indicative), outside Signature.",
       stripePriceId: process.env.STRIPE_PRICE_ADDON ?? null,
     },
   });

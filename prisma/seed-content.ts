@@ -29,11 +29,11 @@ function script(theme: string, journal: string) {
 
 export const SEED_SESSIONS = [
   {
-    title: "Five-minute nervous system reset",
+    title: "Five minutes to unspool",
     slug: "five-minute-nervous-system-reset",
-    shortDescription: "A compact reset when your system feels wired but you only have a few minutes.",
+    shortDescription: "When you are short on time but your wiring is still turned up.",
     longDescription:
-      "Short guided calming audio to downshift stress responses. Wellness only — not medical treatment.",
+      "A tight, kind unwinding — breath and language to lower the inner tempo. Not medical care; pause or stop whenever you need.",
     categorySlug: "stress-relief",
     tagSlugs: ["quick", "nervous-system", "reset"],
     durationMinutes: 5,
@@ -54,7 +54,7 @@ export const SEED_SESSIONS = [
     slug: "when-everything-feels-too-much",
     shortDescription: "Gentle containment when overwhelm is loud.",
     longDescription:
-      "Grounding language and breath to help you feel a little more room inside. Not therapy — supportive audio only.",
+      "Grounding language and breath to widen the room inside — without asking you to fix the day. Supportive audio, not therapy or crisis care.",
     categorySlug: "stress-relief",
     tagSlugs: ["overwhelm", "grounding"],
     durationMinutes: 12,
@@ -72,9 +72,9 @@ export const SEED_SESSIONS = [
   {
     title: "Sleep after an emotionally hard day",
     slug: "sleep-after-an-emotionally-hard-day",
-    shortDescription: "A tender wind-down when your heart feels full.",
+    shortDescription: "Let the heart land before the lights go out.",
     longDescription:
-      "Bedtime-oriented calming audio. For rest support, not trauma processing or crisis care.",
+      "A bedside unwinding for heavy days — permission to rest without resolving everything. Rest support only; not trauma work or crisis response.",
     categorySlug: "sleep",
     tagSlugs: ["sleep", "evening", "gentle"],
     durationMinutes: 18,
@@ -90,11 +90,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Gentle body reconnection",
+    title: "Coming home to the body",
     slug: "gentle-body-reconnection",
-    shortDescription: "Return to physical presence with patience.",
+    shortDescription: "Physical presence without an agenda to change anything.",
     longDescription:
-      "Body awareness and breath to reconnect with yourself. Consent-first; move only as feels right.",
+      "Breath and sensation to meet yourself where you are. Consent-first — every movement is optional.",
     categorySlug: "body-awareness",
     tagSlugs: ["embodiment", "presence"],
     durationMinutes: 14,
@@ -110,11 +110,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Softness after stress",
+    title: "After the stress spike",
     slug: "softness-after-stress",
-    shortDescription: "A warm exhale when tension has been high.",
+    shortDescription: "When the edge is still there but the crisis has passed.",
     longDescription:
-      "Soothing audio for stress aftercare. Wellness guidance only.",
+      "A warm exhale and softer language for the aftermath of pressure — not a fix, a landing.",
     categorySlug: "emotional-reset",
     tagSlugs: ["softness", "recovery"],
     durationMinutes: 10,
@@ -130,11 +130,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Grounding before bed",
+    title: "Let the night receive you",
     slug: "grounding-before-bed",
-    shortDescription: "Simple anchors for a quieter mind at night.",
+    shortDescription: "Small anchors while the mind still wants to narrate the day.",
     longDescription:
-      "Grounding and breath to support sleep readiness. Not a substitute for clinical insomnia care.",
+      "Grounding and breath to invite sleep readiness — without forcing silence. Not a substitute for clinical sleep care.",
     categorySlug: "sleep",
     tagSlugs: ["grounding", "night"],
     durationMinutes: 15,
@@ -150,11 +150,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Morning confidence reset",
+    title: "Morning without the armor",
     slug: "morning-confidence-reset",
-    shortDescription: "Quiet strength to begin the day.",
+    shortDescription: "Steady language before the day asks you to perform.",
     longDescription:
-      "Uplifting yet steady language for mornings — confidence as self-trust, not pressure.",
+      "Uplifting in a quiet register — confidence as self-trust, not a costume. First-light audio, not productivity coaching.",
     categorySlug: "morning-reset",
     tagSlugs: ["morning", "confidence"],
     durationMinutes: 8,
@@ -170,11 +170,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Reconnect with your breath",
+    title: "Breath as your home base",
     slug: "reconnect-with-your-breath",
-    shortDescription: "Breath as a simple anchor you can return to.",
+    shortDescription: "A portable anchor you can steal anywhere.",
     longDescription:
-      "Breathing-focused session. Stop if dizzy; breathe at your own pace.",
+      "Breathing-led session — stay at a pace that feels honest. Stop if dizzy or strained; natural breath always wins.",
     categorySlug: "breathing",
     tagSlugs: ["breath", "anchor"],
     durationMinutes: 7,
@@ -191,11 +191,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Emotional release without overwhelm",
+    title: "Room for feeling, slow tempo",
     slug: "emotional-release-without-overwhelm",
-    shortDescription: "Make room for feelings with gentle pacing.",
+    shortDescription: "Feelings move better when they are not rushed.",
     longDescription:
-      "Emotional reset audio — not therapy. If you are in crisis, seek professional support.",
+      "Emotional reset audio with gentle pacing — a container, not a cure. If you are in crisis, reach for professional or emergency support.",
     categorySlug: "emotional-reset",
     tagSlugs: ["emotions", "pace"],
     durationMinutes: 16,
@@ -211,11 +211,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Sensual softness (consent-first)",
+    title: "Soft embodiment (consent-first)",
     slug: "sensual-softness-consent-first",
-    shortDescription: "Embodied calm and self-connection in non-explicit language.",
+    shortDescription: "Warmth, breath, and boundaries you set — never explicit.",
     longDescription:
-      "Gentle sensual wellness focused on breath, warmth, and boundaries you choose. Skip if not welcome — you are always in charge.",
+      "Curated sensual wellness: breath, temperature, language you can leave at any line. Consent-first; skip entirely if the category is not for you.",
     categorySlug: "sensual-wellness",
     tagSlugs: ["embodiment", "softness", "consent"],
     durationMinutes: 12,
@@ -231,11 +231,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Afternoon exhale",
+    title: "Midday exhale",
     slug: "afternoon-exhale",
-    shortDescription: "A mid-day nervous system exhale.",
+    shortDescription: "Steal a breath between meetings and errands.",
     longDescription:
-      "Short breathing and grounding for busy afternoons.",
+      "Short breathing and grounding for the middle of the day — a hinge, not a performance.",
     categorySlug: "breathing",
     tagSlugs: ["afternoon", "breath"],
     durationMinutes: 6,
@@ -251,11 +251,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Return to your center",
+    title: "When you are pulled in every direction",
     slug: "return-to-your-center",
-    shortDescription: "Grounding when you feel pulled in many directions.",
+    shortDescription: "Gather attention without forcing focus.",
     longDescription:
-      "Grounding practice for scattered attention. Wellness only.",
+      "Grounding for scattered minds — center as return, not perfection. Wellness audio, not concentration training.",
     categorySlug: "grounding",
     tagSlugs: ["center", "focus"],
     durationMinutes: 11,
@@ -271,11 +271,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Quiet strength for hard meetings",
+    title: "Before the room fills",
     slug: "quiet-strength-for-hard-meetings",
-    shortDescription: "Soft power before stepping into intensity.",
+    shortDescription: "Steady breath and spine before high-stakes airtime.",
     longDescription:
-      "Confidence framing as steadiness and self-respect — not performance.",
+      "Quiet strength as steadiness and self-respect — not a script to perform. Pre-meeting ritual, not workplace therapy.",
     categorySlug: "confidence-soft-power",
     tagSlugs: ["confidence", "work"],
     durationMinutes: 9,
@@ -291,11 +291,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Wind-down for sensitive systems",
+    title: "For sensitive, wired days",
     slug: "wind-down-for-sensitive-systems",
-    shortDescription: "Extra gentle pacing for overstimulated days.",
+    shortDescription: "Slower language when the world feels turned up.",
     longDescription:
-      "Slowed language and breath for sensitive nervous systems.",
+      "Extra gentle pacing for overstimulated systems — cool water, not commands. Wellness listening only.",
     categorySlug: "stress-relief",
     tagSlugs: ["sensitive", "slow"],
     durationMinutes: 14,
@@ -311,11 +311,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Body scan for tired minds",
+    title: "A slow map for a tired mind",
     slug: "body-scan-for-tired-minds",
-    shortDescription: "Simple scanning without fixing anything.",
+    shortDescription: "Notice without correcting — especially when thinking is exhausted.",
     longDescription:
-      "Body awareness meditation in accessible language.",
+      "Accessible body scan language — mapping sensation, not fixing the body. Restful awareness, not clinical somatics.",
     categorySlug: "body-awareness",
     tagSlugs: ["body-scan", "rest"],
     durationMinutes: 13,
@@ -333,9 +333,9 @@ export const SEED_SESSIONS = [
   {
     title: "First light ritual",
     slug: "first-light-ritual",
-    shortDescription: "A soft beginning when the world feels loud.",
+    shortDescription: "Cross the morning threshold without rushing into noise.",
     longDescription:
-      "Morning reset with breath and affirmation — intimate wellness, never explicit.",
+      "Breath and affirmation for early hours — private, never explicit. A held start, not an optimization routine.",
     categorySlug: "morning-reset",
     tagSlugs: ["morning", "ritual"],
     durationMinutes: 10,
@@ -351,11 +351,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Self-held gentleness",
+    title: "Held by your own hands",
     slug: "self-held-gentleness",
-    shortDescription: "Practice holding yourself with care.",
+    shortDescription: "Self-compassion you can feel in the body, not only in theory.",
     longDescription:
-      "Emotional reset emphasizing self-compassion. Not a replacement for therapy.",
+      "Emotional reset with emphasis on warmth toward yourself — a practice, not a substitute for therapy when you need it.",
     categorySlug: "emotional-reset",
     tagSlugs: ["self-compassion"],
     durationMinutes: 12,
@@ -371,11 +371,11 @@ export const SEED_SESSIONS = [
     ),
   },
   {
-    title: "Deep rest invitation",
+    title: "A longer exhale into rest",
     slug: "deep-rest-invitation",
-    shortDescription: "Longer exhale toward restful states.",
+    shortDescription: "Extended unwinding when you can stay in the room longer.",
     longDescription:
-      "Extended relaxation audio — premium wind-down series placeholder.",
+      "Deeper relaxation pacing for Signature listeners — rest framed as allowed, not earned. Wellness audio, not sleep medicine.",
     categorySlug: "sleep",
     tagSlugs: ["deep-rest", "premium"],
     durationMinutes: 22,
@@ -393,9 +393,9 @@ export const SEED_SESSIONS = [
   {
     title: "Before a difficult conversation",
     slug: "before-a-difficult-conversation",
-    shortDescription: "Steady your voice, breath, and spine before you speak your truth.",
+    shortDescription: "Voice, breath, and spine before words meet air.",
     longDescription:
-      "A pre-conversation ritual: breath, grounding, and gentle framing for clarity without bracing. Wellness skill-building — not conflict mediation.",
+      "A pre-conversation ritual — breath, grounding, and framing for clarity without bracing. Skill-building audio, not mediation or legal advice.",
     categorySlug: "confidence-soft-power",
     tagSlugs: ["boundaries", "communication"],
     durationMinutes: 9,
@@ -422,9 +422,9 @@ export const SEED_SESSIONS = [
   {
     title: "After hard news — holding yourself",
     slug: "after-hard-news-softening",
-    shortDescription: "When the world narrows, widen your breath in tiny steps.",
+    shortDescription: "When the world narrows, widen the breath in small, honest steps.",
     longDescription:
-      "Supportive pacing after upsetting information. Not trauma therapy — a gentle container for your nervous system in the moment.",
+      "Supportive pacing after upsetting information — a gentle container in the moment. Not trauma therapy or crisis care.",
     categorySlug: "emotional-reset",
     tagSlugs: ["grief", "support"],
     durationMinutes: 14,
@@ -449,11 +449,11 @@ export const SEED_SESSIONS = [
     },
   },
   {
-    title: "Inner boundary rehearsal",
+    title: "No, first in the body",
     slug: "inner-boundary-rehearsal",
-    shortDescription: "Practice saying no in the body before you say it out loud.",
+    shortDescription: "Rehearse limits in muscle and breath before words leave your mouth.",
     longDescription:
-      "Embodied rehearsal for limits and self-respect — wellness coaching tone, not legal or therapeutic advice.",
+      "Embodied rehearsal for limits and self-respect — listening practice only, not legal counsel or therapy.",
     categorySlug: "confidence-soft-power",
     tagSlugs: ["boundaries", "self-trust"],
     durationMinutes: 11,
@@ -478,11 +478,11 @@ export const SEED_SESSIONS = [
     },
   },
   {
-    title: "Cycle stress — gentle downshift",
+    title: "When the cycle turns the volume up",
     slug: "cycle-stress-softening",
-    shortDescription: "For days hormones make everything feel louder.",
+    shortDescription: "Softer pacing for days when sensitivity feels amplified — context, not a label.",
     longDescription:
-      "Wellness audio for premenstrual or cyclic sensitivity — soothing language only, not medical guidance about hormones or mood disorders.",
+      "Soothing audio for premenstrual or cyclic sensitivity — comfort listening only, not medical guidance on hormones, mood, or diagnoses.",
     categorySlug: "stress-relief",
     tagSlugs: ["cycle", "sensitivity"],
     durationMinutes: 10,
@@ -507,11 +507,11 @@ export const SEED_SESSIONS = [
     },
   },
   {
-    title: "When anxiety surges — breath & anchor",
+    title: "Surge, then anchor",
     slug: "when-anxiety-surges-breath-anchor",
-    shortDescription: "Short anchors when worry spikes — stop anytime.",
+    shortDescription: "Portable breath and senses when worry runs hot — you set the pace.",
     longDescription:
-      "Breath-led downshift for anxious activation. Not exposure therapy or panic treatment — discontinue if breathwork worsens symptoms.",
+      "Breath-led downshift for anxious activation. Not exposure therapy or clinical panic care — stop if breath practice sharpens symptoms.",
     categorySlug: "breathing",
     tagSlugs: ["anxiety", "anchor"],
     durationMinutes: 8,
@@ -538,11 +538,11 @@ export const SEED_SESSIONS = [
     },
   },
   {
-    title: "Micro-pause for overloaded caregivers",
+    title: "Ninety seconds with the door closed",
     slug: "micro-pause-overloaded-caregivers",
-    shortDescription: "Ninety seconds of permission when everyone needs you.",
+    shortDescription: "Maintenance for the mental load of holding everyone else — brief, allowed, enough.",
     longDescription:
-      "Ultra-short reset for chronic mental load — wellness only, not parenting therapy or burnout treatment.",
+      "Ultra-short reset when responsibility fills the room — wellness audio only, not parenting therapy or clinical burnout care.",
     categorySlug: "stress-relief",
     tagSlugs: ["caregiver", "quick"],
     durationMinutes: 4,

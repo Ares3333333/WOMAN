@@ -155,7 +155,7 @@ export function AudioPlayer({
   const remaining = Math.max(0, duration - current);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/50 bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_48px_-20px_hsl(var(--shadow-hsl)/0.08)] backdrop-blur-xl backdrop-saturate-150">
       {mode === "audio" && audioUrl ? (
         <audio
           ref={audioRef}
@@ -166,11 +166,13 @@ export function AudioPlayer({
         />
       ) : null}
 
-      <div className="mx-auto flex max-w-lg flex-col gap-3 px-4 py-4">
+      <div className="mx-auto flex max-w-lg flex-col gap-3.5 px-4 py-4">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">{t("app.play.nowGuiding")}</p>
-            <p className="font-display text-lg font-medium leading-tight">{title}</p>
+          <div className="min-w-0">
+            <p className="text-[0.65rem] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              {t("app.play.nowGuiding")}
+            </p>
+            <p className="truncate font-display text-lg font-medium leading-tight tracking-tight">{title}</p>
             {mode === "tts" ? (
               <p className="mt-1 text-xs text-muted-foreground">
                 {audioFailed ? t("app.play.browserVoiceMissing") : t("app.play.browserVoiceDefault")}
@@ -206,10 +208,10 @@ export function AudioPlayer({
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={cycleSpeed}>
+          <Button type="button" variant="secondary" size="sm" className="rounded-full font-medium tabular-nums" onClick={cycleSpeed}>
             {SPEEDS[speedIdx]}×
           </Button>
-          <Button type="button" size="lg" className="rounded-full px-8" onClick={togglePlay}>
+          <Button type="button" size="lg" className="rounded-full px-8 shadow-soft" onClick={togglePlay}>
             {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 pl-0.5" />}
           </Button>
           <Button
@@ -223,8 +225,8 @@ export function AudioPlayer({
           </Button>
         </div>
 
-        <Button type="button" variant="ghost" size="sm" className="mx-auto" onClick={markComplete}>
-          <SkipForward className="mr-2 h-4 w-4" />
+        <Button type="button" variant="ghost" size="sm" className="mx-auto rounded-full px-5" onClick={markComplete}>
+          <SkipForward className="mr-2 h-4 w-4 opacity-70" />
           {t("app.play.complete")}
         </Button>
 
@@ -234,7 +236,7 @@ export function AudioPlayer({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden rounded-xl border border-border/60 bg-background/60 p-3 text-sm leading-relaxed text-muted-foreground"
+              className="overflow-hidden rounded-2xl border border-border/50 bg-muted/20 p-4 text-sm leading-relaxed text-muted-foreground shadow-inner"
             >
               {fullText}
             </motion.div>
@@ -247,7 +249,7 @@ export function AudioPlayer({
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="border-t border-border/60 bg-gradient-mesh px-4 py-5"
+            className="border-t border-border/45 bg-gradient-mesh px-4 py-5"
           >
             <div className="mx-auto flex max-w-lg flex-col gap-3">
               <p className="flex items-center gap-2 font-display text-base">
@@ -255,12 +257,12 @@ export function AudioPlayer({
                 {t("app.play.howFeel")}
               </p>
               <textarea
-                className="min-h-[72px] w-full rounded-xl border border-border bg-card/80 p-3 text-sm"
+                className="min-h-[80px] w-full rounded-2xl border border-border/55 bg-card/90 p-3.5 text-sm shadow-inner"
                 placeholder={t("app.play.reflectionPlaceholder")}
                 value={reflection ?? ""}
                 onChange={(e) => setReflection(e.target.value)}
               />
-              <Button type="button" variant="secondary" onClick={() => setCompletedUi(false)}>
+              <Button type="button" variant="secondary" className="rounded-full" onClick={() => setCompletedUi(false)}>
                 {t("app.play.close")}
               </Button>
             </div>

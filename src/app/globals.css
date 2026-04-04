@@ -2,29 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * Visual system: quiet luxury, warm editorial, low-chroma depth.
+ * Tokens favor depth over brightness; borders over glow; one soft shadow family.
+ */
 @layer base {
   :root {
-    --background: 30 20% 97%;
-    --foreground: 260 10% 18%;
-    --card: 28 35% 98%;
-    --card-foreground: 260 10% 18%;
-    --primary: 330 25% 35%;
-    --primary-foreground: 30 30% 98%;
-    --muted: 300 12% 92%;
-    --muted-foreground: 260 8% 40%;
-    --accent: 280 18% 92%;
-    --accent-foreground: 260 10% 22%;
-    --destructive: 0 70% 45%;
+    /* Canvas — warm paper, not stark white */
+    --background: 32 26% 96%;
+    --foreground: 262 12% 16%;
+
+    /* Surfaces — lifted sheets, subtle separation from canvas */
+    --card: 34 32% 98.5%;
+    --card-foreground: 262 12% 16%;
+
+    /* Accent plum — deep, muted; never “hot pink” */
+    --primary: 326 18% 30%;
+    --primary-foreground: 36 28% 97%;
+
+    --muted: 300 9% 93%;
+    --muted-foreground: 262 6% 42%;
+
+    --accent: 286 10% 93%;
+    --accent-foreground: 262 11% 19%;
+
+    --destructive: 0 62% 42%;
     --destructive-foreground: 0 0% 100%;
-    --border: 300 10% 88%;
-    --input: 300 10% 88%;
-    --ring: 330 25% 45%;
-    --radius: 0.875rem;
-    --cream: 35 40% 96%;
-    --rose: 350 45% 88%;
-    --plum: 290 22% 32%;
-    --mauve: 310 18% 72%;
-    --charcoal: 260 10% 18%;
+
+    /* Edges — low-contrast ink on paper */
+    --border: 300 7% 88%;
+    --input: 300 7% 88%;
+    --ring: 326 14% 36%;
+
+    /* Radii — generous, consistent */
+    --radius: 1rem;
+
+    /* Brand accents (marketing / mesh only) — dusty, not candy */
+    --cream: 36 30% 95%;
+    --rose: 348 22% 90%;
+    --plum: 292 16% 28%;
+    --mauve: 308 10% 66%;
+    --charcoal: 262 12% 16%;
+
+    /* Shadow pigment (hue aligns with plum family) */
+    --shadow-hsl: 280 22% 22%;
   }
 
   * {
@@ -33,5 +54,23 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+
+  /* Barely-there warmth behind content — not a “gradient UI” */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(ellipse 120% 70% at 50% -30%, hsl(var(--rose) / 0.14), transparent 55%);
+  }
+}
+
+@layer utilities {
+  .text-editorial-muted {
+    @apply text-muted-foreground;
+    letter-spacing: 0.01em;
   }
 }

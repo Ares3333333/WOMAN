@@ -66,12 +66,12 @@ export const SESSIONS: MiniSession[] = [
   {
     slug: "five-minute-nervous-system-reset",
     title: {
-      ru: "Пять минут тишины внутри",
-      en: "Five minutes of inner quiet",
+      ru: "Пять минут, чтобы размотать",
+      en: "Five minutes to unspool",
     },
     short: {
-      ru: "Когда мало времени, а внутри шумно — без разбора мыслей.",
-      en: "When time is short and inside feels loud — no thought-chasing.",
+      ru: "Мало времени, а внутри всё ещё на взводе.",
+      en: "When you are short on time but your wiring is still turned up.",
     },
     durationMin: 5,
     freeTier: true,
@@ -120,10 +120,10 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "when-anxiety-surges-breath-anchor",
-    title: { ru: "Якорь на выдохе", en: "An anchor on the exhale" },
+    title: { ru: "Волна — и якорь", en: "Surge, then anchor" },
     short: {
-      ru: "Когда тревога громче обычного — ритм без спора с мыслями.",
-      en: "When anxiety runs hot — a rhythm without arguing with thoughts.",
+      ru: "Дыхание и чувства под рукой, когда тревога громкая — темп задаёте вы.",
+      en: "Portable breath and senses when worry runs hot — you set the pace.",
     },
     durationMin: 8,
     freeTier: true,
@@ -145,8 +145,8 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "reconnect-with-your-breath",
-    title: { ru: "Вернуться к дыханию", en: "Reconnect with your breath" },
-    short: { ru: "Спокойный темп без форсирования.", en: "Steady pacing without forcing." },
+    title: { ru: "Дыхание как домашняя точка", en: "Breath as your home base" },
+    short: { ru: "Якорь, который можно украсть в любом месте.", en: "A portable anchor you can steal anywhere." },
     durationMin: 10,
     freeTier: false,
     gradient: "rose",
@@ -167,10 +167,10 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "grounding-before-bed",
-    title: { ru: "Мягкий спуск перед сном", en: "A gentle descent before sleep" },
+    title: { ru: "Пусть ночь примет", en: "Let the night receive you" },
     short: {
-      ru: "Закрыть день телом, без отчёта о продуктивности.",
-      en: "Close the day with your body — no productivity report.",
+      ru: "Маленькие опоры, пока ум хочет пересказать день.",
+      en: "Small anchors while the mind still wants to narrate the day.",
     },
     durationMin: 14,
     freeTier: false,
@@ -193,10 +193,10 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "sleep-after-an-emotionally-hard-day",
-    title: { ru: "Сон после тяжёлого дня", en: "Sleep after a hard day" },
+    title: { ru: "Сон после эмоционально тяжёлого дня", en: "Sleep after an emotionally hard day" },
     short: {
-      ru: "Нежный вечер, когда сердце полное.",
-      en: "A tender wind-down when your heart feels full.",
+      ru: "Пусть сердце опустится, прежде чем погаснет свет.",
+      en: "Let the heart land before the lights go out.",
     },
     durationMin: 18,
     freeTier: false,
@@ -223,10 +223,10 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "morning-confidence-reset",
-    title: { ru: "Утро без геройства", en: "Morning without heroics" },
+    title: { ru: "Утро без брони", en: "Morning without the armor" },
     short: {
-      ru: "Тихий вход в день — без доказательств и без давления.",
-      en: "A quiet way into the day — no proving, no pushing.",
+      ru: "Ровный язык до того, как день попросит маску.",
+      en: "Steady language before the day asks you to perform.",
     },
     durationMin: 8,
     freeTier: false,
@@ -248,10 +248,10 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "after-hard-news-softening",
-    title: { ru: "После тяжёлых новостей", en: "After hard news — softening" },
+    title: { ru: "После тяжёлых новостей — удержать себя", en: "After hard news — holding yourself" },
     short: {
-      ru: "Когда мир слишком резкий.",
-      en: "When the world feels too sharp.",
+      ru: "Когда мир сужается — расширить дыхание честными маленькими шагами.",
+      en: "When the world narrows, widen the breath in small, honest steps.",
     },
     durationMin: 11,
     freeTier: true,
@@ -273,10 +273,10 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "gentle-body-reconnection",
-    title: { ru: "Вернуться в тело", en: "Back to your body" },
+    title: { ru: "Вернуться домой в тело", en: "Coming home to the body" },
     short: {
-      ru: "Опора, вес, дыхание — без фитнеса и без требований.",
-      en: "Support, weight, breath — no fitness frame, no demands.",
+      ru: "Физическое присутствие без задачи что-то исправить.",
+      en: "Physical presence without an agenda to change anything.",
     },
     durationMin: 14,
     freeTier: true,
@@ -302,10 +302,10 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "micro-pause-overloaded-caregivers",
-    title: { ru: "Микропауза для уставших опекунов", en: "Micro-pause for overloaded caregivers" },
+    title: { ru: "Девяносто секунд за закрытой дверью", en: "Ninety seconds with the door closed" },
     short: {
-      ru: "Когда ты держишь слишком много.",
-      en: "When you are holding too much.",
+      ru: "Обслуживание нагрузки «все от меня хотят» — коротко, можно, достаточно.",
+      en: "Maintenance for the mental load of holding everyone else — brief, allowed, enough.",
     },
     durationMin: 6,
     freeTier: true,
@@ -328,12 +328,12 @@ export const SESSIONS: MiniSession[] = [
   {
     slug: "sensual-softness-consent-first",
     title: {
-      ru: "Чувственная мягкость (только с согласия)",
-      en: "Sensual softness — consent first",
+      ru: "Мягкое воплощение (согласие в центре)",
+      en: "Soft embodiment (consent-first)",
     },
     short: {
-      ru: "Непорнографично, без давления, только твоё «да».",
-      en: "Non-explicit, no pressure — only your yes.",
+      ru: "Тепло, дыхание и границы, которые задаёте вы — без откровенности.",
+      en: "Warmth, breath, and boundaries you set — never explicit.",
     },
     durationMin: 16,
     freeTier: false,

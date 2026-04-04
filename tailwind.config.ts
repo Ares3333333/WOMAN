@@ -46,7 +46,17 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
         xl: "calc(var(--radius) + 4px)",
-        "2xl": "calc(var(--radius) + 12px)",
+        "2xl": "calc(var(--radius) + 10px)",
+        "3xl": "calc(var(--radius) + 18px)",
+      },
+      boxShadow: {
+        soft: "0 1px 0 hsl(var(--shadow-hsl) / 0.05), 0 14px 42px -18px hsl(var(--shadow-hsl) / 0.09)",
+        lift: "0 1px 0 hsl(var(--shadow-hsl) / 0.06), 0 20px 50px -22px hsl(var(--shadow-hsl) / 0.11)",
+        inner: "inset 0 1px 0 hsl(var(--shadow-hsl) / 0.04)",
+      },
+      spacing: {
+        18: "4.5rem",
+        22: "5.5rem",
       },
       fontFamily: {
         sans: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
@@ -54,9 +64,9 @@ const config: Config = {
       },
       backgroundImage: {
         "gradient-radial-soft":
-          "radial-gradient(ellipse 120% 80% at 50% -20%, hsl(var(--rose) / 0.35), transparent 55%)",
+          "radial-gradient(ellipse 120% 80% at 50% -24%, hsl(var(--rose) / 0.22), transparent 58%)",
         "gradient-mesh":
-          "linear-gradient(135deg, hsl(var(--cream)) 0%, hsl(var(--rose) / 0.12) 45%, hsl(var(--plum) / 0.08) 100%)",
+          "linear-gradient(132deg, hsl(var(--cream)) 0%, hsl(var(--rose) / 0.08) 48%, hsl(var(--plum) / 0.05) 100%)",
       },
       keyframes: {
         "fade-in": {

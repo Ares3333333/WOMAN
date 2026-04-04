@@ -19,14 +19,19 @@ export function PlayClient(props: {
   const script = useMemo(() => props.script, [props.script]);
 
   return (
-    <div className="pb-56 pt-4">
-      <h1 className="font-display text-2xl font-medium">{props.title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{t("app.play.wellnessOnly")}</p>
-      {props.useBrowserTts ? (
-        <p className="mt-3 border-l-2 border-primary/40 pl-3 text-xs leading-relaxed text-muted-foreground">
-          {t("app.play.ttsExplainer")}
+    <div className="pb-56 pt-2">
+      <div className="rounded-2xl border border-border/45 bg-card/60 px-5 py-5 shadow-sm md:px-6 md:py-6">
+        <p className="text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          {t("app.play.sessionEyebrow")}
         </p>
-      ) : null}
+        <h1 className="mt-2 font-display text-2xl font-medium tracking-tight md:text-[1.65rem]">{props.title}</h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t("app.play.wellnessOnly")}</p>
+        {props.useBrowserTts ? (
+          <p className="mt-4 border-l-2 border-primary/30 pl-3.5 text-xs leading-relaxed text-muted-foreground">
+            {t("app.play.ttsExplainer")}
+          </p>
+        ) : null}
+      </div>
       <AudioPlayer
         sessionId={props.sessionId}
         title={props.title}

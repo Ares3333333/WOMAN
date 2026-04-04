@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { AppPageHeader } from "@/components/app-page-header";
 import { EmptyState } from "@/components/empty-state";
 import { SessionCard } from "@/components/session-card";
 import { Button } from "@/components/ui/button";
@@ -14,19 +15,19 @@ export default async function FavoritesPage() {
 
   const favorites = await prisma.favorite.findMany({
     where: { userId: session.user.id },
-    include: { session: true },
+    include: { session: { include: { category: true } } },
     orderBy: { createdAt: "desc" },
   });
 
   return (
-    <div className="space-y-6 pb-8">
-      <h1 className="font-display text-3xl font-medium">{t("app.favorites.title")}</h1>
+    <div className="space-y-8 pb-10">
+      <AppPageHeader title={t("app.favorites.title")} description={t("app.favorites.subtitle")} />
       {favorites.length === 0 ? (
         <EmptyState
           title={t("app.favorites.emptyTitle")}
           description={t("app.favorites.emptyDesc")}
           action={
-            <Button asChild>
+            <Button asChild size="lg" className="rounded-full">
               <Link href="/app/library">{t("app.favorites.browse")}</Link>
             </Button>
           }
@@ -42,6 +43,10 @@ export default async function FavoritesPage() {
               durationMinutes={f.session.durationMinutes}
               gradientKey={f.session.coverGradient}
               favorited
+              variant="compact"
+              categoryLabel={f.session.category.name}
+              intensity={f.session.intensity}
+              premium={!f.session.freeTier}
             />
           ))}
         </div>

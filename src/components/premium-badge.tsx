@@ -1,20 +1,37 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIntl } from "@/components/intl-provider";
 
-export function PremiumBadge({ className }: { className?: string }) {
+export function PremiumBadge({
+  className,
+  variant = "pill",
+}: {
+  className?: string;
+  variant?: "pill" | "editorial";
+}) {
   const { t } = useIntl();
-  return (
+  const editorial = (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-medium text-primary",
+        "whitespace-nowrap text-[0.6rem] font-medium uppercase tracking-[0.2em] text-primary/75",
         className
       )}
     >
-      <Sparkles className="h-3 w-3" />
-      {t("premiumBadge")}
+      {t("sessionCard.signatureMark")}
+    </span>
+  );
+  if (variant === "editorial") {
+    return editorial;
+  }
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border border-primary/18 bg-primary/[0.05] px-3 py-1 text-[0.6rem] font-medium uppercase tracking-[0.18em] text-primary/90 shadow-inner",
+        className
+      )}
+    >
+      {t("sessionCard.signatureMark")}
     </span>
   );
 }

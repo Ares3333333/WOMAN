@@ -17,7 +17,7 @@ export default async function PlayPage({ params }: { params: { sessionId: string
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   const locked =
     !canAccessPremiumSession(user?.subscriptionStatus ?? "none", ws.freeTier) && !ws.freeTier;
-  if (locked) redirect("/app/settings");
+  if (locked) redirect(`/app/premium?from=play&sessionId=${encodeURIComponent(sessionId)}`);
 
   const pref = await prisma.preference.findUnique({ where: { userId: session.user.id } });
   if (ws.category.slug === "sensual-wellness" && pref?.sensualContentMode === "hidden") {
