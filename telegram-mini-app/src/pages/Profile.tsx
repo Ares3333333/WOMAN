@@ -3,6 +3,8 @@ import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
 import { useTelegram } from "../telegram/useTelegram";
 
+const DEV_PREMIUM_UNLOCK = import.meta.env.DEV;
+
 export function ProfilePage() {
   const { lang, setLang, t } = useI18n();
   const { state, unlockPremium, setSensual } = useProgress();
@@ -11,10 +13,9 @@ export function ProfilePage() {
 
   const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
 
-  return (
-    <div className="page-head">
-      <h1
-        onPointerDown={() => {
+  const titleHandlers = DEV_PREMIUM_UNLOCK
+    ? {
+        onPointerDown: () => {
           pressRef.current = window.setTimeout(() => {
             unlockPremium();
             try {
@@ -23,33 +24,36 @@ export function ProfilePage() {
               /* ignore */
             }
           }, 2800);
-        }}
-        onPointerUp={() => {
+        },
+        onPointerUp: () => {
           if (pressRef.current) clearTimeout(pressRef.current);
-        }}
-        onPointerLeave={() => {
+        },
+        onPointerLeave: () => {
           if (pressRef.current) clearTimeout(pressRef.current);
-        }}
-        style={{ userSelect: "none" }}
-      >
-        {t("profileTitle")}
-      </h1>
+        },
+        style: { userSelect: "none" as const },
+      }
+    : {};
+
+  return (
+    <div className="page-head">
+      <h1 {...titleHandlers}>{t("profileTitle")}</h1>
       <p className="sub" style={{ fontSize: "0.72rem" }}>
-        {state.premium ? "Sora Circle ✓" : t("profilePremium")} · {t("profileAge")}
+        {state.premium ? t("profilePremiumActive") : t("profilePremium")} · {t("profileAge")}
       </p>
 
-      <div
-        style={{
-          marginTop: 20,
-          padding: 18,
-          borderRadius: "var(--radius-xl)",
-          background: "color-mix(in srgb, var(--tg-secondary) 90%, transparent)",
-        }}
-      >
-        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>{t("profilePremium")}</h2>
-        <p className="sub" style={{ marginBottom: 14 }}>
+      <div className="profile-premium-card">
+        <h2 style={{ marginTop: 0, fontSize: "1.08rem" }}>{t("profilePremium")}</h2>
+        <p className="sub" style={{ marginBottom: 12 }}>
           {t("profilePremiumBody")}
         </p>
+        {!state.premium ? (
+          <ul className="premium-bullet-list" style={{ marginTop: 0 }}>
+            <li>{t("profileCircleBullet1")}</li>
+            <li>{t("profileCircleBullet2")}</li>
+            <li>{t("profileCircleBullet3")}</li>
+          </ul>
+        ) : null}
         {!state.premium ? (
           <button
             type="button"
@@ -68,9 +72,7 @@ export function ProfilePage() {
           >
             {t("profileUpgrade")}
           </button>
-        ) : (
-          <p style={{ margin: 0, color: "var(--tg-link)", fontSize: "0.9rem" }}>Premium активен (локально)</p>
-        )}
+        ) : null}
         {bot ? (
           <button
             type="button"
@@ -99,29 +101,31 @@ export function ProfilePage() {
         </button>
       </div>
 
-      <h2 style={{ marginTop: 24, fontSize: "1rem" }}>Sensual / чувственный контент</h2>
-      <p className="sub" style={{ fontSize: "0.8rem" }}>{t("sensualNote")}</p>
+      <h2 style={{ marginTop: 24, fontSize: "1rem" }}>{t("profileSensualSectionTitle")}</h2>
+      <p className="sub" style={{ fontSize: "0.82rem" }}>
+        {t("profileSensualSectionSub")}
+      </p>
       <div className="select-row">
         {(
           [
-            ["welcome", "Welcome / Добро"],
-            ["optional", "Optional / По желанию"],
-            ["hidden", "Hidden / Скрыть"],
+            ["welcome", "profileSensualWelcome"],
+            ["optional", "profileSensualOptional"],
+            ["hidden", "profileSensualHidden"],
           ] as const
-        ).map(([key, label]) => (
+        ).map(([key, labelKey]) => (
           <button
             key={key}
             type="button"
             className={state.sensualMode === key ? "on" : ""}
             onClick={() => setSensual(key)}
           >
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>
 
       <p className="sub" style={{ marginTop: 32, fontSize: "0.75rem" }}>
-        {isTelegram ? "Telegram WebApp" : "Локальный режим (без Telegram)"}
+        {isTelegram ? t("profileEnvTelegram") : t("profileEnvLocal")}
       </p>
       <button
         type="button"

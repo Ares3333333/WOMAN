@@ -102,19 +102,17 @@ export function SessionPlayPage() {
         </Link>
         <h1 style={{ marginTop: 12 }}>{session.title[L]}</h1>
         <p className="sub">{session.short[L]}</p>
-        <div
-          style={{
-            marginTop: 24,
-            padding: 20,
-            borderRadius: "var(--radius-xl)",
-            background: "color-mix(in srgb, var(--tg-secondary) 90%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--tg-button) 35%, transparent)",
-          }}
-        >
-          <h2 style={{ fontSize: "1.1rem", marginTop: 0 }}>{t("premiumGateTitle")}</h2>
-          <p className="sub" style={{ marginBottom: 16 }}>
-            {t("premiumGateBody")}
+        <div className="premium-gate-card">
+          <h2 style={{ marginTop: 0 }}>{t("premiumGateTitle")}</h2>
+          <p className="sub" style={{ marginBottom: 12 }}>
+            {t("premiumGateLead")}
           </p>
+          <ul className="premium-bullet-list">
+            <li>{t("premiumGateBullet1")}</li>
+            <li>{t("premiumGateBullet2")}</li>
+            <li>{t("premiumGateBullet3")}</li>
+          </ul>
+          <p className="sub gate-privacy">{t("premiumGatePrivacy")}</p>
           <button
             type="button"
             className="btn btn-primary"
@@ -129,18 +127,16 @@ export function SessionPlayPage() {
               }
             }}
           >
-            {t("profileUpgrade")}
+            {t("premiumGateCta")}
           </button>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            style={{ marginTop: 10 }}
-            onClick={() => nav("/profile")}
-          >
-            {t("profileTitle")}
+          <button type="button" className="btn btn-ghost" style={{ marginTop: 10 }} onClick={() => nav("/profile")}>
+            {t("premiumGateProfile")}
+          </button>
+          <button type="button" className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => nav(-1)}>
+            {t("premiumGateLater")}
           </button>
         </div>
-        {!import.meta.env.VITE_TELEGRAM_BOT ? (
+        {!import.meta.env.VITE_TELEGRAM_BOT && !import.meta.env.PROD ? (
           <p className="sub" style={{ marginTop: 12, fontSize: "0.8rem" }}>
             Укажи VITE_TELEGRAM_BOT=https://t.me/ТвойБот в .env — кнопка откроет бота для оплаты Stars / подписки.
           </p>
@@ -170,8 +166,8 @@ export function SessionPlayPage() {
       </button>
 
       {done ? (
-        <p style={{ marginTop: 16, color: "var(--tg-link)", fontSize: "0.9rem" }}>
-          ✓ {t("goalsDrops")} +1
+        <p style={{ marginTop: 16, color: "var(--tg-link)", fontSize: "0.9rem", lineHeight: 1.45 }}>
+          {t("sessionCompleteLine")}
         </p>
       ) : null}
 

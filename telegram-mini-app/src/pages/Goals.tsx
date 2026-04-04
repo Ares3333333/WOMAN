@@ -28,9 +28,7 @@ export function GoalsPage() {
           marginTop: 8,
         }}
       >
-        <p style={{ margin: "0 0 4px", fontSize: "0.75rem", color: "var(--tg-hint)", textTransform: "uppercase" }}>
-          {t("goalsStreak")}
-        </p>
+        <p className="metric-label">{t("goalsStreak")}</p>
         <p style={{ margin: 0, fontSize: "2.5rem", fontFamily: "var(--font-display)" }}>{state.streak}</p>
       </div>
 
