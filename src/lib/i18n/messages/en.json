@@ -1,0 +1,403 @@
+{
+  "meta": {
+    "title": "Sora Calm — Guided wellness audio for women",
+    "description": "Premium guided calming audio for stress relief, nervous system care, and gentle embodiment — wellness only, never medical advice."
+  },
+  "common": {
+    "brand": "Sora Calm",
+    "english": "English",
+    "russian": "Русский",
+    "language": "Language",
+    "backHome": "Back to home",
+    "tryAgain": "Try again",
+    "home": "Home",
+    "saving": "Saving…",
+    "loading": "Loading…"
+  },
+  "languageSwitcher": {
+    "aria": "Switch language"
+  },
+  "errors": {
+    "routeTitle": "Something went wrong",
+    "routeBody": "We couldn't load this screen. Nothing you wrote was shared beyond this device and our secure servers. You can try again or go back.",
+    "studioHome": "Studio home"
+  },
+  "landing": {
+    "signIn": "Sign in",
+    "startFree": "Start free",
+    "eyebrow": "Guided calming audio · 21+",
+    "heroTitle": "Return to your body with soft rituals for stressful days",
+    "heroBody": "Sora Calm offers intimate wellness, gently guided — breath, grounding, body awareness, and bedtime relaxation. Not therapy, not medical advice — a premium space to regulate your nervous system on your terms.",
+    "beginFree": "Begin your free access",
+    "crisisResources": "Crisis resources",
+    "wellnessOnly": "Wellness only. Adult women 21+. No explicit sexual content.",
+    "whyEyebrow": "Why listeners come here",
+    "whyTitle": "Calm that respects your intelligence",
+    "whyDesc": "Short sessions you can trust — clear language, consent-first framing, and room to opt out of any category.",
+    "why1Title": "Nervous system care",
+    "why1Body": "Downshift stress with breath-led audio designed for real life, not perfection.",
+    "why2Title": "Embodied presence",
+    "why2Body": "Gentle body awareness to reconnect with yourself without pressure to perform.",
+    "why3Title": "Sleep & softness",
+    "why3Body": "Bedtime relaxation and emotional aftercare when the day felt too loud.",
+    "howEyebrow": "How it works",
+    "howTitle": "Three quiet steps",
+    "howDesc": "Private, minimal data, and always your choice what you engage with.",
+    "how1Step": "01",
+    "how1Title": "Check in with your mood",
+    "how1Body": "We recommend three sessions that match how you feel.",
+    "how2Step": "02",
+    "how2Title": "Choose your session",
+    "how2Body": "Filter by length, tone, and category — skip anything that isn't for you.",
+    "how3Step": "03",
+    "how3Title": "Listen & integrate",
+    "how3Body": "Transcripts, speed control, and a gentle reflection after you finish.",
+    "testimonialsEyebrow": "Voices from our early circle",
+    "testimonialsTitle": "What listeners are saying",
+    "testimonial1": "\"Finally something that feels expensive and emotionally safe.\"",
+    "testimonial2": "\"I use the five-minute reset between meetings — it actually lands.\"",
+    "testimonial3": "\"The bedtime tracks are tender without being saccharine.\"",
+    "categoriesEyebrow": "Inside the library",
+    "categoriesTitle": "Categories crafted for real days",
+    "pricingEyebrow": "Premium when you're ready",
+    "pricingTitle": "Premium when you're ready",
+    "pricingBody": "Free tier includes a curated set. Premium unlocks the full library, bedtime series, and deeper resets — billing connects when you choose Stripe in production.",
+    "pricingCtaFree": "Start free",
+    "pricingCtaAccount": "Create account",
+    "signatureEyebrow": "Signature membership",
+    "signatureTitle": "$100 / month · built for women who hold a lot",
+    "signatureBody": "Full library (24+ guided sessions and growing), deep sleep & nervous-system paths, boundaries & confidence series, mood-based picks, journal integration, and first access to new drops. Optional add-on workbook & extended masterclasses (~$49) when checkout goes live.",
+    "signatureBullets": [
+      "Structured programs — not a loose playlist",
+      "Crisis-aware copy with clear escalation to real-world help",
+      "Premium tracks for sleep, emotional weight, and soft power",
+      "Designed to justify a serious monthly investment"
+    ],
+    "signatureCta": "Start with free sessions",
+    "signatureCtaPrograms": "Preview programs after sign-in",
+    "faqTitle": "FAQ",
+    "faqTherapyQ": "Is this therapy?",
+    "faqTherapyA": "No. Sora Calm is wellness audio only. It does not diagnose or treat mental health conditions.",
+    "faqExplicitQ": "Is content explicit?",
+    "faqExplicitA": "No. Sensual wellness uses breath, embodiment, and soft language — never pornographic or graphic instructions.",
+    "faqCrisisQ": "What if I'm in crisis?",
+    "faqCrisisA": "Use local emergency services or a crisis line. See our",
+    "faqCrisisLink": "crisis resources",
+    "newsletterTitle": "Stay softly in the loop",
+    "newsletterHint": "Email capture placeholder — connect your ESP in production (e.g., Resend, Customer.io).",
+    "notifyMe": "Notify me",
+    "footerWellness": "Wellness only ·",
+    "footerPrivacy": "Privacy",
+    "footerCrisis": "Crisis help",
+    "categories": [
+      "Stress relief",
+      "Breathing",
+      "Grounding",
+      "Sleep",
+      "Emotional reset",
+      "Body awareness",
+      "Sensual wellness (non-explicit)",
+      "Morning reset",
+      "Confidence & soft power"
+    ]
+  },
+  "ageGate": {
+    "title": "Sora Calm is for adults 21+",
+    "body": "This product offers wellness audio for adult women. By continuing, you confirm you are at least 21 years old and you understand Sora Calm is not medical advice, not therapy, and not crisis support.",
+    "continue": "I am 21 or older — continue",
+    "back": "Go back"
+  },
+  "crisis": {
+    "title": "You deserve immediate, real-world support",
+    "body": "Sora Calm is not equipped for emergencies, self-harm risk, abuse, or acute panic. If you are in danger or thinking about hurting yourself, please contact local emergency services now.",
+    "usTitle": "If you are in the United States",
+    "us988": "988 — Suicide & Crisis Lifeline (call or text)",
+    "us988Rest": "Suicide & Crisis Lifeline (call or text)",
+    "us911": "911 — Medical or safety emergency",
+    "us911Rest": "Medical or safety emergency",
+    "elsewhereTitle": "Elsewhere",
+    "elsewhereBody": "Search for your country's crisis hotline or go to the nearest emergency department. A trusted friend, clinician, or advocate can help you connect to care.",
+    "returnHome": "Return to home"
+  },
+  "signIn": {
+    "title": "Welcome back",
+    "hint": "Sign in to continue your calm.",
+    "demoFree": "Free library (paywall on premium)",
+    "demoPremium": "Signature preview — full library & all premium sessions",
+    "seedHint": "Create accounts with: npx prisma db push && npx prisma db seed",
+    "troubleshootTitle": "Can't sign in?",
+    "troubleshootBody": "First link = app is alive. Second = database + demo users. If ok:false, set DATABASE_URL=file:./dev.db and run npm run db:setup. Match browser URL with NEXTAUTH_URL (localhost vs 127.0.0.1).",
+    "devModeBanner": "Dev mode: passwordless sign-in. For the normal form use /sign-in?manual=1 or set DEV_SKIP_LOGIN=false in .env.",
+    "devAutoFailed": "Quick sign-in failed (no user in DB or DB error). Use email and password below, or run npm run db:setup.",
+    "backToInstant": "Sign in again without password (quick)",
+    "healthSimpleLink": "1) App only — /api/health",
+    "troubleshootLink": "2) Database — /api/health/db (readable page)",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "signingIn": "Signing in…",
+    "error": "Could not sign in. Check your email and password.",
+    "newHere": "New here?",
+    "createAccount": "Create an account"
+  },
+  "signUp": {
+    "title": "Create your space",
+    "body": "Minimal data, clear boundaries. You must be 21+; confirm on the age gate before signing up.",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password (8+ characters)",
+    "submit": "Sign up",
+    "creating": "Creating…",
+    "errorGeneric": "Could not register",
+    "hasAccount": "Already have an account?",
+    "signIn": "Sign in"
+  },
+  "app": {
+    "nav": {
+      "home": "Home",
+      "library": "Library",
+      "saved": "Saved",
+      "settings": "Settings",
+      "journal": "Journal",
+      "mood": "Mood",
+      "programs": "Paths"
+    },
+    "programs": {
+      "title": "Programs & paths",
+      "subtitle": "Structured sequences for your nervous system, sleep, boundaries, and emotional care. Open any session for the full guided script and player — your lesson is the audio + transcript together.",
+      "browseAll": "Browse full library",
+      "pathEyebrow": "Program",
+      "sessionWord": "sessions",
+      "homeCta": "Open programs & paths",
+      "homeHint": "Curated journeys — not random tracks.",
+      "paths": {
+        "nervous_system": {
+          "title": "Nervous system reset & daily anchors",
+          "desc": "Micro-resets, breath, and grounding when your system feels wired or scattered."
+        },
+        "sleep_deep_rest": {
+          "title": "Sleep & deep rest",
+          "desc": "Wind-down, emotionally heavy nights, and longer invitations into rest."
+        },
+        "boundaries_confidence": {
+          "title": "Boundaries & quiet confidence",
+          "desc": "Before hard conversations, inner rehearsal, and steady presence."
+        },
+        "emotional_care": {
+          "title": "Emotional care & softening",
+          "desc": "After hard news, release without overwhelm, and self-held gentleness."
+        },
+        "body_embodiment": {
+          "title": "Body & embodied presence",
+          "desc": "Reconnection, body scan, morning ritual, and consent-first sensual wellness."
+        },
+        "overload_cycle_care": {
+          "title": "Overload, cycles & caregivers",
+          "desc": "Micro-pauses for mental load, cyclic sensitivity, and sensitive systems."
+        }
+      }
+    },
+    "home": {
+      "hello": "Hello",
+      "title": "Your calm, held gently",
+      "disclaimer": "Wellness audio only — not medical advice.",
+      "crisisLink": "Crisis resources",
+      "forYouEyebrow": "For you today",
+      "forYouMood": "Based on your last mood",
+      "forYouStart": "Start here",
+      "forYouDesc": "Three suggestions you can play now.",
+      "updateMood": "Update mood",
+      "savedTitle": "Saved for you",
+      "recentTitle": "Recently played",
+      "seeAll": "See all",
+      "browseLibrary": "Browse full library",
+      "completed": "Completed",
+      "inProgress": "In progress"
+    },
+    "library": {
+      "title": "Library",
+      "subtitle": "Filter by category. Transcripts available on each session.",
+      "filterAll": "All"
+    },
+    "session": {
+      "favoritedYes": "Favorited: yes — use the player to toggle.",
+      "favoritedNo": "Favorited: no — use the player to toggle.",
+      "premiumTitle": "Premium session",
+      "premiumBody": "This track is part of Premium. Preview pricing in settings — Stripe wiring is stubbed for MVP.",
+      "viewPlans": "View plans",
+      "play": "Play session",
+      "transcript": "Transcript",
+      "openJournal": "Open journal prompt",
+      "hiddenSensual": "You've chosen to hide sensual wellness content. You can update this in profile.",
+      "openPrefs": "Open preferences",
+      "notePrefix": "Note:"
+    },
+    "play": {
+      "wellnessOnly": "Wellness audio only. Pause anytime. Nothing here replaces professional care.",
+      "nowGuiding": "Now guiding",
+      "browserVoiceMissing": "Audio file unavailable — using browser voice.",
+      "browserVoiceDefault": "Browser voice — add studio TTS or upload MP3 for file playback.",
+      "transcript": "Transcript",
+      "complete": "Complete session",
+      "howFeel": "How do you feel now?",
+      "reflectionPlaceholder": "A word, a sensation, or a breath of relief — optional.",
+      "close": "Close",
+      "progressAria": "Playback progress",
+      "ttsExplainer": "You are hearing the full session text read aloud (browser voice). In production, replace with studio-recorded narration per session — upload MP3 in Studio or connect TTS."
+    },
+    "favorites": {
+      "title": "Saved",
+      "emptyTitle": "No saved sessions yet",
+      "emptyDesc": "Tap the heart in the player to keep a session close.",
+      "browse": "Browse library"
+    },
+    "recent": {
+      "title": "Recent",
+      "emptyTitle": "No listening history yet",
+      "emptyDesc": "Your recent sessions will appear here.",
+      "browse": "Browse library"
+    },
+    "profile": {
+      "title": "Profile & preferences",
+      "subtitle": "Update how Sora Calm meets you. Wellness only — not medical or therapeutic services.",
+      "displayName": "Display name",
+      "sensualTitle": "Sensual wellness in feed",
+      "welcome": "Welcome",
+      "optional": "Optional",
+      "hidden": "Hidden",
+      "skipFeed": "Hide sensual wellness from home recommendations",
+      "voiceTone": "Preferred voice tone",
+      "listeningTime": "Listening time",
+      "save": "Save preferences",
+      "saved": "Preferences saved.",
+      "errorSave": "Couldn't save preferences. Try again."
+    },
+    "settings": {
+      "title": "Settings & subscription",
+      "statusPrefix": "Current status:",
+      "subStatus": {
+        "none": "Free",
+        "active": "Premium active",
+        "trialing": "Trial",
+        "canceled": "Canceled"
+      },
+      "stripeStub": "Stripe checkout is stubbed — wire webhooks and Customer Portal post-MVP.",
+      "upgradeSoon": "Upgrade (coming soon)",
+      "currentTier": "Current tier",
+      "currentTierCta": "Current tier",
+      "disclaimersTitle": "Disclaimers",
+      "disclaimer1": "Sora Calm provides wellness audio only. It is not medical advice, diagnosis, or treatment.",
+      "disclaimer2": "Not for crisis situations — use emergency services or a crisis line.",
+      "privacy": "Privacy",
+      "crisis": "Crisis resources",
+      "signOut": "Sign out",
+      "addonSoon": "Add-on (coming soon)"
+    },
+    "journal": {
+      "title": "Journal",
+      "subtitle": "Private reflections — not therapy notes. You can export or delete in a future release.",
+      "recentTitle": "Recent entries",
+      "empty": "No entries yet.",
+      "backHome": "Back to home",
+      "promptLabel": "Prompt",
+      "contentLabel": "Your words",
+      "save": "Save entry",
+      "saved": "Saved. Your words stay private to your account.",
+      "errorSave": "We couldn't save your entry. Check your connection and try again.",
+      "defaultPrompt": "What felt softer after your last session?"
+    },
+    "mood": {
+      "title": "How do you feel right now?",
+      "subtitle": "This shapes today's suggestions. You can change it anytime.",
+      "submit": "Save & see recommendations",
+      "skip": "Skip to home",
+      "error": "We couldn't save your check-in. Try again in a moment."
+    },
+    "onboarding": {
+      "title": "Let's tune your experience",
+      "subtitle": "You can change these anytime in profile. Nothing here is clinical — just preferences.",
+      "saveError": "We couldn't save your preferences. Please try again.",
+      "q1Label": "What brings you here?",
+      "q1Placeholder": "Stress, sleep, reconnection — in your own words.",
+      "continue": "Continue",
+      "lengthLabel": "Preferred session length",
+      "stressLabel": "Current stress level (1–10)",
+      "sensualTitle": "Sensual wellness content",
+      "sensualHint": "Always non-explicit. You choose how it appears in your feed.",
+      "sensualWelcome": "Welcome in my feed",
+      "sensualOptional": "Optional — show sometimes",
+      "sensualHidden": "Hidden — do not show",
+      "skipSensual": "Also hide sensual wellness from home recommendations",
+      "voiceLabel": "Preferred voice tone (for future personalization)",
+      "listenLabel": "When do you usually listen?",
+      "listenMorning": "Morning",
+      "listenAfternoon": "Afternoon",
+      "listenEvening": "Evening",
+      "listenSleep": "Before sleep",
+      "back": "Back",
+      "finish": "Finish",
+      "finishing": "Saving…"
+    },
+    "moodOptions": {
+      "overwhelmed": { "label": "Overwhelmed", "description": "Everything feels like too much" },
+      "anxious": { "label": "Anxious", "description": "My mind won't settle" },
+      "disconnected": { "label": "Disconnected", "description": "I feel far from myself" },
+      "restless": { "label": "Restless", "description": "I can't find stillness" },
+      "emotionally_heavy": { "label": "Emotionally heavy", "description": "Carrying a lot today" },
+      "cant_sleep": { "label": "Can't sleep", "description": "My body won't let me rest" },
+      "want_softness": { "label": "Want softness", "description": "I need something gentle" },
+      "need_confidence": { "label": "Need confidence", "description": "I want quiet strength" },
+      "reconnect_body": { "label": "Reconnect with my body", "description": "Return to embodied calm" }
+    }
+  },
+  "admin": {
+    "studio": "Sora Calm · Studio",
+    "overview": "Overview",
+    "sessions": "Sessions",
+    "generator": "Generator",
+    "appLink": "App",
+    "homeTitle": "Content studio",
+    "homeBody": "Create sessions, generate scripts (mock or OpenAI), and run TTS (mock or OpenAI when enabled).",
+    "manageSessions": "Manage sessions",
+    "newWithAi": "New session + AI",
+    "logsTitle": "Recent generation logs",
+    "logsEmpty": "No logs yet.",
+    "sessionsTitle": "Sessions",
+    "new": "New",
+    "edit": "Edit",
+    "delete": "Delete",
+    "draft": "draft",
+    "published": "published",
+    "newPageTitle": "New session",
+    "newPageBody": "Generate a draft with AI (mock without API key), preview script, then save. TTS can be run after publish from the edit screen.",
+    "editPageTitle": "Edit session"
+  },
+  "privacy": {
+    "title": "Privacy",
+    "backLink": "← Back to home",
+    "subtitle": "We designed Sora Calm to ask for little and protect what you share.",
+    "collectTitle": "What we collect",
+    "collectBody": "Account email and password (hashed), optional display name, your preferences, listening history inside the app, favorites, mood check-ins, and journal entries you choose to save. Session scripts and titles are content metadata, not personal diary data, unless you link them via journal prompts.",
+    "dontTitle": "What we don't do",
+    "dontBody": "We don't sell your personal data. We don't use your journal text for advertising profiling. Analytics events are kept minimal and should not include raw journal content or passwords.",
+    "cookiesTitle": "Cookies & sessions",
+    "cookiesBody": "We use cookies for sign-in sessions and the 21+ age confirmation where applicable. You can sign out from settings at any time.",
+    "choicesTitle": "Your choices",
+    "choicesBody": "You can control whether sensual wellness categories appear in your feed. You can skip any session. For data export or deletion requests, contact your deployment operator — automated self-service tools may be added post-MVP.",
+    "legalNote": "This page is a product summary, not a legal instrument. Your company counsel should review before production launch."
+  },
+  "premiumBadge": "Premium",
+  "sessionCard": {
+    "min": "min"
+  },
+  "voiceStyles": {
+    "calm": "Calm",
+    "warm": "Warm",
+    "confident": "Confident",
+    "bedtime": "Bedtime soft",
+    "calmHint": "Steady and clear",
+    "warmHint": "Close and kind",
+    "confidentHint": "Grounded strength",
+    "bedtimeHint": "Whisper-close"
+  }
+}

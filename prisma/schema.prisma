@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum IntensityLevel {
+  light
+  medium
+  deep
+}
+
+enum SessionTone {
+  soft
+  grounding
+  uplifting
+  sensual_soft
+  sleep
+}
+
+enum SensualContentMode {
+  welcome
+  optional
+  hidden
+}
+
+enum SubscriptionStatus {
+  none
+  trialing
+  active
+  canceled
+}
+
+enum GenerationLogKind {
+  script
+  tts
+}
+
+model User {
+  id                   String              @id @default(cuid())
+  name                 String?
+  email                String?             @unique
+  emailVerified        DateTime?
+  image                String?
+  passwordHash         String?
+  subscriptionStatus   SubscriptionStatus  @default(none)
+  stripeCustomerId     String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  accounts             Account[]
+  sessions             Session[]
+  profile              Profile?
+  preference           Preference?
+  favorites            Favorite[]
+  playbackHistory      PlaybackHistory[]
+  journalEntries       JournalEntry[]
+  moodCheckins         MoodCheckin[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  displayName String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Preference {
+  id                    String             @id @default(cuid())
+  userId                String             @unique
+  onboardingComplete    Boolean            @default(false)
+  onboardingStep        Int                @default(0)
+  bringReason           String?
+  preferredSessionLength String?
+  stressLevel           Int?
+  sensualContentMode    SensualContentMode @default(optional)
+  voiceTonePref         String?
+  listeningTimePref     String?
+  skipSensualInFeed     Boolean            @default(false)
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SessionCategory {
+  id          String            @id @default(cuid())
+  slug        String            @unique
+  name        String
+  description String?
+  sortOrder   Int               @default(0)
+  sessions    WellnessSession[]
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  slug     String       @unique
+  name     String
+  sessions SessionTag[]
+}
+
+model WellnessSession {
+  id                    String          @id @default(cuid())
+  title                 String
+  slug                  String          @unique
+  shortDescription      String
+  longDescription       String
+  categoryId            String
+  durationMinutes       Int
+  intensity             IntensityLevel
+  tone                  SessionTone
+  contraindicationNote  String?
+  scriptJson            String
+  voiceStyle            String
+  audioFileUrl          String?
+  coverGradient         String          @default("rose-plum")
+  published             Boolean         @default(false)
+  freeTier              Boolean         @default(true)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  category              SessionCategory @relation(fields: [categoryId], references: [id])
+  tags                  SessionTag[]
+  favorites             Favorite[]
+  playbackHistory       PlaybackHistory[]
+  journalEntries        JournalEntry[]
+
+  @@map("wellness_sessions")
+}
+
+model SessionTag {
+  sessionId String
+  tagId     String
+  session   WellnessSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tag       Tag             @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, tagId])
+}
+
+model Favorite {
+  userId    String
+  sessionId String
+  createdAt DateTime        @default(now())
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session   WellnessSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, sessionId])
+}
+
+model PlaybackHistory {
+  id              String          @id @default(cuid())
+  userId          String
+  sessionId       String
+  progressSeconds Int             @default(0)
+  completed       Boolean         @default(false)
+  lastPlayedAt    DateTime        @default(now())
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session         WellnessSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sessionId])
+}
+
+model JournalEntry {
+  id        String           @id @default(cuid())
+  userId    String
+  sessionId String?
+  prompt    String
+  content   String
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session   WellnessSession? @relation(fields: [sessionId], references: [id])
+}
+
+model MoodCheckin {
+  id        String   @id @default(cuid())
+  userId    String
+  mood      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionPlan {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  description   String?
+  stripePriceId String?
+  featuresJson  String   @default("{}")
+  sortOrder     Int      @default(0)
+}
+
+model AdminGenerationLog {
+  id        String            @id @default(cuid())
+  kind      GenerationLogKind
+  inputJson String
+  outputJson String?
+  error     String?
+  createdAt DateTime          @default(now())
+}

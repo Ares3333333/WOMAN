@@ -1,0 +1,19 @@
+# Optional: local PostgreSQL when you have Docker Desktop.
+# Run from project root: docker compose up -d
+# Then: npm run db:setup
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sora_calm
+    ports:
+      - "5432:5432"
+    volumes:
+      - sora_pg_data:/var/lib/postgresql/data
+
+volumes:
+  sora_pg_data:

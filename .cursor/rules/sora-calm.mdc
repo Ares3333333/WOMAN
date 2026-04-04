@@ -1,0 +1,36 @@
+---
+description: Sora Calm product and engineering rules
+globs: "**/*.{ts,tsx,md}"
+alwaysApply: true
+---
+
+# Sora Calm — project rules
+
+## Content & trust
+
+- Do **not** introduce explicit adult content, graphic sexual language, or pornographic framing.
+- **Sensual wellness** must stay tasteful, consent-first, body- and breath-focused, and **non-graphic**.
+- Avoid medical claims, diagnosis, or crisis handling inside product flows; point users to professional / emergency resources when appropriate.
+
+## Privacy
+
+- **Protect user privacy**: collect the minimum data needed; no dark patterns; no selling user data.
+- Avoid logging PII in analytics or server logs; prefer opaque IDs and event names.
+- Document what is stored (see Privacy page and README).
+
+## Architecture
+
+- Prefer **clean, boring structure**: clear folders, predictable imports, **maintainability over cleverness**.
+- New code should fit: `src/app` (routes), `src/components` (UI), `src/lib` (domain, data access, integrations), `src/types` (shared types). Prefer colocating feature-specific pieces under route folders or a future `src/features/<feature>/` module when a feature grows.
+- Server actions live under `src/app/actions/` (or feature modules); keep side effects explicit.
+
+## UI states (required for new features)
+
+Every **new** user-facing feature must include:
+
+1. **Loading** — skeletons, disabled buttons, or route `loading.tsx` where appropriate.
+2. **Empty** — helpful copy + primary action when there is nothing to show.
+3. **Success** — clear confirmation (inline message, UI update, or navigation) after a successful mutation.
+4. **Error** — user-safe message + recovery (`retry`, link out, or `reset` in `error.tsx`); never expose stack traces to users.
+
+When extending existing screens, align with the same patterns.
