@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TelegramWebApp } from "./types";
 
+/** Telegram may send #RRGGBB or RRGGBB — avoid ## which breaks CSS variables (text turns black on some clients). */
+function themeColorToCss(value: string | undefined): string | undefined {
+  if (!value || typeof value !== "string") return undefined;
+  const hex = value.trim().replace(/^#+/, "");
+  if (/^[0-9a-fA-F]{6}$/.test(hex)) return `#${hex}`;
+  if (/^[0-9a-fA-F]{3}$/.test(hex)) {
+    return `#${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`;
+  }
+  return undefined;
+}
+
 function mockWebApp(): TelegramWebApp {
   const noop = () => {};
   return {
@@ -65,8 +76,25 @@ export function getWebApp(): TelegramWebApp {
   return mockWebApp();
 }
 
+export function applyTelegramThemeVars(twa: TelegramWebApp): void {
+  const tp = twa.themeParams;
+  const root = document.documentElement;
+  const set = (prop: string, raw: string | undefined) => {
+    const c = themeColorToCss(raw);
+    if (c) root.style.setProperty(prop, c);
+  };
+  set("--tg-bg", tp.bg_color);
+  set("--tg-secondary", tp.secondary_bg_color);
+  set("--tg-text", tp.text_color);
+  set("--tg-hint", tp.hint_color);
+  set("--tg-link", tp.link_color);
+  set("--tg-button", tp.button_color);
+  set("--tg-button-text", tp.button_text_color);
+}
+
 export function initTelegramApp(): TelegramWebApp {
   const twa = getWebApp();
+  applyTelegramThemeVars(twa);
   twa.ready();
   twa.expand();
   return twa;
@@ -81,15 +109,7 @@ export function useTelegram() {
   );
 
   useEffect(() => {
-    const tp = app.themeParams;
-    const root = document.documentElement;
-    if (tp.bg_color) root.style.setProperty("--tg-bg", `#${tp.bg_color}`);
-    if (tp.secondary_bg_color) root.style.setProperty("--tg-secondary", `#${tp.secondary_bg_color}`);
-    if (tp.text_color) root.style.setProperty("--tg-text", `#${tp.text_color}`);
-    if (tp.hint_color) root.style.setProperty("--tg-hint", `#${tp.hint_color}`);
-    if (tp.link_color) root.style.setProperty("--tg-link", `#${tp.link_color}`);
-    if (tp.button_color) root.style.setProperty("--tg-button", `#${tp.button_color}`);
-    if (tp.button_text_color) root.style.setProperty("--tg-button-text", `#${tp.button_text_color}`);
+    applyTelegramThemeVars(app);
   }, [app]);
 
   return { app, isTelegram };
