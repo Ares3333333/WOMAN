@@ -10,6 +10,17 @@ export type SessionScript = {
   journal?: ScriptBlock;
 };
 
+/** Premium content architecture — maps to i18n pillarLabel_* */
+export type ContentPillarId =
+  | "still_mind"
+  | "when_lot"
+  | "close_day"
+  | "back_body"
+  | "soft_evening"
+  | "tonight"
+  | "return_you"
+  | "quiet_warmth";
+
 export type MiniSession = {
   slug: string;
   title: ScriptBlock;
@@ -17,7 +28,11 @@ export type MiniSession = {
   durationMin: number;
   freeTier: boolean;
   gradient: "rose" | "mauve" | "sleep" | "sage" | "dusk";
+  /** Legacy category for scripts / analytics */
   categorySlug: string;
+  pillarId: ContentPillarId;
+  /** Boost in «evening / tonight» home picks */
+  eveningHint?: boolean;
   sensual: boolean;
   script: SessionScript;
 };
@@ -51,17 +66,18 @@ export const SESSIONS: MiniSession[] = [
   {
     slug: "five-minute-nervous-system-reset",
     title: {
-      ru: "5 минут для нервной системы",
-      en: "Five-minute nervous system reset",
+      ru: "Пять минут тишины внутри",
+      en: "Five minutes of inner quiet",
     },
     short: {
-      ru: "Короткий сброс, когда мало времени, а внутри шумно.",
-      en: "A compact reset when time is short and your system feels loud.",
+      ru: "Когда мало времени, а внутри шумно — без разбора мыслей.",
+      en: "When time is short and inside feels loud — no thought-chasing.",
     },
     durationMin: 5,
     freeTier: true,
     gradient: "rose",
     categorySlug: "stress-relief",
+    pillarId: "still_mind",
     sensual: false,
     script: {
       intro: {
@@ -87,6 +103,7 @@ export const SESSIONS: MiniSession[] = [
     freeTier: true,
     gradient: "mauve",
     categorySlug: "stress-relief",
+    pillarId: "when_lot",
     sensual: false,
     script: {
       intro: {
@@ -103,15 +120,16 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "when-anxiety-surges-breath-anchor",
-    title: { ru: "Тревога поднялась: якорь дыхания", en: "When anxiety surges — breath anchor" },
+    title: { ru: "Якорь на выдохе", en: "An anchor on the exhale" },
     short: {
-      ru: "Простой ритм выдоха, чтобы вернуть опору.",
-      en: "A simple exhale rhythm to find footing again.",
+      ru: "Когда тревога громче обычного — ритм без спора с мыслями.",
+      en: "When anxiety runs hot — a rhythm without arguing with thoughts.",
     },
     durationMin: 8,
     freeTier: true,
     gradient: "sage",
     categorySlug: "breathing",
+    pillarId: "still_mind",
     sensual: false,
     script: {
       intro: {
@@ -133,6 +151,7 @@ export const SESSIONS: MiniSession[] = [
     freeTier: false,
     gradient: "rose",
     categorySlug: "breathing",
+    pillarId: "still_mind",
     sensual: false,
     script: {
       intro: {
@@ -148,15 +167,17 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "grounding-before-bed",
-    title: { ru: "Заземление перед сном", en: "Grounding before bed" },
+    title: { ru: "Мягкий спуск перед сном", en: "A gentle descent before sleep" },
     short: {
-      ru: "Смягчить день перед кроватью.",
-      en: "Let the day soften before sleep.",
+      ru: "Закрыть день телом, без отчёта о продуктивности.",
+      en: "Close the day with your body — no productivity report.",
     },
     durationMin: 14,
     freeTier: false,
     gradient: "sleep",
     categorySlug: "sleep",
+    pillarId: "soft_evening",
+    eveningHint: true,
     sensual: false,
     script: {
       intro: {
@@ -181,6 +202,8 @@ export const SESSIONS: MiniSession[] = [
     freeTier: false,
     gradient: "sleep",
     categorySlug: "sleep",
+    pillarId: "tonight",
+    eveningHint: true,
     sensual: false,
     script: {
       intro: {
@@ -200,15 +223,16 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "morning-confidence-reset",
-    title: { ru: "Утренняя уверенность", en: "Morning confidence reset" },
+    title: { ru: "Утро без геройства", en: "Morning without heroics" },
     short: {
-      ru: "Мягкая сила в начале дня.",
-      en: "Quiet strength to start the day.",
+      ru: "Тихий вход в день — без доказательств и без давления.",
+      en: "A quiet way into the day — no proving, no pushing.",
     },
     durationMin: 8,
     freeTier: false,
     gradient: "dusk",
     categorySlug: "confidence",
+    pillarId: "return_you",
     sensual: false,
     script: {
       intro: {
@@ -233,6 +257,7 @@ export const SESSIONS: MiniSession[] = [
     freeTier: true,
     gradient: "mauve",
     categorySlug: "emotional-reset",
+    pillarId: "close_day",
     sensual: false,
     script: {
       intro: {
@@ -248,15 +273,16 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "gentle-body-reconnection",
-    title: { ru: "Мягкое возвращение в тело", en: "Gentle body reconnection" },
+    title: { ru: "Вернуться в тело", en: "Back to your body" },
     short: {
-      ru: "Вернуться в физическое присутствие с терпением.",
-      en: "Return to physical presence with patience.",
+      ru: "Опора, вес, дыхание — без фитнеса и без требований.",
+      en: "Support, weight, breath — no fitness frame, no demands.",
     },
     durationMin: 14,
     freeTier: true,
     gradient: "rose",
     categorySlug: "body-awareness",
+    pillarId: "back_body",
     sensual: false,
     script: {
       intro: {
@@ -285,6 +311,7 @@ export const SESSIONS: MiniSession[] = [
     freeTier: true,
     gradient: "sage",
     categorySlug: "stress-relief",
+    pillarId: "when_lot",
     sensual: false,
     script: {
       intro: {
@@ -312,6 +339,7 @@ export const SESSIONS: MiniSession[] = [
     freeTier: false,
     gradient: "dusk",
     categorySlug: "sensual-wellness",
+    pillarId: "quiet_warmth",
     sensual: true,
     script: {
       intro: {

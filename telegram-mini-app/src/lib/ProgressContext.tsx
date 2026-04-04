@@ -10,7 +10,9 @@ import {
   loadProgress,
   markSelfCareToday,
   markSessionComplete,
+  rememberLastSession,
   setPremium,
+  setReminderMode as persistReminderMode,
   setSensualMode,
   type ProgressState,
 } from "./progress";
@@ -23,6 +25,8 @@ type Ctx = {
   /** Сервер подтвердил премиум по initData Telegram */
   syncPremiumFromServer: (premium: boolean) => void;
   setSensual: (m: ProgressState["sensualMode"]) => void;
+  rememberSession: (slug: string) => void;
+  setReminderMode: (m: ProgressState["reminderMode"]) => void;
 };
 
 const ProgressCtx = createContext<Ctx | null>(null);
@@ -50,6 +54,14 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     setState((s) => setSensualMode(s, m));
   }, []);
 
+  const rememberSession = useCallback((slug: string) => {
+    setState((s) => rememberLastSession(s, slug));
+  }, []);
+
+  const setReminderMode = useCallback((m: ProgressState["reminderMode"]) => {
+    setState((s) => persistReminderMode(s, m));
+  }, []);
+
   const value = useMemo(
     () => ({
       state,
@@ -58,8 +70,19 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       unlockPremium,
       syncPremiumFromServer,
       setSensual,
+      rememberSession,
+      setReminderMode,
     }),
-    [state, completeSession, selfCareToday, unlockPremium, syncPremiumFromServer, setSensual]
+    [
+      state,
+      completeSession,
+      selfCareToday,
+      unlockPremium,
+      syncPremiumFromServer,
+      setSensual,
+      rememberSession,
+      setReminderMode,
+    ]
   );
 
   return <ProgressCtx.Provider value={value}>{children}</ProgressCtx.Provider>;

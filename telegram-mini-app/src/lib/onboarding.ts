@@ -2,6 +2,8 @@ const KEY = "sora_onboarding_v1";
 
 export type OnboardingMood = "stress" | "tired" | "anxiety" | "body";
 
+export const ONBOARDING_MOOD_ORDER: OnboardingMood[] = ["stress", "tired", "anxiety", "body"];
+
 export type OnboardingState = {
   done: boolean;
   mood?: OnboardingMood;

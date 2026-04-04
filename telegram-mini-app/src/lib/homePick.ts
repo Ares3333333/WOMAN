@@ -1,17 +1,19 @@
+import type { ContentPillarId } from "../data/sessions";
 import type { MiniSession } from "../data/sessions";
 import type { OnboardingMood } from "./onboarding";
 import type { ProgressState } from "./progress";
+import { canUserAccessSession } from "./sessionAccess";
 
-export function mapMoodToCategories(mood: OnboardingMood): string[] {
+export function mapMoodToPillars(mood: OnboardingMood): ContentPillarId[] {
   switch (mood) {
     case "stress":
-      return ["stress-relief", "emotional-reset"];
+      return ["when_lot", "still_mind", "close_day"];
     case "tired":
-      return ["sleep", "breathing"];
+      return ["tonight", "soft_evening", "when_lot"];
     case "anxiety":
-      return ["breathing", "stress-relief"];
+      return ["still_mind", "when_lot"];
     case "body":
-      return ["body-awareness", "confidence"];
+      return ["back_body", "return_you", "still_mind"];
     default:
       return [];
   }
@@ -22,26 +24,54 @@ export function pickSessionForHome(
   state: ProgressState,
   mood: OnboardingMood | undefined
 ): MiniSession {
-  const cats = mood ? mapMoodToCategories(mood) : [];
-  if (cats.length > 0) {
+  const pillars = mood ? mapMoodToPillars(mood) : [];
+  const accessible = (s: MiniSession) => canUserAccessSession(s, state);
+
+  if (pillars.length > 0) {
     const match =
       sessions.find(
         (s) =>
           s.freeTier &&
+          accessible(s) &&
           !state.completedSlugs.includes(s.slug) &&
-          cats.includes(s.categorySlug)
+          pillars.includes(s.pillarId)
       ) ??
-      sessions.find((s) => s.freeTier && cats.includes(s.categorySlug)) ??
-      sessions.find((s) => s.freeTier && !state.completedSlugs.includes(s.slug)) ??
-      sessions.find((s) => s.freeTier) ??
+      sessions.find((s) => s.freeTier && accessible(s) && pillars.includes(s.pillarId)) ??
+      sessions.find((s) => s.freeTier && accessible(s) && !state.completedSlugs.includes(s.slug)) ??
+      sessions.find((s) => s.freeTier && accessible(s)) ??
+      sessions.find(accessible) ??
       sessions[0];
     return match;
   }
   return (
-    sessions.find((s) => s.freeTier && !state.completedSlugs.includes(s.slug)) ??
-    sessions.find((s) => s.freeTier) ??
+    sessions.find((s) => s.freeTier && accessible(s) && !state.completedSlugs.includes(s.slug)) ??
+    sessions.find((s) => s.freeTier && accessible(s)) ??
+    sessions.find(accessible) ??
     sessions[0]
   );
+}
+
+/** First accessible evening / sleep-leaning session for home «tonight» block */
+export function pickTonightSession(
+  sessions: MiniSession[],
+  state: ProgressState
+): MiniSession | null {
+  const pool = sessions.filter(
+    (s) =>
+      (s.pillarId === "tonight" || s.pillarId === "soft_evening" || s.eveningHint) &&
+      canUserAccessSession(s, state)
+  );
+  if (pool.length === 0) return null;
+
+  const score = (s: MiniSession) => {
+    let v = 0;
+    if (!state.completedSlugs.includes(s.slug)) v += 4;
+    if (s.freeTier) v += 2;
+    if (s.pillarId === "tonight") v += 1;
+    return v;
+  };
+
+  return [...pool].sort((a, b) => score(b) - score(a))[0] ?? null;
 }
 
 export function homeTimeKey(): "Morning" | "Afternoon" | "Evening" {

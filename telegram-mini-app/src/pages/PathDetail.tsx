@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { SessionMetaRow } from "../components/SessionMetaRow";
 import { PROGRAM_PATHS } from "../data/programs";
 import { SESSION_BY_SLUG, type MiniSession } from "../data/sessions";
 import { useI18n } from "../lib/i18n";
@@ -24,20 +25,22 @@ export function PathDetailPage() {
     .filter((s): s is MiniSession => Boolean(s))
     .filter((s) => !(s.sensual && state.sensualMode === "hidden"));
 
+  const introKey = `pathIntro_${path.id}`;
+  const intro = t(introKey);
+
   return (
-    <div className="page-head">
-      <Link to="/paths" style={{ fontSize: "0.85rem", color: "var(--tg-hint)" }}>
+    <div className="page-head path-detail-page">
+      <Link to="/paths" className="path-back-link">
         ← {t("back")}
       </Link>
-      <h1 style={{ marginTop: 12 }}>{pathTitle(path.id)}</h1>
-      <p className="sub">{t("pathsSub")}</p>
+      <p className="path-detail-pillar">{t(`pillarLabel_${path.pillarId}`)}</p>
+      <h1 className="path-detail-title">{pathTitle(path.id)}</h1>
+      <p className="sub path-detail-intro">{intro !== introKey ? intro : t("pathsSub")}</p>
       {sessions.map((s) => (
-        <Link key={s.slug} to={`/session/${s.slug}`} className={`card ${s.gradient}`}>
-          <h2 style={{ margin: "0 0 6px", fontSize: "1.1rem" }}>{s.title[L]}</h2>
-          <p style={{ margin: 0, fontSize: "0.82rem", opacity: 0.9 }}>{s.short[L]}</p>
-          <p style={{ margin: "10px 0 0", fontSize: "0.72rem", opacity: 0.75 }}>
-            {s.durationMin} {t("sessionMin")} · {s.freeTier ? t("free") : t("sessionPremium")}
-          </p>
+        <Link key={s.slug} to={`/session/${s.slug}`} className={`card session-card-link ${s.gradient}`}>
+          <h2 className="session-card-title">{s.title[L]}</h2>
+          <p className="session-card-desc">{s.short[L]}</p>
+          <SessionMetaRow session={s} t={t} className="session-card-meta" />
         </Link>
       ))}
     </div>

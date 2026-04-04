@@ -7,7 +7,7 @@ const DEV_PREMIUM_UNLOCK = import.meta.env.DEV;
 
 export function ProfilePage() {
   const { lang, setLang, t } = useI18n();
-  const { state, unlockPremium, setSensual } = useProgress();
+  const { state, unlockPremium, setSensual, setReminderMode } = useProgress();
   const { app, isTelegram } = useTelegram();
   const pressRef = useRef<number | null>(null);
 
@@ -89,6 +89,29 @@ export function ProfilePage() {
             {t("profileManage")}
           </button>
         ) : null}
+      </div>
+
+      <h2 style={{ marginTop: 28, fontSize: "1rem" }}>{t("profileReminderTitle")}</h2>
+      <p className="sub" style={{ fontSize: "0.82rem", marginBottom: 10 }}>
+        {t("profileReminderSub")}
+      </p>
+      <div className="select-row">
+        {(
+          [
+            ["off", "profileReminderOff"],
+            ["evening", "profileReminderEvening"],
+            ["night", "profileReminderNight"],
+          ] as const
+        ).map(([key, labelKey]) => (
+          <button
+            key={key}
+            type="button"
+            className={state.reminderMode === key ? "on" : ""}
+            onClick={() => setReminderMode(key)}
+          >
+            {t(labelKey)}
+          </button>
+        ))}
       </div>
 
       <h2 style={{ marginTop: 28, fontSize: "1rem" }}>{t("profileLang")}</h2>

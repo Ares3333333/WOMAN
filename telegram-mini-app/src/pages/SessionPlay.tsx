@@ -3,12 +3,13 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { SESSION_BY_SLUG, scriptToText } from "../data/sessions";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
+import { canUserAccessSession } from "../lib/sessionAccess";
 import { hapticLight, useTelegram } from "../telegram/useTelegram";
 
 export function SessionPlayPage() {
   const { slug } = useParams<{ slug: string }>();
   const { lang, t } = useI18n();
-  const { state, completeSession, selfCareToday } = useProgress();
+  const { state, completeSession, selfCareToday, rememberSession } = useProgress();
   const { app } = useTelegram();
   const nav = useNavigate();
   const L = lang === "ru" ? "ru" : "en";
@@ -20,16 +21,17 @@ export function SessionPlayPage() {
 
   const session = slug ? SESSION_BY_SLUG[slug] : undefined;
 
-  const canAccess =
-    session &&
-    (!session.sensual || state.sensualMode !== "hidden") &&
-    (session.freeTier || state.premium);
+  const canAccess = session ? canUserAccessSession(session, state) : false;
 
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
     };
   }, []);
+
+  useEffect(() => {
+    if (session && canAccess) rememberSession(session.slug);
+  }, [session, canAccess, rememberSession]);
 
   useEffect(() => {
     if (!window.Telegram?.WebApp?.initData) return;
@@ -103,10 +105,9 @@ export function SessionPlayPage() {
         <h1 style={{ marginTop: 12 }}>{session.title[L]}</h1>
         <p className="sub">{session.short[L]}</p>
         <div className="premium-gate-card">
-          <h2 style={{ marginTop: 0 }}>{t("premiumGateTitle")}</h2>
-          <p className="sub" style={{ marginBottom: 12 }}>
-            {t("premiumGateLead")}
-          </p>
+          <p className="premium-gate-eyebrow">{t("premiumGateEyebrow")}</p>
+          <h2 className="premium-gate-heading">{t("premiumGateTitle")}</h2>
+          <p className="sub premium-gate-lead">{t("premiumGateLead")}</p>
           <ul className="premium-bullet-list">
             <li>{t("premiumGateBullet1")}</li>
             <li>{t("premiumGateBullet2")}</li>

@@ -11,6 +11,10 @@ export type ProgressState = {
   weekCompletions: number;
   calmDrops: number;
   sensualMode: "welcome" | "optional" | "hidden";
+  /** Last opened listenable session (for «continue» on Home) */
+  lastPlayedSlug: string | null;
+  /** UX preference — bot reminders not wired in v1 */
+  reminderMode: "off" | "evening" | "night";
 };
 
 function isoWeekKey(d: Date): string {
@@ -38,6 +42,8 @@ export function defaultProgress(): ProgressState {
     weekCompletions: 0,
     calmDrops: 0,
     sensualMode: "optional",
+    lastPlayedSlug: null,
+    reminderMode: "off",
   };
 }
 
@@ -50,7 +56,12 @@ export function loadProgress(): ProgressState {
     if (p.weekKey !== wk) {
       return { ...p, weekKey: wk, weekCompletions: 0 };
     }
-    return { ...defaultProgress(), ...p, weekKey: wk };
+    const merged = { ...defaultProgress(), ...p, weekKey: wk };
+    if (merged.lastPlayedSlug === undefined) merged.lastPlayedSlug = null;
+    if (!merged.reminderMode || !["off", "evening", "night"].includes(merged.reminderMode)) {
+      merged.reminderMode = "off";
+    }
+    return merged;
   } catch {
     return defaultProgress();
   }
@@ -98,6 +109,22 @@ export function setSensualMode(
   m: ProgressState["sensualMode"]
 ): ProgressState {
   const next = { ...p, sensualMode: m };
+  saveProgress(next);
+  return next;
+}
+
+export function rememberLastSession(p: ProgressState, slug: string): ProgressState {
+  if (p.lastPlayedSlug === slug) return p;
+  const next = { ...p, lastPlayedSlug: slug };
+  saveProgress(next);
+  return next;
+}
+
+export function setReminderMode(
+  p: ProgressState,
+  mode: ProgressState["reminderMode"]
+): ProgressState {
+  const next = { ...p, reminderMode: mode };
   saveProgress(next);
   return next;
 }
