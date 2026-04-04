@@ -14,18 +14,18 @@ export function AppPageHeader({
   return (
     <div className={cn("space-y-2", className)}>
       {eyebrow ? (
-        <p className="text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">{eyebrow}</p>
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-primary/75">{eyebrow}</p>
       ) : null}
       <h1
         className={cn(
-          "font-display text-3xl font-medium tracking-tight text-foreground",
-          eyebrow ? "mt-1" : null
+          "text-balance font-display text-[1.75rem] font-medium leading-[1.12] tracking-tight text-foreground md:text-[2rem]",
+          eyebrow ? "mt-2" : null
         )}
       >
         {title}
       </h1>
       {description ? (
-        <p className="max-w-md text-sm leading-relaxed text-muted-foreground">{description}</p>
+        <p className="max-w-md text-[0.9375rem] leading-relaxed text-muted-foreground">{description}</p>
       ) : null}
     </div>
   );

@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 /**
- * Visual system: quiet luxury, warm editorial, low-chroma depth.
- * Tokens favor depth over brightness; borders over glow; one soft shadow family.
+ * Visual system — marketing / signed-out: warm paper editorial.
+ * In-app (.dark): dark luxury calm, restrained feminine, product-first.
  */
 @layer base {
   :root {
@@ -48,6 +48,40 @@
     --shadow-hsl: 280 22% 22%;
   }
 
+  /**
+   * App shell only — applied via wrapper on /app/** layout.
+   * Champagne accent on deep blue-violet canvas: expensive, not pink, not wellness-template.
+   */
+  .dark {
+    --background: 252 16% 6%;
+    --foreground: 40 24% 95%;
+    --card: 252 14% 10%;
+    --card-foreground: 40 24% 95%;
+    --primary: 40 34% 74%;
+    --primary-foreground: 252 20% 7%;
+    --muted: 252 12% 15%;
+    --muted-foreground: 252 10% 58%;
+    --accent: 252 12% 13%;
+    --accent-foreground: 40 20% 93%;
+    --destructive: 0 50% 46%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 252 11% 20%;
+    --input: 252 11% 20%;
+    --ring: 40 30% 72%;
+    --cream: 252 8% 12%;
+    --rose: 310 12% 16%;
+    --plum: 285 10% 48%;
+    --mauve: 270 6% 42%;
+    --charcoal: 40 24% 95%;
+    --shadow-hsl: 252 22% 2%;
+    --radius: 0.875rem;
+  }
+
+  .dark ::selection {
+    background: hsl(var(--primary) / 0.26);
+    color: hsl(var(--primary-foreground));
+  }
+
   * {
     @apply border-border;
   }
@@ -72,5 +106,14 @@
   .text-editorial-muted {
     @apply text-muted-foreground;
     letter-spacing: 0.01em;
+  }
+
+  /** Subtle depth on app canvas — no loud mesh, no “wellness gradient UI” */
+  .app-canvas {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(ellipse 100% 60% at 50% -18%, hsl(var(--primary) / 0.085), transparent 55%),
+      radial-gradient(ellipse 80% 45% at 100% 0%, hsl(280 25% 22% / 0.35), transparent 50%),
+      radial-gradient(ellipse 70% 50% at 0% 100%, hsl(252 30% 8% / 0.9), transparent 55%);
   }
 }

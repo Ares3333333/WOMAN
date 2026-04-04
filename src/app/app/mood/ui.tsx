@@ -33,19 +33,20 @@ export function MoodPicker() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       {error ? (
         <p
-          className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+          className="rounded-xl border border-destructive/35 bg-destructive/[0.07] px-4 py-3 text-sm leading-relaxed text-destructive"
           role="alert"
         >
           {error}
         </p>
       ) : null}
-      <div className="grid gap-2">
-        {MOOD_OPTIONS.map((m) => (
+      <div className="grid gap-2.5">
+        {MOOD_OPTIONS.map((m, i) => (
           <MoodChip
             key={m.id}
+            index={i}
             label={t(`app.moodOptions.${m.id}.label`)}
             description={t(`app.moodOptions.${m.id}.description`)}
             selected={selected === m.id}
@@ -53,7 +54,13 @@ export function MoodPicker() {
           />
         ))}
       </div>
-      <Button type="button" className="w-full" disabled={!selected || loading} onClick={submit}>
+      <Button
+        type="button"
+        size="lg"
+        className="h-14 w-full rounded-md text-base font-medium tracking-tight"
+        disabled={!selected || loading}
+        onClick={submit}
+      >
         {loading ? t("common.saving") : t("app.mood.submit")}
       </Button>
     </div>

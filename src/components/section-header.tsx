@@ -14,11 +14,13 @@ export function SectionHeader({
   return (
     <div className={cn("space-y-0", className)}>
       {eyebrow ? (
-        <p className="text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground/90">{eyebrow}</p>
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground/90 dark:text-primary/72">
+          {eyebrow}
+        </p>
       ) : null}
       <h2
         className={cn(
-          "font-display text-[1.375rem] font-medium leading-[1.22] tracking-tight text-foreground md:text-[1.65rem]",
+          "text-balance font-display text-[1.375rem] font-medium leading-[1.2] tracking-tight text-foreground md:text-[1.625rem]",
           eyebrow ? "mt-3" : null
         )}
       >

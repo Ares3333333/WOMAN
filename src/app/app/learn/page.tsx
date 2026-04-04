@@ -51,7 +51,7 @@ export default async function LearnPage() {
                 const locked =
                   !canAccessPremiumSession(user?.subscriptionStatus ?? "none", s.freeTier) && !s.freeTier;
                 const variant =
-                  i === 0 ? "featured" : !s.freeTier ? "premiumSpotlight" : "standard";
+                  i === 0 ? "hero" : i === 1 ? "support" : !s.freeTier ? "premiumSpotlight" : "standard";
                 return (
                   <SessionCard
                     key={s.id}

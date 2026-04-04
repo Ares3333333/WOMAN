@@ -68,7 +68,7 @@ export default async function SessionDetailPage({ params }: { params: { slug: st
   } as const;
 
   return (
-    <div className="space-y-12 pb-36 pt-1">
+    <div className="space-y-10 pb-36 pt-1">
       <SessionHero
         gradientKey={ws.coverGradient}
         categoryName={ws.category.name}
@@ -92,16 +92,16 @@ export default async function SessionDetailPage({ params }: { params: { slug: st
           }}
         />
       ) : (
-        <Button asChild className="h-14 w-full rounded-full text-base shadow-md" size="lg">
-          <Link href={`/app/play/${ws.id}`}>{t("app.session.play")}</Link>
-        </Button>
+        <div className="rounded-lg border border-border/50 bg-card/50 p-1 shadow-sm dark:border-white/[0.07] dark:bg-card/40">
+          <Button asChild className="h-14 w-full rounded-md text-base font-medium tracking-tight" size="lg">
+            <Link href={`/app/play/${ws.id}`}>{t("app.session.play")}</Link>
+          </Button>
+        </div>
       )}
 
-      <section className="space-y-4">
-        <h2 className="font-display text-lg font-medium tracking-tight text-foreground md:text-xl">
-          {t("app.session.inThisSession")}
-        </h2>
-        <p className="max-w-2xl text-[0.9375rem] leading-[1.7] text-muted-foreground">{ws.longDescription}</p>
+      <section className="space-y-3 border-t border-border/40 pt-8">
+        <h2 className="font-display text-base font-medium tracking-tight text-foreground md:text-lg">{t("app.session.inThisSession")}</h2>
+        <p className="max-w-2xl text-sm leading-[1.75] text-muted-foreground md:text-[0.9375rem]">{ws.longDescription}</p>
       </section>
 
       {ws.contraindicationNote ? (

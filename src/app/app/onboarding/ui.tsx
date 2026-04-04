@@ -16,9 +16,10 @@ import { useIntl } from "@/components/intl-provider";
 const LENGTHS = ["5-8", "10-15", "15+", "varies"] as const;
 const LISTEN_IDS = ["morning", "afternoon", "evening", "sleep"] as const;
 
-const DATA_STEPS = 4;
-const TRANSITION_STEP = 4;
-const TOTAL_SEGMENTS = 5;
+/** Three configuration beats + transition (merged boundaries + sound into one beat). */
+const DATA_STEPS = 3;
+const TRANSITION_STEP = 3;
+const TOTAL_SEGMENTS = 4;
 
 function listenKey(id: (typeof LISTEN_IDS)[number]): string {
   const map = {
@@ -100,15 +101,15 @@ function ChoiceCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-2xl border px-4 py-4 text-left transition-all",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
+        "rounded-lg border-l-[3px] border border-border/50 bg-card/50 px-4 py-4 text-left transition-[border-color,background-color,box-shadow] duration-200",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         selected
-          ? "border-primary/45 bg-primary/[0.08] shadow-sm ring-1 ring-primary/20"
-          : "border-border/60 bg-card/40 hover:border-border hover:bg-muted/25",
+          ? "border-primary/50 border-l-primary bg-primary/[0.09] shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.03)]"
+          : "border-l-transparent hover:border-border hover:bg-muted/30",
         className
       )}
     >
-      <p className="font-display text-base font-medium leading-snug text-foreground">{title}</p>
+      <p className="font-display text-[0.95rem] font-medium leading-snug tracking-tight text-foreground">{title}</p>
       {description ? <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
     </button>
   );
@@ -190,7 +191,7 @@ export function OnboardingForm({ givenName }: { givenName?: string | null }) {
             </h1>
             <p className="text-base leading-relaxed text-muted-foreground">{t("app.onboarding.arrivalDesc")}</p>
           </header>
-          <div className="rounded-3xl border border-border/50 bg-gradient-to-b from-muted/30 to-card/30 p-1 shadow-sm">
+          <div className="rounded-lg border border-border/50 bg-muted/15 p-1">
             <CrisisGuardTextarea
               value={bringReason}
               onChange={(e) => setBringReason(e.target.value)}
@@ -199,7 +200,7 @@ export function OnboardingForm({ givenName }: { givenName?: string | null }) {
             />
           </div>
           <nav className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
-            <Button type="button" size="lg" className="h-12 rounded-full px-8" onClick={() => setStep(1)} disabled={bringReason.length < 3}>
+            <Button type="button" size="lg" className="h-12 rounded-md px-8" onClick={() => setStep(1)} disabled={bringReason.length < 3}>
               {t("app.onboarding.continue")}
             </Button>
           </nav>
@@ -252,7 +253,7 @@ export function OnboardingForm({ givenName }: { givenName?: string | null }) {
             <Button type="button" variant="ghost" className="text-muted-foreground" onClick={() => setStep(0)}>
               {t("app.onboarding.back")}
             </Button>
-            <Button type="button" size="lg" className="rounded-full px-8" onClick={() => setStep(2)}>
+            <Button type="button" size="lg" className="rounded-md px-8" onClick={() => setStep(2)}>
               {t("app.onboarding.continue")}
             </Button>
           </nav>
@@ -260,24 +261,30 @@ export function OnboardingForm({ givenName }: { givenName?: string | null }) {
       )}
 
       {step === 2 && (
-        <div className="space-y-8 animate-in fade-in duration-300">
+        <div className="space-y-10 animate-in fade-in duration-300">
           <header className="space-y-4">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-primary/80">{t("app.onboarding.boundariesEyebrow")}</p>
-            <h1 className="font-display text-3xl font-medium tracking-tight md:text-[2rem]">{t("app.onboarding.boundariesTitle")}</h1>
-            <p className="text-base leading-relaxed text-muted-foreground">{t("app.onboarding.boundariesDesc")}</p>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-primary/90">{t("app.onboarding.spaceEyebrow")}</p>
+            <h1 className="font-display text-[1.75rem] font-medium leading-tight tracking-tight md:text-[2rem]">
+              {t("app.onboarding.spaceTitle")}
+            </h1>
+            <p className="text-sm leading-relaxed text-muted-foreground md:text-base">{t("app.onboarding.spaceDesc")}</p>
           </header>
-          <div className="grid gap-3">
-            {sensualChoices.map(([id, label, desc]) => (
-              <ChoiceCard
-                key={id}
-                selected={sensualContentMode === id}
-                onClick={() => setSensualContentMode(id)}
-                title={label}
-                description={desc}
-              />
-            ))}
+
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("app.onboarding.boundariesShortLabel")}</p>
+            <div className="grid gap-3">
+              {sensualChoices.map(([id, label, desc]) => (
+                <ChoiceCard
+                  key={id}
+                  selected={sensualContentMode === id}
+                  onClick={() => setSensualContentMode(id)}
+                  title={label}
+                  description={desc}
+                />
+              ))}
+            </div>
           </div>
-          <div className="rounded-2xl border border-border/40 bg-card/50 px-4 py-4">
+          <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-4">
             <SoftToggle
               id="skip-sensual"
               label={t("app.onboarding.skipSensual")}
@@ -285,30 +292,16 @@ export function OnboardingForm({ givenName }: { givenName?: string | null }) {
               onCheckedChange={setSkipSensualInFeed}
             />
           </div>
-          <nav className="flex flex-col-reverse gap-3 border-t border-border/30 pt-8 sm:flex-row sm:justify-between">
-            <Button type="button" variant="ghost" className="text-muted-foreground" onClick={() => setStep(1)}>
-              {t("app.onboarding.back")}
-            </Button>
-            <Button type="button" size="lg" className="rounded-full px-8" onClick={() => setStep(3)}>
-              {t("app.onboarding.continue")}
-            </Button>
-          </nav>
-        </div>
-      )}
 
-      {step === 3 && (
-        <div className="space-y-8 animate-in fade-in duration-300">
-          <header className="space-y-4">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-primary/80">{t("app.onboarding.soundEyebrow")}</p>
-            <h1 className="font-display text-3xl font-medium tracking-tight md:text-[2rem]">{t("app.onboarding.soundTitle")}</h1>
-            <p className="text-base leading-relaxed text-muted-foreground">{t("app.onboarding.soundDesc")}</p>
-          </header>
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-foreground">{t("app.onboarding.voiceSectionLabel")}</p>
-            <VoiceStyleSelector variant="rich" value={voiceTonePref} onChange={setVoiceTonePref} />
+          <div className="border-t border-border/40 pt-8">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("app.onboarding.voiceSectionLabel")}</p>
+            <div className="mt-3">
+              <VoiceStyleSelector variant="rich" value={voiceTonePref} onChange={setVoiceTonePref} />
+            </div>
           </div>
+
           <div className="space-y-3">
-            <p className="text-sm font-medium text-foreground">{t("app.onboarding.listenSectionLabel")}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("app.onboarding.listenSectionLabel")}</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {LISTEN_IDS.map((id) => (
                 <ChoiceCard
@@ -321,11 +314,12 @@ export function OnboardingForm({ givenName }: { givenName?: string | null }) {
               ))}
             </div>
           </div>
+
           <nav className="flex flex-col-reverse gap-3 border-t border-border/30 pt-8 sm:flex-row sm:justify-between">
-            <Button type="button" variant="ghost" className="text-muted-foreground" onClick={() => setStep(2)}>
+            <Button type="button" variant="ghost" className="text-muted-foreground" onClick={() => setStep(1)}>
               {t("app.onboarding.back")}
             </Button>
-            <Button type="button" size="lg" className="rounded-full px-8" onClick={() => setStep(TRANSITION_STEP)}>
+            <Button type="button" size="lg" className="rounded-md px-8" onClick={() => setStep(TRANSITION_STEP)}>
               {t("app.onboarding.toTransition")}
             </Button>
           </nav>
@@ -334,30 +328,21 @@ export function OnboardingForm({ givenName }: { givenName?: string | null }) {
 
       {step === TRANSITION_STEP && (
         <div className="space-y-10 animate-in fade-in zoom-in-95 duration-500">
-          <div className="overflow-hidden rounded-3xl border border-primary/15 bg-gradient-to-br from-primary/[0.09] via-card to-muted/20 p-8 shadow-sm md:p-10">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">{t("app.onboarding.transitionEyebrow")}</p>
-            <h1 className="mt-4 font-display text-2xl font-medium leading-snug tracking-tight text-foreground md:text-3xl">{transitionHeadline}</h1>
-            <p className="mt-5 text-base leading-relaxed text-muted-foreground">{t("app.onboarding.transitionBody")}</p>
-            <ul className="mt-8 space-y-3 text-sm leading-relaxed text-foreground/90">
-              <li className="flex gap-3">
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary/70" aria-hidden />
-                <span>{t("app.onboarding.transitionBullet1")}</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary/70" aria-hidden />
-                <span>{t("app.onboarding.transitionBullet2")}</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary/70" aria-hidden />
-                <span>{t("app.onboarding.transitionBullet3")}</span>
-              </li>
+          <div className="overflow-hidden rounded-lg border border-primary/20 bg-gradient-to-b from-primary/[0.08] via-card to-card p-8 md:p-10">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t("app.onboarding.transitionEyebrow")}</p>
+            <h1 className="mt-4 font-display text-2xl font-medium leading-snug tracking-tight text-foreground md:text-[1.75rem]">{transitionHeadline}</h1>
+            <p className="mt-5 text-sm leading-relaxed text-muted-foreground md:text-base">{t("app.onboarding.transitionBody")}</p>
+            <ul className="mt-8 space-y-4 text-sm leading-relaxed text-foreground/95">
+              <li className="border-l-2 border-primary/35 pl-4">{t("app.onboarding.transitionBullet1")}</li>
+              <li className="border-l-2 border-primary/35 pl-4">{t("app.onboarding.transitionBullet2")}</li>
+              <li className="border-l-2 border-primary/35 pl-4">{t("app.onboarding.transitionBullet3")}</li>
             </ul>
           </div>
           <nav className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-            <Button type="button" variant="ghost" className="text-muted-foreground" onClick={() => setStep(3)} disabled={loading}>
+            <Button type="button" variant="ghost" className="text-muted-foreground" onClick={() => setStep(2)} disabled={loading}>
               {t("app.onboarding.back")}
             </Button>
-            <Button type="button" size="lg" className="h-12 rounded-full px-10 shadow-sm" onClick={finish} disabled={loading}>
+            <Button type="button" size="lg" className="h-12 rounded-md px-10" onClick={finish} disabled={loading}>
               {loading ? t("app.onboarding.finishing") : t("app.onboarding.transitionCta")}
             </Button>
           </nav>

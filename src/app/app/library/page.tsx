@@ -5,6 +5,7 @@ import type { Prisma } from "@prisma/client";
 import { listPublishedSessions } from "@/lib/data/wellness-sessions";
 import { AppPageHeader } from "@/components/app-page-header";
 import { FilterChip } from "@/components/filter-chip";
+import { LibraryCollectionRail } from "@/components/library-collection-rail";
 import { SessionCard } from "@/components/session-card";
 import { canAccessPremiumSession } from "@/lib/subscription";
 import { getPageI18n } from "@/lib/i18n/server";
@@ -35,34 +36,66 @@ export default async function LibraryPage({
   const sessions = await listPublishedSessions(where);
   const categories = await prisma.sessionCategory.findMany({ orderBy: { sortOrder: "asc" } });
 
+  const railItems = categories.map((c) => ({
+    id: c.id,
+    slug: c.slug,
+    name: c.name,
+    description: c.description,
+  }));
+
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-8 pb-12">
       <AppPageHeader title={t("app.library.title")} description={t("app.library.subtitle")} />
-      <div className="flex flex-wrap gap-2.5">
-        <FilterChip href="/app/library" active={!category} label={t("app.library.filterAll")} />
-        {categories.map((c) => (
-          <FilterChip key={c.id} href={`/app/library?category=${c.slug}`} active={category === c.slug} label={c.name} />
-        ))}
+
+      <div className="space-y-3">
+        <p className="px-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {t("app.library.railLabel")}
+        </p>
+        <LibraryCollectionRail
+          items={railItems}
+          activeSlug={category}
+          indexEyebrow={t("app.library.railIndexEyebrow")}
+          indexTitle={t("app.library.filterAll")}
+          collectionEyebrow={t("app.library.railCollectionEyebrow")}
+        />
       </div>
-      <div className="grid gap-4 md:gap-5">
-        {sessions.map((s) => {
-          const locked =
-            !canAccessPremiumSession(user?.subscriptionStatus ?? "none", s.freeTier) && !s.freeTier;
-          return (
-            <SessionCard
-              key={s.id}
-              href={locked ? "/app/premium?from=library" : `/app/sessions/${s.slug}`}
-              title={s.title}
-              description={s.shortDescription}
-              durationMinutes={s.durationMinutes}
-              gradientKey={s.coverGradient}
-              premium={!s.freeTier}
-              variant={!s.freeTier ? "premiumSpotlight" : "standard"}
-              categoryLabel={s.category.name}
-              intensity={s.intensity}
-            />
-          );
-        })}
+
+      <div>
+        <p className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {t("app.library.filterLabel")}
+        </p>
+        <div className="flex flex-wrap gap-2.5">
+          <FilterChip href="/app/library" active={!category} label={t("app.library.filterAll")} />
+          {categories.map((c) => (
+            <FilterChip key={c.id} href={`/app/library?category=${c.slug}`} active={category === c.slug} label={c.name} />
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          {t("app.library.sessionsLabel")}
+        </p>
+        <div className="grid gap-3 md:gap-4">
+          {sessions.map((s) => {
+            const locked =
+              !canAccessPremiumSession(user?.subscriptionStatus ?? "none", s.freeTier) && !s.freeTier;
+            return (
+              <SessionCard
+                key={s.id}
+                href={locked ? "/app/premium?from=library" : `/app/sessions/${s.slug}`}
+                title={s.title}
+                description={s.shortDescription}
+                durationMinutes={s.durationMinutes}
+                gradientKey={s.coverGradient}
+                premium={!s.freeTier}
+                variant={!s.freeTier ? "premiumSpotlight" : "support"}
+                categoryLabel={s.category.name}
+                intensity={s.intensity}
+              />
+            );
+          })}
+        </div>
       </div>
     </div>
   );
