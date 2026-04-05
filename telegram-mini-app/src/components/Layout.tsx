@@ -1,4 +1,4 @@
-﻿import { NavLink, Outlet } from "react-router-dom";
+﻿import { Link, NavLink, Outlet } from "react-router-dom";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
 import { IconGoals, IconHome, IconPaths, IconProfile } from "./MiniNavIcons";
@@ -27,7 +27,9 @@ export function Layout() {
               <span className="tm-brand-sub">{t("shellTagline")}</span>
             </div>
           </div>
-          <span className="tm-shell-status">{state.premium ? t("shellCircle") : t("shellStarter")}</span>
+          <Link to="/premium" className="tm-shell-status tm-shell-status-link">
+            {state.premium ? t("shellCircle") : t("shellStarter")}
+          </Link>
         </div>
       </header>
 
@@ -53,3 +55,4 @@ export function Layout() {
     </>
   );
 }
+

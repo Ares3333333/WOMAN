@@ -1,4 +1,5 @@
 ﻿import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CONCIERGE_SERVICES } from "../data/concierge";
 import { CIRCLE_INCLUDED_ITEMS } from "../data/premium";
 import { PROGRAM_PATHS } from "../data/programs";
@@ -20,6 +21,7 @@ export function ProfilePage() {
   const { lang, setLang, t } = useI18n();
   const { state, unlockPremium, setSensual, setReminderMode } = useProgress();
   const { app, isTelegram } = useTelegram();
+  const nav = useNavigate();
 
   const pressRef = useRef<number | null>(null);
   const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
@@ -53,15 +55,7 @@ export function ProfilePage() {
     : {};
 
   const openPremium = () => {
-    if (!bot) {
-      unlockPremium();
-      return;
-    }
-    try {
-      app.openTelegramLink(`${bot}?start=premium`);
-    } catch {
-      window.open(`${bot}?start=premium`, "_blank");
-    }
+    nav("/premium");
   };
 
   const openConcierge = () => {
@@ -259,6 +253,9 @@ export function ProfilePage() {
                 </article>
               ))}
               <p className="tm-subtle">{t("profileConciergeLocked")}</p>
+              <button type="button" className="tm-btn tm-btn-secondary tm-btn-block" onClick={openPremium}>
+                {t("profileUpgrade")}
+              </button>
             </div>
           )}
         </section>
@@ -343,3 +340,4 @@ export function ProfilePage() {
     </div>
   );
 }
+

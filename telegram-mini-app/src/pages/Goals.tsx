@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+﻿import { Link, useNavigate } from "react-router-dom";
 import { SESSIONS } from "../data/sessions";
 import { readOnboarding } from "../lib/onboarding";
 import { useI18n } from "../lib/i18n";
@@ -13,8 +13,9 @@ function todayISO(): string {
 
 export function GoalsPage() {
   const { lang, t } = useI18n();
-  const { state, selfCareToday, unlockPremium } = useProgress();
+  const { state, selfCareToday } = useProgress();
   const { app } = useTelegram();
+  const nav = useNavigate();
 
   const L = lang === "ru" ? "ru" : "en";
   const today = todayISO();
@@ -29,22 +30,13 @@ export function GoalsPage() {
     t(`trackerStress_${rhythmProfile.stress}`),
     t(`trackerSleep_${rhythmProfile.sleep}`),
   ];
-  const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
 
   const nextPremium = state.premium
     ? SESSIONS.find((s) => !s.freeTier && !state.completedSlugs.includes(s.slug))
     : null;
 
   const openPremium = () => {
-    if (!bot) {
-      unlockPremium();
-      return;
-    }
-    try {
-      app.openTelegramLink(`${bot}?start=premium`);
-    } catch {
-      window.open(`${bot}?start=premium`, "_blank");
-    }
+    nav("/premium");
   };
 
   return (
@@ -145,6 +137,9 @@ export function GoalsPage() {
           <p className="tm-kicker">{t("goalsPremiumKicker")}</p>
           <h2 className="tm-h2">{t("goalsPremiumLockedTitle")}</h2>
           <p className="tm-subtle">{t("goalsPremiumLockedSub")}</p>
+          <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={openPremium}>
+            {t("homePrimaryLockedCta")}
+          </button>
         </section>
       )}
 

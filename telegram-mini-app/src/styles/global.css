@@ -180,6 +180,17 @@ select {
   white-space: nowrap;
   background: rgba(255, 255, 255, 0.02);
 }
+.tm-shell-status-link {
+  text-decoration: none;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+
+.tm-shell-status-link:hover {
+  border-color: rgba(212, 178, 123, 0.34);
+  color: var(--text-0);
+  background: rgba(212, 178, 123, 0.08);
+}
 
 .tm-shell-main {
   width: min(100%, 520px);
@@ -252,12 +263,12 @@ select {
 
 .tm-page {
   display: grid;
-  gap: calc(var(--space-xl) + 6px);
+  gap: calc(var(--space-xl) + 14px);
 }
 
 .tm-head {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .tm-kicker {
@@ -308,25 +319,25 @@ p {
 
 .tm-lead {
   color: var(--text-1);
-  line-height: 1.58;
-  font-size: 0.94rem;
+  line-height: 1.64;
+  font-size: 0.95rem;
   max-width: 40ch;
 }
 
 .tm-subtle {
   color: var(--text-2);
-  line-height: 1.5;
+  line-height: 1.58;
   font-size: 0.84rem;
 }
 
 .tm-card {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--line-soft);
   background: linear-gradient(170deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015));
   box-shadow: var(--shadow-surface);
-  padding: 22px;
+  padding: 24px;
 }
 
 .tm-card-link {
@@ -474,7 +485,7 @@ p {
   border-radius: 14px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.01);
-  padding: 16px;
+  padding: 18px;
   color: inherit;
 }
 
@@ -509,7 +520,7 @@ p {
 .home-hero {
   position: relative;
   overflow: hidden;
-  padding: 28px;
+  padding: 32px;
   border-radius: var(--radius-xxl);
   border: 1px solid var(--line-mid);
   background:
@@ -533,7 +544,7 @@ p {
 
 .home-hero-copy {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   position: relative;
   z-index: 1;
 }
@@ -560,8 +571,8 @@ p {
 
 .home-hero-actions {
   display: grid;
-  gap: 14px;
-  margin-top: 6px;
+  gap: 16px;
+  margin-top: 8px;
 }
 
 .home-hero-links {
@@ -585,15 +596,15 @@ p {
 
 .home-next {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .home-next-card {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   text-decoration: none;
   color: inherit;
-  padding: 22px;
+  padding: 24px;
   border-radius: var(--radius-xl);
   border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow: var(--shadow-surface);
@@ -743,7 +754,7 @@ p {
 .home-week {
   display: grid;
   gap: 12px;
-  padding: 18px;
+  padding: 20px;
   border-radius: 16px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.01);
@@ -771,7 +782,7 @@ p {
   -webkit-backdrop-filter: blur(16px);
   display: grid;
   place-items: center;
-  padding: 16px;
+  padding: 18px;
 }
 
 .onboarding-panel {
@@ -893,12 +904,12 @@ p {
 
 .path-card {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   text-decoration: none;
   border-radius: 18px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.014);
-  padding: 18px;
+  padding: 20px;
 }
 
 .path-card--premium {
@@ -939,8 +950,8 @@ p {
 
 .path-detail-hero {
   display: grid;
-  gap: 12px;
-  padding: 20px;
+  gap: 14px;
+  padding: 22px;
   border-radius: 18px;
   border: 1px solid var(--line-mid);
   background: linear-gradient(170deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
@@ -963,7 +974,7 @@ p {
   border-radius: 16px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.01);
-  padding: 16px;
+  padding: 18px;
 }
 
 .path-session-item--locked {
@@ -994,7 +1005,7 @@ p {
 
 .session-stage {
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
 .session-back {
@@ -1011,13 +1022,13 @@ p {
 
 .session-intro {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .session-control {
   display: grid;
-  gap: 14px;
-  padding: 20px;
+  gap: 16px;
+  padding: 24px;
   border-radius: 18px;
   border: 1px solid var(--line-mid);
   background: linear-gradient(160deg, rgba(29, 38, 52, 0.82), rgba(17, 23, 35, 0.92));
@@ -1109,8 +1120,8 @@ p {
 
 .session-script {
   display: grid;
-  gap: 12px;
-  padding: 18px;
+  gap: 14px;
+  padding: 20px;
   border-radius: 16px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.01);
@@ -1143,7 +1154,7 @@ p {
   border-radius: 16px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.014);
-  padding: 16px;
+  padding: 18px;
   display: grid;
   gap: 10px;
 }
@@ -1180,16 +1191,16 @@ p {
 
 .profile-stack {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .profile-card {
   border-radius: 18px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.015);
-  padding: 18px;
+  padding: 20px;
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .profile-card--premium {
@@ -1298,6 +1309,19 @@ p {
   background:
     radial-gradient(120% 90% at 100% 0%, rgba(212, 178, 123, 0.14), transparent 62%),
     rgba(255, 255, 255, 0.015);
+}
+.premium-program-list {
+  display: grid;
+  gap: 12px;
+}
+
+.premium-program-item {
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.015);
+  padding: 14px;
+  display: grid;
+  gap: 6px;
 }
 
 .profile-tracker-stack {
@@ -1481,3 +1505,7 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+
+

@@ -1,17 +1,16 @@
-﻿import { Link, useParams } from "react-router-dom";
+﻿import { Link, useNavigate, useParams } from "react-router-dom";
 import { IconChevron } from "../components/MiniNavIcons";
 import { SessionMetaRow } from "../components/SessionMetaRow";
 import { PROGRAM_PATHS } from "../data/programs";
 import { SESSION_BY_SLUG, type MiniSession } from "../data/sessions";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
-import { useTelegram } from "../telegram/useTelegram";
 
 export function PathDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { lang, pathTitle, t } = useI18n();
-  const { state, unlockPremium } = useProgress();
-  const { app } = useTelegram();
+  const { state } = useProgress();
+  const nav = useNavigate();
 
   const L = lang === "ru" ? "ru" : "en";
   const path = PROGRAM_PATHS.find((p) => p.id === id);
@@ -23,23 +22,14 @@ export function PathDetailPage() {
   };
 
   const openPremium = () => {
-    const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
-    if (!bot) {
-      unlockPremium();
-      return;
-    }
-    try {
-      app.openTelegramLink(`${bot}?start=premium`);
-    } catch {
-      window.open(`${bot}?start=premium`, "_blank");
-    }
+    nav("/premium");
   };
 
   if (!path) {
     return (
       <div className="tm-page">
         <Link to="/paths" className="session-back">
-          ← {t("back")}
+          {"<"} {t("back")}
         </Link>
         <section className="tm-card">
           <h2 className="tm-h2">{t("pathNotFound")}</h2>
@@ -63,7 +53,7 @@ export function PathDetailPage() {
   return (
     <div className="tm-page">
       <Link to="/paths" className="session-back">
-        ← {t("back")}
+        {"<"} {t("back")}
       </Link>
 
       <section className="path-detail-hero">
@@ -144,3 +134,8 @@ export function PathDetailPage() {
     </div>
   );
 }
+
+
+
+
+

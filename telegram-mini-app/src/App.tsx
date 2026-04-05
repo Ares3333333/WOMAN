@@ -8,6 +8,7 @@ import { GoalsPage } from "./pages/Goals";
 import { HomePage } from "./pages/Home";
 import { PathDetailPage } from "./pages/PathDetail";
 import { PathListPage } from "./pages/PathList";
+import { PremiumPage } from "./pages/Premium";
 import { ProfilePage } from "./pages/Profile";
 import { SessionPlayPage } from "./pages/SessionPlay";
 import { getWebApp } from "./telegram/useTelegram";
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="path/:id" element={<PathDetailPage />} />
           <Route path="session/:slug" element={<SessionPlayPage />} />
           <Route path="goals" element={<GoalsPage />} />
+          <Route path="premium" element={<PremiumPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

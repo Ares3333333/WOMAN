@@ -22,7 +22,7 @@ function formatClock(totalSec: number): string {
 export function SessionPlayPage() {
   const { slug } = useParams<{ slug: string }>();
   const { lang, t } = useI18n();
-  const { state, completeSession, selfCareToday, rememberSession, unlockPremium } = useProgress();
+  const { state, completeSession, selfCareToday, rememberSession } = useProgress();
   const { app } = useTelegram();
   const nav = useNavigate();
 
@@ -252,16 +252,7 @@ export function SessionPlayPage() {
   }, [handleStop, session, canAccess, playAudio, startVoiceFromStart]);
 
   const openPremium = () => {
-    const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
-    if (!bot) {
-      unlockPremium();
-      return;
-    }
-    try {
-      app.openTelegramLink(`${bot}?start=premium`);
-    } catch {
-      window.open(`${bot}?start=premium`, "_blank");
-    }
+    nav("/premium");
   };
 
   useEffect(() => {
@@ -302,7 +293,7 @@ export function SessionPlayPage() {
     return (
       <div className="tm-page session-stage">
         <Link to="/paths" className="session-back">
-          ← {t("back")}
+          {"<"} {t("back")}
         </Link>
         <section className="tm-card">
           <h2 className="tm-h2">{t("sessionNotFound")}</h2>
@@ -319,7 +310,7 @@ export function SessionPlayPage() {
     return (
       <div className="tm-page session-stage">
         <Link to="/paths" className="session-back">
-          ← {t("back")}
+          {"<"} {t("back")}
         </Link>
         <section className="tm-card">
           <h2 className="tm-h2">{t("sensualGateTitle")}</h2>
@@ -336,7 +327,7 @@ export function SessionPlayPage() {
     return (
       <div className="tm-page session-stage">
         <Link to="/paths" className="session-back">
-          ← {t("back")}
+          {"<"} {t("back")}
         </Link>
 
         <section className="session-intro">
@@ -378,7 +369,7 @@ export function SessionPlayPage() {
   return (
     <div className="tm-page session-stage">
       <Link to="/paths" className="session-back">
-        ← {t("back")}
+        {"<"} {t("back")}
       </Link>
 
       <section className="session-intro">
@@ -504,3 +495,9 @@ export function SessionPlayPage() {
     </div>
   );
 }
+
+
+
+
+
+

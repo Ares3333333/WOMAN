@@ -61,10 +61,6 @@ export function PathListPage() {
                 : t("pathsMembersOnly")}
             </span>
           </div>
-          <div className="path-card-meta">
-            <span>{t(`pathAxis_${path.valueAxis}`)}</span>
-            <span>{t("pathContinuity").replace("{count}", String(path.continuityWeeks))}</span>
-          </div>
           {lockedCount > 0 ? <p className="path-locked-hint">{t("pathsLockedHint").replace("{count}", String(lockedCount))}</p> : null}
         </Link>
       </li>
@@ -78,7 +74,6 @@ export function PathListPage() {
       <header className="tm-head">
         <p className="tm-kicker">{t("pathsHeroKicker")}</p>
         <h1 className="tm-h1">{t("pathsHeroTitle")}</h1>
-        <p className="tm-lead">{t("pathsHeroSub")}</p>
       </header>
 
       <ul className="paths-layout" style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -87,3 +82,4 @@ export function PathListPage() {
     </div>
   );
 }
+
