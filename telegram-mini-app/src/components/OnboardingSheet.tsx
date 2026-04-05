@@ -27,7 +27,7 @@ export function OnboardingSheet({ onClose }: Props) {
     onClose();
   };
 
-  const goNext = () => {
+  const next = () => {
     if (step < STEP_COUNT - 1) {
       setStep((s) => s + 1);
       return;
@@ -54,7 +54,7 @@ export function OnboardingSheet({ onClose }: Props) {
     .replace("{current}", String(step + 1))
     .replace("{total}", String(STEP_COUNT));
 
-  const sheet = (
+  const content = (
     <div className="onboarding-overlay" role="dialog" aria-modal="true" aria-label={t("onboardingEyebrow")}>
       <div className="onboarding-panel">
         <div className="onboarding-head">
@@ -71,7 +71,6 @@ export function OnboardingSheet({ onClose }: Props) {
         </div>
 
         <p className="tm-subtle">{stageLine}</p>
-
         <h2 className="onboarding-title">{t(titleKeys[step])}</h2>
         <p className="onboarding-sub">{t(subKeys[step])}</p>
 
@@ -94,17 +93,22 @@ export function OnboardingSheet({ onClose }: Props) {
         ) : null}
 
         {step === 2 ? (
-          <ul className="onboarding-feature-list">
-            <li>{t("onboardingFeature1")}</li>
-            <li>{t("onboardingFeature2")}</li>
-            <li>{t("onboardingFeature3")}</li>
-          </ul>
+          <div className="onboarding-tier-grid">
+            <article className="onboarding-tier-card">
+              <p className="tm-kicker tm-kicker--muted">{t("onboardingFreeLabel")}</p>
+              <p className="tm-subtle">{t("onboardingFreeCopy")}</p>
+            </article>
+            <article className="onboarding-tier-card onboarding-tier-card--premium">
+              <p className="tm-kicker">{t("onboardingPremiumLabel")}</p>
+              <p className="tm-subtle">{t("onboardingPremiumCopy")}</p>
+            </article>
+          </div>
         ) : null}
 
         {step === 3 ? <div className="tm-card"><p className="tm-subtle">{t("onboardingFinalNote")}</p></div> : null}
 
         <div className="onboarding-footer">
-          <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={goNext}>
+          <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={next}>
             {ctaLabel}
           </button>
         </div>
@@ -112,5 +116,5 @@ export function OnboardingSheet({ onClose }: Props) {
     </div>
   );
 
-  return createPortal(sheet, document.body);
+  return createPortal(content, document.body);
 }

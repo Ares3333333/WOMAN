@@ -10,11 +10,15 @@ export function PathListPage() {
   const { pathTitle, t } = useI18n();
   const { state } = useProgress();
 
-  const sorted = [...PROGRAM_PATHS].sort(
-    (a, b) => pillarSortIndex(a.pillarId) - pillarSortIndex(b.pillarId)
-  );
+  const sorted = [...PROGRAM_PATHS].sort((a, b) => pillarSortIndex(a.pillarId) - pillarSortIndex(b.pillarId));
 
   let prevPillar: (typeof sorted)[number]["pillarId"] | null = null;
+
+  const tierLabel = (tier: "free" | "mixed" | "premium") => {
+    if (tier === "free") return t("tierFree");
+    if (tier === "mixed") return t("tierMixed");
+    return t("tierPremium");
+  };
 
   const items = sorted.flatMap((path) => {
     const sessions = path.sessionSlugs
@@ -24,9 +28,11 @@ export function PathListPage() {
 
     if (sessions.length === 0) return [] as ReactNode[];
 
+    const freePreviewCount = sessions.filter((s) => s.freeTier).length;
     const lockedCount = sessions.filter((s) => !s.freeTier && !state.premium).length;
 
     const nodes: ReactNode[] = [];
+
     if (path.pillarId !== prevPillar) {
       prevPillar = path.pillarId;
       nodes.push(
@@ -38,22 +44,24 @@ export function PathListPage() {
 
     nodes.push(
       <li key={path.id}>
-        <Link to={`/path/${path.id}`} className="path-card">
-          <span className="tm-pill">{t(`pillarTag_${path.pillarId}`)}</span>
+        <Link to={`/path/${path.id}`} className={`path-card${path.tier === "premium" ? " path-card--premium" : ""}`}>
+          <div className="path-card-head">
+            <span className="tm-pill">{tierLabel(path.tier)}</span>
+            {path.signature ? <span className="tm-pill tm-pill--accent">{t("pathsSignature")}</span> : null}
+          </div>
           <h2 className="path-card-title">{pathTitle(path.id)}</h2>
           <p className="tm-subtle">{t(`pathIntro_${path.id}`)}</p>
           <div className="path-card-meta">
             <span>
               {sessions.length} {t("pathSessions")}
             </span>
-            {lockedCount > 0 ? (
-              <span>
-                {lockedCount} {t("pathsLockedLabel")}
-              </span>
-            ) : (
-              <span>{t("pathsOpenLabel")}</span>
-            )}
+            <span>
+              {freePreviewCount > 0
+                ? t("pathsPreviewCount").replace("{count}", String(freePreviewCount))
+                : t("pathsMembersOnly")}
+            </span>
           </div>
+          {lockedCount > 0 ? <p className="path-locked-hint">{t("pathsLockedHint").replace("{count}", String(lockedCount))}</p> : null}
         </Link>
       </li>
     );

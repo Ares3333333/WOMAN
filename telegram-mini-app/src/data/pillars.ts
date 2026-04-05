@@ -6,9 +6,9 @@ export const PILLAR_ORDER: ContentPillarId[] = [
   "when_lot",
   "close_day",
   "back_body",
+  "return_you",
   "soft_evening",
   "tonight",
-  "return_you",
   "quiet_warmth",
 ];
 

@@ -665,6 +665,13 @@ p {
   gap: 6px;
 }
 
+.home-path-card--locked {
+  border-color: rgba(212, 178, 123, 0.36);
+  background:
+    radial-gradient(120% 110% at 100% 0%, rgba(212, 178, 123, 0.16), transparent 56%),
+    rgba(255, 255, 255, 0.02);
+}
+
 .home-path-title {
   font-size: 0.88rem;
   line-height: 1.2;
@@ -694,6 +701,41 @@ p {
   color: var(--text-1);
   font-size: 0.85rem;
   line-height: 1.5;
+}
+
+.home-value-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-value-item {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  display: grid;
+  gap: 5px;
+}
+
+.home-value-number {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  line-height: 0.92;
+}
+
+.home-value-label {
+  font-size: 0.68rem;
+  color: var(--text-2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-premium--active {
+  border-color: rgba(140, 173, 156, 0.34);
+  background:
+    radial-gradient(100% 90% at 100% 0%, rgba(140, 173, 156, 0.18), transparent 56%),
+    linear-gradient(160deg, rgba(24, 37, 36, 0.74), rgba(20, 24, 29, 0.78));
 }
 
 .home-week {
@@ -807,6 +849,27 @@ p {
   line-height: 1.45;
 }
 
+.onboarding-tier-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.onboarding-tier-card {
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.onboarding-tier-card--premium {
+  border-color: rgba(212, 178, 123, 0.34);
+  background:
+    radial-gradient(120% 100% at 100% 0%, rgba(212, 178, 123, 0.18), transparent 58%),
+    rgba(255, 255, 255, 0.02);
+}
+
 .onboarding-footer {
   display: grid;
   gap: 10px;
@@ -836,6 +899,20 @@ p {
   padding: 16px;
 }
 
+.path-card--premium {
+  border-color: rgba(212, 178, 123, 0.34);
+  background:
+    radial-gradient(120% 100% at 100% 0%, rgba(212, 178, 123, 0.16), transparent 56%),
+    rgba(255, 255, 255, 0.014);
+}
+
+.path-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .path-card-title {
   margin: 0;
   font-size: 1.02rem;
@@ -849,6 +926,12 @@ p {
   gap: 10px;
   color: var(--text-2);
   font-size: 0.76rem;
+}
+
+.path-locked-hint {
+  margin: 0;
+  font-size: 0.74rem;
+  color: #dfbf8f;
 }
 
 .path-detail-hero {
@@ -889,6 +972,8 @@ p {
   text-align: left;
   cursor: pointer;
   font: inherit;
+  border: 0;
+  background: rgba(255, 255, 255, 0.01);
 }
 
 .path-session-copy {
@@ -944,6 +1029,70 @@ p {
   font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.07em;
+}
+
+.player-source-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.player-progress-wrap {
+  display: grid;
+  gap: 8px;
+}
+
+.player-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-2);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+.player-speed-block {
+  display: grid;
+  gap: 8px;
+}
+
+.player-speed-label {
+  color: var(--text-2);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.player-speed-group {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.player-speed-chip {
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-1);
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.player-speed-chip.on {
+  border-color: rgba(212, 178, 123, 0.36);
+  background: rgba(212, 178, 123, 0.15);
+  color: #f0e0c8;
+}
+
+.player-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .session-done {
@@ -1179,6 +1328,14 @@ p {
 @media (max-width: 360px) {
   .home-path-grid,
   .goals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-value-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .player-controls-grid {
     grid-template-columns: 1fr;
   }
 

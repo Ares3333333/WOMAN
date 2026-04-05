@@ -23,8 +23,6 @@ const MOOD_KEYS: Record<OnboardingMood, string> = {
   body: "onboardingMoodBody",
 };
 
-const HOME_PATH_SLICE = 4;
-
 export function HomePage() {
   const { lang, pathTitle, t } = useI18n();
   const { state } = useProgress();
@@ -55,6 +53,22 @@ export function HomePage() {
       ? SESSION_BY_SLUG[state.lastPlayedSlug]
       : null;
 
+  const visibleSessions = SESSIONS.filter((s) => !(s.sensual && state.sensualMode === "hidden"));
+  const freeSessionsCount = visibleSessions.filter((s) => s.freeTier).length;
+  const premiumSessionsCount = visibleSessions.filter((s) => !s.freeTier).length;
+  const unlockedSessionsCount = state.premium ? visibleSessions.length : freeSessionsCount;
+
+  const visiblePaths = PROGRAM_PATHS.filter((path) =>
+    path.sessionSlugs.some((slug) => {
+      const s = SESSION_BY_SLUG[slug];
+      if (!s) return false;
+      if (s.sensual && state.sensualMode === "hidden") return false;
+      return true;
+    })
+  );
+
+  const premiumPathCount = visiblePaths.filter((p) => p.tier === "premium").length;
+  const signaturePathCount = visiblePaths.filter((p) => p.signature).length;
   const firstName = app.initDataUnsafe.user?.first_name;
   const heroTitle = firstName
     ? t("homeHeroNamed").replace("{name}", firstName)
@@ -63,6 +77,12 @@ export function HomePage() {
   const primaryLocked = !pick.freeTier && !state.premium;
   const primaryHref = `/session/${pick.slug}`;
   const showTonight = Boolean(tonightPick && tonightPick.slug !== pick.slug && timeKey === "Evening");
+  const currentMood = readOnboarding().mood;
+
+  const setMood = (m: OnboardingMood) => {
+    saveOnboarding({ done: true, mood: m });
+    setMoodVersion((v) => v + 1);
+  };
 
   const openPremium = () => {
     const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
@@ -83,12 +103,11 @@ export function HomePage() {
     }
   };
 
-  const setMood = (m: OnboardingMood) => {
-    saveOnboarding({ done: true, mood: m });
-    setMoodVersion((v) => v + 1);
+  const tierLabel = (tier: "free" | "mixed" | "premium") => {
+    if (tier === "free") return t("tierFree");
+    if (tier === "mixed") return t("tierMixed");
+    return t("tierPremium");
   };
-
-  const currentMood = readOnboarding().mood;
 
   return (
     <div className="tm-page">
@@ -139,11 +158,7 @@ export function HomePage() {
         </div>
 
         {primaryLocked ? (
-          <button
-            type="button"
-            className={`home-next-card ${pick.gradient} home-next-card--locked`}
-            onClick={openPremium}
-          >
+          <button type="button" className={`home-next-card ${pick.gradient} home-next-card--locked`} onClick={openPremium}>
             <p className="home-next-kicker">{t("homeCurrentKicker")}</p>
             <h3 className="home-next-title">{pick.title[L]}</h3>
             <p className="home-next-desc">{pick.short[L]}</p>
@@ -278,7 +293,7 @@ export function HomePage() {
         </div>
 
         <div className="home-path-grid">
-          {PROGRAM_PATHS.slice(0, HOME_PATH_SLICE).map((path) => {
+          {visiblePaths.slice(0, 6).map((path) => {
             const count = path.sessionSlugs.filter((slug) => {
               const s = SESSION_BY_SLUG[slug];
               if (!s) return false;
@@ -286,9 +301,21 @@ export function HomePage() {
               return true;
             }).length;
             if (count === 0) return null;
+
+            const lockForFree = !state.premium && path.tier === "premium";
+
             return (
-              <Link key={path.id} to={`/path/${path.id}`} className="home-path-card">
-                <span className="tm-pill">{t(`pillarTag_${path.pillarId}`)}</span>
+              <Link
+                key={path.id}
+                to={lockForFree ? "#premium-home" : `/path/${path.id}`}
+                className={`home-path-card${lockForFree ? " home-path-card--locked" : ""}`}
+                onClick={(e) => {
+                  if (!lockForFree) return;
+                  e.preventDefault();
+                  openPremium();
+                }}
+              >
+                <span className="tm-pill">{tierLabel(path.tier)}</span>
                 <span className="home-path-title">{pathTitle(path.id)}</span>
                 <span className="home-path-meta">
                   {count} {t("pathSessions")}
@@ -307,17 +334,46 @@ export function HomePage() {
             <p className="tm-lead">{t("homePremiumSub")}</p>
           </div>
 
+          <div className="home-value-grid">
+            <article className="home-value-item">
+              <span className="home-value-number">{unlockedSessionsCount}</span>
+              <span className="home-value-label">{t("homeValueUnlocked")}</span>
+            </article>
+            <article className="home-value-item">
+              <span className="home-value-number">{premiumSessionsCount}</span>
+              <span className="home-value-label">{t("homeValueLocked")}</span>
+            </article>
+            <article className="home-value-item">
+              <span className="home-value-number">{premiumPathCount}</span>
+              <span className="home-value-label">{t("homeValuePremiumPaths")}</span>
+            </article>
+            <article className="home-value-item">
+              <span className="home-value-number">{signaturePathCount}</span>
+              <span className="home-value-label">{t("homeValueSignature")}</span>
+            </article>
+          </div>
+
           <ul className="home-premium-list">
             <li>{t("homePremiumPoint1")}</li>
             <li>{t("homePremiumPoint2")}</li>
             <li>{t("homePremiumPoint3")}</li>
+            <li>{t("homePremiumPoint4")}</li>
           </ul>
 
           <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={openPremium}>
             {t("homePremiumCta")}
           </button>
+          <p className="tm-subtle">{t("homePremiumPrice")}</p>
         </section>
-      ) : null}
+      ) : (
+        <section className="tm-card home-premium home-premium--active">
+          <div className="tm-head">
+            <p className="tm-kicker">{t("homeMemberKicker")}</p>
+            <h2 className="tm-h2">{t("homeMemberTitle")}</h2>
+            <p className="tm-subtle">{t("homeMemberSub")}</p>
+          </div>
+        </section>
+      )}
 
       <section className="home-grid-2">
         <div className="home-week">

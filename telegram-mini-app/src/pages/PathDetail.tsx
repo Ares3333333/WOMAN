@@ -14,8 +14,13 @@ export function PathDetailPage() {
   const { app } = useTelegram();
 
   const L = lang === "ru" ? "ru" : "en";
-
   const path = PROGRAM_PATHS.find((p) => p.id === id);
+
+  const tierLabel = (tier: "free" | "mixed" | "premium") => {
+    if (tier === "free") return t("tierFree");
+    if (tier === "mixed") return t("tierMixed");
+    return t("tierPremium");
+  };
 
   const openPremium = () => {
     const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
@@ -48,8 +53,9 @@ export function PathDetailPage() {
 
   const introKey = `pathIntro_${path.id}`;
   const intro = t(introKey);
-
   const lockedCount = sessions.filter((s) => !s.freeTier && !state.premium).length;
+  const freeCount = sessions.filter((s) => s.freeTier).length;
+  const membersOnlyPath = path.tier === "premium" && freeCount === 0;
 
   return (
     <div className="tm-page">
@@ -58,6 +64,10 @@ export function PathDetailPage() {
       </Link>
 
       <section className="path-detail-hero">
+        <div className="path-card-head">
+          <span className="tm-pill">{tierLabel(path.tier)}</span>
+          {path.signature ? <span className="tm-pill tm-pill--accent">{t("pathsSignature")}</span> : null}
+        </div>
         <p className="tm-kicker">{t(`pillarLabel_${path.pillarId}`)}</p>
         <h1 className="tm-h1">{pathTitle(path.id)}</h1>
         <p className="tm-lead">{intro !== introKey ? intro : t("pathsHeroSub")}</p>
@@ -65,11 +75,19 @@ export function PathDetailPage() {
           <span>
             {sessions.length} {t("pathSessions")}
           </span>
-          <span>
-            {lockedCount > 0 ? `${lockedCount} ${t("pathsLockedLabel")}` : t("pathsOpenLabel")}
-          </span>
+          <span>{lockedCount > 0 ? `${lockedCount} ${t("pathsLockedLabel")}` : t("pathsOpenLabel")}</span>
         </div>
       </section>
+
+      {path.tier === "premium" && !state.premium ? (
+        <section className="tm-card session-gate">
+          <h2 className="tm-h2">{t("pathsPremiumGateTitle")}</h2>
+          <p className="tm-subtle">{t("pathsPremiumGateSub")}</p>
+          <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={openPremium}>
+            {t("pathsPremiumGateCta")}
+          </button>
+        </section>
+      ) : null}
 
       <ul className="path-session-list">
         {sessions.map((s) => {
@@ -110,6 +128,12 @@ export function PathDetailPage() {
           );
         })}
       </ul>
+
+      {membersOnlyPath && !state.premium ? (
+        <section className="tm-card">
+          <p className="tm-subtle">{t("pathsMembersOnlyHint")}</p>
+        </section>
+      ) : null}
     </div>
   );
 }

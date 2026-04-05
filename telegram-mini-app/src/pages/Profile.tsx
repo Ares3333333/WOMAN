@@ -1,4 +1,6 @@
 ﻿import { useRef } from "react";
+import { PROGRAM_PATHS } from "../data/programs";
+import { SESSIONS } from "../data/sessions";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
 import { useTelegram } from "../telegram/useTelegram";
@@ -12,6 +14,10 @@ export function ProfilePage() {
 
   const pressRef = useRef<number | null>(null);
   const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
+
+  const premiumSessionCount = SESSIONS.filter((s) => !s.freeTier).length;
+  const premiumPathCount = PROGRAM_PATHS.filter((p) => p.tier === "premium").length;
+  const signatureCount = PROGRAM_PATHS.filter((p) => p.signature).length;
 
   const titleHandlers = DEV_PREMIUM_UNLOCK
     ? {
@@ -50,32 +56,48 @@ export function ProfilePage() {
           <h2 className="tm-h2">{t("profilePremiumTitle")}</h2>
           <p className="tm-subtle">{t("profilePremiumBody")}</p>
 
-          {!state.premium ? (
-            <ul className="home-premium-list">
-              <li>{t("profileCircleBullet1")}</li>
-              <li>{t("profileCircleBullet2")}</li>
-              <li>{t("profileCircleBullet3")}</li>
-            </ul>
-          ) : null}
+          <div className="home-value-grid">
+            <article className="home-value-item">
+              <span className="home-value-number">{premiumSessionCount}</span>
+              <span className="home-value-label">{t("profilePremiumStatSessions")}</span>
+            </article>
+            <article className="home-value-item">
+              <span className="home-value-number">{premiumPathCount}</span>
+              <span className="home-value-label">{t("profilePremiumStatPaths")}</span>
+            </article>
+            <article className="home-value-item">
+              <span className="home-value-number">{signatureCount}</span>
+              <span className="home-value-label">{t("profilePremiumStatSignature")}</span>
+            </article>
+          </div>
 
           {!state.premium ? (
-            <button
-              type="button"
-              className="tm-btn tm-btn-primary tm-btn-block"
-              onClick={() => {
-                if (!bot) {
-                  unlockPremium();
-                  return;
-                }
-                try {
-                  app.openTelegramLink(`${bot}?start=premium`);
-                } catch {
-                  window.open(`${bot}?start=premium`, "_blank");
-                }
-              }}
-            >
-              {t("profileUpgrade")}
-            </button>
+            <>
+              <ul className="home-premium-list">
+                <li>{t("profileCircleBullet1")}</li>
+                <li>{t("profileCircleBullet2")}</li>
+                <li>{t("profileCircleBullet3")}</li>
+              </ul>
+
+              <button
+                type="button"
+                className="tm-btn tm-btn-primary tm-btn-block"
+                onClick={() => {
+                  if (!bot) {
+                    unlockPremium();
+                    return;
+                  }
+                  try {
+                    app.openTelegramLink(`${bot}?start=premium`);
+                  } catch {
+                    window.open(`${bot}?start=premium`, "_blank");
+                  }
+                }}
+              >
+                {t("profileUpgrade")}
+              </button>
+              <p className="tm-subtle">{t("profilePremiumPrice")}</p>
+            </>
           ) : null}
 
           {bot ? (

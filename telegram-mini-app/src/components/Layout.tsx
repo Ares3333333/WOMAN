@@ -1,9 +1,11 @@
 ﻿import { NavLink, Outlet } from "react-router-dom";
 import { useI18n } from "../lib/i18n";
+import { useProgress } from "../lib/ProgressContext";
 import { IconGoals, IconHome, IconPaths, IconProfile } from "./MiniNavIcons";
 
 export function Layout() {
   const { t } = useI18n();
+  const { state } = useProgress();
 
   const items: { to: string; end?: boolean; label: string; Icon: typeof IconHome }[] = [
     { to: "/", end: true, label: t("navHome"), Icon: IconHome },
@@ -25,7 +27,7 @@ export function Layout() {
               <span className="tm-brand-sub">{t("shellTagline")}</span>
             </div>
           </div>
-          <span className="tm-shell-status">{t("shellPrivate")}</span>
+          <span className="tm-shell-status">{state.premium ? t("shellCircle") : t("shellStarter")}</span>
         </div>
       </header>
 

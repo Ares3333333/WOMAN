@@ -1,4 +1,6 @@
-﻿import { useI18n } from "../lib/i18n";
+﻿import { Link } from "react-router-dom";
+import { SESSIONS } from "../data/sessions";
+import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
 import { useTelegram } from "../telegram/useTelegram";
 
@@ -8,13 +10,18 @@ function todayISO(): string {
 }
 
 export function GoalsPage() {
-  const { t } = useI18n();
+  const { lang, t } = useI18n();
   const { state, selfCareToday } = useProgress();
   const { app } = useTelegram();
 
+  const L = lang === "ru" ? "ru" : "en";
   const today = todayISO();
   const marked = state.lastSelfCareDate === today;
   const weekPct = Math.min(100, (state.weekCompletions / 3) * 100);
+
+  const nextPremium = state.premium
+    ? SESSIONS.find((s) => !s.freeTier && !state.completedSlugs.includes(s.slug))
+    : null;
 
   return (
     <div className="tm-page">
@@ -56,6 +63,27 @@ export function GoalsPage() {
           <p className="home-footer-line">{t("goalsWeeklyHint")}</p>
         </div>
       </section>
+
+      {state.premium ? (
+        <section className="tm-card">
+          <p className="tm-kicker tm-kicker--muted">{t("goalsPremiumKicker")}</p>
+          <h2 className="tm-h2">{t("goalsPremiumTitle")}</h2>
+          <p className="tm-subtle">{t("goalsPremiumSub")}</p>
+          {nextPremium ? (
+            <Link to={`/session/${nextPremium.slug}`} className="tm-btn tm-btn-secondary tm-btn-block">
+              {t("goalsPremiumNext")} · {nextPremium.title[L]}
+            </Link>
+          ) : (
+            <p className="tm-subtle">{t("goalsPremiumDone")}</p>
+          )}
+        </section>
+      ) : (
+        <section className="tm-card session-gate">
+          <p className="tm-kicker">{t("goalsPremiumKicker")}</p>
+          <h2 className="tm-h2">{t("goalsPremiumLockedTitle")}</h2>
+          <p className="tm-subtle">{t("goalsPremiumLockedSub")}</p>
+        </section>
+      )}
 
       <button
         type="button"
