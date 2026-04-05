@@ -8,6 +8,10 @@ export type ProgramPath = {
   readonly pillarId: ContentPillarId;
   readonly tier: ProgramTier;
   readonly signature?: boolean;
+  /** Typical continuity block for this path. */
+  readonly continuityWeeks: number;
+  /** Core outcome axis shown in UI. */
+  readonly valueAxis: "stability" | "sleep" | "boundaries" | "private" | "rhythm" | "recovery";
   readonly sessionSlugs: readonly string[];
 };
 
@@ -16,6 +20,8 @@ export const PROGRAM_PATHS: readonly ProgramPath[] = [
     id: "nervous_system",
     pillarId: "still_mind",
     tier: "free",
+    continuityWeeks: 2,
+    valueAxis: "stability",
     sessionSlugs: [
       "five-minute-nervous-system-reset",
       "when-anxiety-surges-breath-anchor",
@@ -27,6 +33,8 @@ export const PROGRAM_PATHS: readonly ProgramPath[] = [
     id: "overload_cycle_care",
     pillarId: "when_lot",
     tier: "free",
+    continuityWeeks: 2,
+    valueAxis: "stability",
     sessionSlugs: [
       "when-everything-feels-too-much",
       "micro-pause-overloaded-caregivers",
@@ -37,26 +45,32 @@ export const PROGRAM_PATHS: readonly ProgramPath[] = [
     id: "emotional_care",
     pillarId: "close_day",
     tier: "mixed",
+    continuityWeeks: 3,
+    valueAxis: "recovery",
     sessionSlugs: [
       "after-hard-news-softening",
       "when-everything-feels-too-much",
-      "sleep-after-an-emotionally-hard-day",
+      "deep-recovery-sunday-reset",
     ],
   },
   {
     id: "body_embodiment",
     pillarId: "back_body",
     tier: "mixed",
+    continuityWeeks: 3,
+    valueAxis: "rhythm",
     sessionSlugs: [
       "gentle-body-reconnection",
       "reconnect-with-your-breath",
-      "sensual-softness-consent-first",
+      "cycle-aware-evening-balance",
     ],
   },
   {
     id: "boundaries_confidence",
     pillarId: "return_you",
     tier: "mixed",
+    continuityWeeks: 3,
+    valueAxis: "boundaries",
     sessionSlugs: [
       "morning-confidence-reset",
       "boundaries-after-social-overload",
@@ -67,10 +81,12 @@ export const PROGRAM_PATHS: readonly ProgramPath[] = [
     id: "sleep_deep_rest",
     pillarId: "tonight",
     tier: "mixed",
+    continuityWeeks: 4,
+    valueAxis: "sleep",
     sessionSlugs: [
       "grounding-before-bed",
       "sleep-after-an-emotionally-hard-day",
-      "evening-nervous-system-downshift",
+      "midnight-overthinking-off-ramp",
     ],
   },
   {
@@ -78,10 +94,12 @@ export const PROGRAM_PATHS: readonly ProgramPath[] = [
     pillarId: "soft_evening",
     tier: "premium",
     signature: true,
+    continuityWeeks: 4,
+    valueAxis: "recovery",
     sessionSlugs: [
       "evening-nervous-system-downshift",
-      "grounding-before-bed",
-      "deep-sleep-arrival-ritual",
+      "cycle-aware-evening-balance",
+      "deep-recovery-sunday-reset",
     ],
   },
   {
@@ -89,10 +107,24 @@ export const PROGRAM_PATHS: readonly ProgramPath[] = [
     pillarId: "tonight",
     tier: "premium",
     signature: true,
+    continuityWeeks: 4,
+    valueAxis: "sleep",
     sessionSlugs: [
       "deep-sleep-arrival-ritual",
+      "midnight-overthinking-off-ramp",
       "sleep-after-an-emotionally-hard-day",
-      "grounding-before-bed",
+    ],
+  },
+  {
+    id: "cycle_rhythm_support",
+    pillarId: "return_you",
+    tier: "premium",
+    continuityWeeks: 4,
+    valueAxis: "rhythm",
+    sessionSlugs: [
+      "cycle-aware-evening-balance",
+      "boundaries-after-social-overload",
+      "deep-recovery-sunday-reset",
     ],
   },
   {
@@ -100,9 +132,12 @@ export const PROGRAM_PATHS: readonly ProgramPath[] = [
     pillarId: "quiet_warmth",
     tier: "premium",
     signature: true,
+    continuityWeeks: 4,
+    valueAxis: "private",
     sessionSlugs: [
       "sensual-softness-consent-first",
       "private-soft-confidence-body-trust",
     ],
   },
 ] as const;
+

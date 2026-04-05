@@ -2,6 +2,8 @@
 import { Link } from "react-router-dom";
 import { OnboardingSheet } from "../components/OnboardingSheet";
 import { IconChevron } from "../components/MiniNavIcons";
+import { CONCIERGE_SERVICES } from "../data/concierge";
+import { CIRCLE_FEATURES } from "../data/premium";
 import { PROGRAM_PATHS } from "../data/programs";
 import { SESSION_BY_SLUG, SESSIONS } from "../data/sessions";
 import { homeTimeKey, pickAlternateSessions, pickSessionForHome, pickTonightSession } from "../lib/homePick";
@@ -13,6 +15,7 @@ import {
   saveOnboarding,
 } from "../lib/onboarding";
 import { useProgress } from "../lib/ProgressContext";
+import { buildRhythmInsightKeys, loadRhythmProfile, pickRhythmSession } from "../lib/rhythmTracker";
 import { canUserAccessSession } from "../lib/sessionAccess";
 import { useTelegram } from "../telegram/useTelegram";
 
@@ -25,7 +28,7 @@ const MOOD_KEYS: Record<OnboardingMood, string> = {
 
 export function HomePage() {
   const { lang, pathTitle, t } = useI18n();
-  const { state } = useProgress();
+  const { state, unlockPremium } = useProgress();
   const { app } = useTelegram();
   const L = lang === "ru" ? "ru" : "en";
 
@@ -66,6 +69,11 @@ export function HomePage() {
       return true;
     })
   );
+  const featuredPaths = useMemo(() => {
+    const core = visiblePaths.filter((p) => p.tier !== "premium").slice(0, 4);
+    const premium = visiblePaths.filter((p) => p.tier === "premium").slice(0, 2);
+    return [...core, ...premium];
+  }, [visiblePaths]);
 
   const premiumPathCount = visiblePaths.filter((p) => p.tier === "premium").length;
   const signaturePathCount = visiblePaths.filter((p) => p.signature).length;
@@ -78,6 +86,22 @@ export function HomePage() {
   const primaryHref = `/session/${pick.slug}`;
   const showTonight = Boolean(tonightPick && tonightPick.slug !== pick.slug && timeKey === "Evening");
   const currentMood = readOnboarding().mood;
+  const rhythmProfile = useMemo(() => loadRhythmProfile(), [state.premium, moodVersion, state.weekCompletions]);
+  const rhythmInsight = useMemo(
+    () =>
+      buildRhythmInsightKeys({
+        profile: rhythmProfile,
+        state,
+        mood: currentMood,
+      }),
+    [rhythmProfile, state, currentMood]
+  );
+  const rhythmSession = useMemo(() => pickRhythmSession(rhythmProfile, state), [rhythmProfile, state]);
+  const trackerSnapshot = [
+    t(`trackerPhase_${rhythmProfile.phase}`),
+    t(`trackerStress_${rhythmProfile.stress}`),
+    t(`trackerSleep_${rhythmProfile.sleep}`),
+  ];
 
   const setMood = (m: OnboardingMood) => {
     saveOnboarding({ done: true, mood: m });
@@ -86,11 +110,27 @@ export function HomePage() {
 
   const openPremium = () => {
     const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
-    if (!bot) return;
+    if (!bot) {
+      unlockPremium();
+      return;
+    }
     try {
       app.openTelegramLink(`${bot}?start=premium`);
     } catch {
       window.open(`${bot}?start=premium`, "_blank");
+    }
+  };
+
+  const openConcierge = () => {
+    const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
+    if (!bot) {
+      openPremium();
+      return;
+    }
+    try {
+      app.openTelegramLink(`${bot}?start=concierge`);
+    } catch {
+      window.open(`${bot}?start=concierge`, "_blank");
     }
   };
 
@@ -293,7 +333,7 @@ export function HomePage() {
         </div>
 
         <div className="home-path-grid">
-          {visiblePaths.slice(0, 6).map((path) => {
+          {featuredPaths.map((path) => {
             const count = path.sessionSlugs.filter((slug) => {
               const s = SESSION_BY_SLUG[slug];
               if (!s) return false;
@@ -326,6 +366,80 @@ export function HomePage() {
         </div>
       </section>
 
+      <section className="tm-card" aria-labelledby="home-tracker-title">
+        <div className="tm-head">
+          <p className="tm-kicker tm-kicker--muted">{t("homeTrackerKicker")}</p>
+          <h2 id="home-tracker-title" className="tm-h2">
+            {t("homeTrackerTitle")}
+          </h2>
+          <p className="tm-subtle">{t("homeTrackerSub")}</p>
+        </div>
+
+        {state.premium ? (
+          <div className="home-insight-stack">
+            <div className="tracker-pill-row">
+              {trackerSnapshot.map((label) => (
+                <span key={label} className="tm-pill">
+                  {label}
+                </span>
+              ))}
+            </div>
+            <article className="home-insight-card">
+              <p className="tm-kicker tm-kicker--muted">{t(rhythmInsight.headline)}</p>
+              <p className="tm-subtle">{t(rhythmInsight.note)}</p>
+              <p className="tm-subtle">{t(rhythmInsight.suggestion)}</p>
+            </article>
+
+            {rhythmSession ? (
+              <Link to={`/session/${rhythmSession.slug}`} className="tm-btn tm-btn-secondary tm-btn-block">
+                {t("homeTrackerCta")} · {rhythmSession.title[L]}
+              </Link>
+            ) : (
+              <p className="tm-subtle">{t("homeContinueEmptySub")}</p>
+            )}
+          </div>
+        ) : (
+          <div className="home-insight-stack">
+            <p className="tm-subtle">{t("homeTrackerLocked")}</p>
+            <button type="button" className="tm-btn tm-btn-secondary tm-btn-block" onClick={openPremium}>
+              {t("homePrimaryLockedCta")}
+            </button>
+          </div>
+        )}
+      </section>
+
+      <section className="tm-card" aria-labelledby="home-concierge-title">
+        <div className="tm-head">
+          <p className="tm-kicker tm-kicker--muted">{t("homeConciergeKicker")}</p>
+          <h2 id="home-concierge-title" className="tm-h2">
+            {t("homeConciergeTitle")}
+          </h2>
+          <p className="tm-subtle">{t("homeConciergeSub")}</p>
+        </div>
+
+        <div className="home-concierge-list">
+          {CONCIERGE_SERVICES.slice(0, 2).map((item) => (
+            <article key={item.id} className="home-concierge-item">
+              <p className="tm-list-title">{item.title[L]}</p>
+              <p className="tm-subtle">{item.summary[L]}</p>
+              <div className="concierge-meta-inline">
+                <span className="tm-pill">{t(`conciergeCategory_${item.category}`)}</span>
+                <span className="tm-subtle">{t("profileConciergeAddon").replace("{price}", `$${item.priceFromUsd}`)}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <p className="tm-subtle">{state.premium ? t("profileConciergeSub") : t("homeConciergeLocked")}</p>
+        <button
+          type="button"
+          className="tm-btn tm-btn-secondary tm-btn-block"
+          onClick={state.premium ? openConcierge : openPremium}
+        >
+          {state.premium ? t("profileConciergeRequest") : t("homePrimaryLockedCta")}
+        </button>
+      </section>
+
       {!state.premium ? (
         <section id="premium-home" className="tm-card home-premium">
           <div className="tm-head">
@@ -353,12 +467,33 @@ export function HomePage() {
             </article>
           </div>
 
-          <ul className="home-premium-list">
-            <li>{t("homePremiumPoint1")}</li>
-            <li>{t("homePremiumPoint2")}</li>
-            <li>{t("homePremiumPoint3")}</li>
-            <li>{t("homePremiumPoint4")}</li>
-          </ul>
+          <div className="premium-feature-grid">
+            {CIRCLE_FEATURES.map((feature) => (
+              <article key={feature.id} className="premium-feature-card">
+                <p className="tm-list-title">{feature.title[L]}</p>
+                <p className="tm-subtle">{feature.summary[L]}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="premium-compare-grid">
+            <article className="premium-compare-card">
+              <p className="tm-kicker tm-kicker--muted">{t("homeCompareFreeTitle")}</p>
+              <ul className="home-premium-list">
+                <li>{t("homeCompareFreeItem1")}</li>
+                <li>{t("homeCompareFreeItem2")}</li>
+                <li>{t("homeCompareFreeItem3")}</li>
+              </ul>
+            </article>
+            <article className="premium-compare-card premium-compare-card--accent">
+              <p className="tm-kicker">{t("homeComparePremiumTitle")}</p>
+              <ul className="home-premium-list">
+                <li>{t("homeComparePremiumItem1")}</li>
+                <li>{t("homeComparePremiumItem2")}</li>
+                <li>{t("homeComparePremiumItem3")}</li>
+              </ul>
+            </article>
+          </div>
 
           <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={openPremium}>
             {t("homePremiumCta")}

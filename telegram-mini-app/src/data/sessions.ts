@@ -198,7 +198,7 @@ export const SESSIONS: MiniSession[] = [
     slug: "reconnect-with-your-breath",
     title: { ru: "Вернуть дыхание как опору", en: "Breath as your base again" },
     short: {
-      ru: "Премиальная дыхательная сессия с несколькими фазами и длинными паузами стабилизации.",
+      ru: "Дыхательная сессия с несколькими фазами и длинными паузами стабилизации.",
       en: "A premium multi-phase breathing session with extended stabilization pauses.",
     },
     durationMin: 10,
@@ -468,7 +468,7 @@ export const SESSIONS: MiniSession[] = [
   },
   {
     slug: "micro-pause-overloaded-caregivers",
-    title: { ru: "Микропаузa, когда все держится на вас", en: "Micro-pause when everyone needs you" },
+    title: { ru: "Микропауза, когда все держится на вас", en: "Micro-pause when everyone needs you" },
     short: {
       ru: "Экстренная мини-сессия для моментов «я больше не вывожу».",
       en: "Emergency mini-session for moments of near-capacity.",
@@ -655,7 +655,7 @@ export const SESSIONS: MiniSession[] = [
     slug: "boundaries-after-social-overload",
     title: { ru: "Вернуть границы после социального перегруза", en: "Boundaries after social overload" },
     short: {
-      ru: "Премиальный трек для восстановления после интенсивного общения и эмоционального истощения.",
+      ru: "Трек для восстановления после интенсивного общения и эмоционального истощения.",
       en: "A premium recovery track after intense social exposure.",
     },
     durationMin: 15,
@@ -738,6 +738,143 @@ export const SESSIONS: MiniSession[] = [
       journal: {
         ru: "Что делает мой личный ритуал контакта с собой действительно ценным?",
         en: "What makes my private self-connection ritual genuinely valuable?",
+      },
+    },
+  },
+  {
+    slug: "cycle-aware-evening-balance",
+    title: { ru: "Вечерняя настройка под ваш ритм", en: "Cycle-aware evening balance" },
+    short: {
+      ru: "Сессия для вечеров, когда состояние меняется волнами в разные фазы цикла.",
+      en: "A premium evening session for days when your inner tone shifts across cycle phases.",
+    },
+    durationMin: 13,
+    freeTier: false,
+    gradient: "rose",
+    categorySlug: "rhythm-support",
+    pillarId: "return_you",
+    eveningHint: true,
+    sensual: false,
+    audio: audio("cycle-aware-evening-balance", 13),
+    script: {
+      intro: {
+        ru: "Эта практика не лечит и не диагностирует. Она помогает мягко выровнять вечерний ритм, когда эмоциональный фон скачет и трудно понять, что именно нужно телу.",
+        en: "This practice does not diagnose or treat. It helps gently rebalance your evening rhythm when emotional tone shifts and body needs feel unclear.",
+      },
+      settling: {
+        ru: "Выберите позу, где есть и комфорт, и ощущение собранности. [Пауза 15 секунд] Положите одну ладонь на грудную клетку, вторую на низ живота.",
+        en: "Choose a posture that feels both comfortable and composed. [Pause 15 seconds] Place one hand on your chest and one on lower belly.",
+      },
+      breath: {
+        ru: "Первые пять циклов: вдох на четыре, выдох на шесть. Следующие пять циклов: без счета, но с длинным спокойным выдохом. [Пауза 40 секунд]",
+        en: "First five cycles: inhale for four, exhale for six. Next five cycles: no counting, just a long calm exhale. [Pause 40 seconds]",
+      },
+      body: {
+        ru: "Проверьте четыре зоны: лицо, грудь, живот, таз. На каждой зоне задайте вопрос: «что тебе сейчас нужно - тепло, тишина, движение или покой?» [Пауза 55 секунд] Выберите один самый понятный ответ и дайте телу этот сигнал.",
+        en: "Check four zones: face, chest, belly, pelvis. In each zone ask: what do you need now - warmth, quiet, movement, or stillness? [Pause 55 seconds] Choose one clear answer and give your body that signal.",
+      },
+      affirm: {
+        ru: "Мой ритм может меняться. Я могу подстраиваться к себе без борьбы.",
+        en: "My rhythm can change. I can adjust to myself without a fight.",
+      },
+      close: {
+        ru: "Отметьте текущий уровень внутреннего напряжения от 0 до 10. Сохраните эту цифру в памяти: это ваша точка для завтрашнего сравнения, без оценки и критики.",
+        en: "Notice your current tension level from 0 to 10. Keep that number for tomorrow's comparison, without judgment or pressure.",
+      },
+      journal: {
+        ru: "Что сегодня реально помогло: длина выдоха, тепло, тишина или небольшой телесный жест?",
+        en: "What actually helped tonight: longer exhale, warmth, quiet, or a small body movement?",
+      },
+    },
+  },
+  {
+    slug: "midnight-overthinking-off-ramp",
+    title: { ru: "Ночной выход из overthinking", en: "Midnight off-ramp for overthinking" },
+    short: {
+      ru: "Длинный трек на ночи, когда мысли крутятся по кругу и сон все время откладывается.",
+      en: "A long night track for loops of overthinking that keep delaying sleep.",
+    },
+    durationMin: 19,
+    freeTier: false,
+    gradient: "sleep",
+    categorySlug: "night-recovery",
+    pillarId: "tonight",
+    eveningHint: true,
+    sensual: false,
+    audio: audio("midnight-overthinking-off-ramp", 19),
+    script: {
+      intro: {
+        ru: "Если вы снова прокручиваете одни и те же разговоры и решения, вы не обязаны «выключить голову силой». Мы создадим мягкий выход из мыслительного круга.",
+        en: "If you are replaying the same conversations and decisions, you do not need to shut your mind down by force. We will build a gentle exit from the loop.",
+      },
+      settling: {
+        ru: "Уберите телефон с кровати и разверните экран вниз. [Пауза 20 секунд] Дайте телу устойчивую опору: подушке, матрасу, одеялу.",
+        en: "Move your phone off the bed and turn the screen face down. [Pause 20 seconds] Let your body feel clear support from pillow, mattress, blanket.",
+      },
+      breath: {
+        ru: "Сделайте восемь циклов с длинным выдохом через рот. Затем вернитесь к носовому дыханию без счета и без контроля. [Пауза 80 секунд] Каждый выдох - это сигнал «не сейчас».",
+        en: "Take eight cycles with a long exhale through your mouth. Then return to natural nose breathing without counting. [Pause 80 seconds] Each exhale is a signal: not now.",
+      },
+      body: {
+        ru: "На вдохе слегка напрягайте стопы и кисти, на выдохе полностью отпускайте. Повторите шесть раз. [Пауза 45 секунд] Затем расслабьте лоб, язык, челюсть, плечи и низ живота.",
+        en: "On inhale, lightly tense feet and hands; on exhale, release fully. Repeat six times. [Pause 45 seconds] Then soften forehead, tongue, jaw, shoulders, and lower belly.",
+      },
+      affirm: {
+        ru: "Я могу отложить решения до утра. Ночь не для анализа, ночь для восстановления.",
+        en: "I can postpone decisions until morning. Night is not for analysis, night is for recovery.",
+      },
+      close: {
+        ru: "Выберите одну фразу-закрытие: «утром разберусь». Повторите ее три раза и перестаньте проверять мысли. Просто оставайтесь в дыхании и темноте.",
+        en: "Choose one closing phrase: I will handle this in the morning. Repeat it three times and stop auditing thoughts. Stay with breath and darkness.",
+      },
+      journal: {
+        ru: "Какая тема чаще всего не отпускает меня ночью и требует отдельного дневного слота?",
+        en: "Which topic keeps returning at night and needs a dedicated daytime slot?",
+      },
+    },
+  },
+  {
+    slug: "deep-recovery-sunday-reset",
+    title: { ru: "Глубокий недельный reset", en: "Deep weekly recovery reset" },
+    short: {
+      ru: "Signature-трек для завершения недели: снять остаточный шум и войти в новую неделю спокойнее.",
+      en: "A signature track to close the week and enter the next one with lower internal noise.",
+    },
+    durationMin: 21,
+    freeTier: false,
+    gradient: "dusk",
+    categorySlug: "weekly-signature",
+    pillarId: "close_day",
+    sensual: false,
+    audio: audio("deep-recovery-sunday-reset", 21),
+    script: {
+      intro: {
+        ru: "Эта длинная сессия создана как weekly checkpoint. Мы закроем эмоциональные хвосты недели и оставим только то, что действительно важно взять дальше.",
+        en: "This long session is built as a weekly checkpoint. We close emotional leftovers and carry forward only what is truly worth keeping.",
+      },
+      settling: {
+        ru: "Сядьте или лягте так, чтобы можно было не двигаться ближайшие двадцать минут. [Пауза 20 секунд] Мысленно назовите три темы, которые больше всего нагружали вас на этой неделе.",
+        en: "Sit or lie in a way you can stay still for twenty minutes. [Pause 20 seconds] Silently name three themes that loaded you most this week.",
+      },
+      breath: {
+        ru: "Первый блок - десять циклов 4-6. Второй блок - свободное дыхание, но с фокусом на полном выдохе. [Пауза 95 секунд] На каждом выдохе мысленно завершайте одну тему недели.",
+        en: "First block: ten rounds of 4-6. Second block: free breathing with attention on full exhale. [Pause 95 seconds] On each exhale, mentally close one weekly thread.",
+      },
+      body: {
+        ru: "Пройдите вниманием по телу: лицо, шея, плечи, грудь, живот, таз, ноги. На каждой зоне говорите: «снимаю остаточное». [Пауза 120 секунд] Если где-то остается плотность, дайте этой зоне больше времени.",
+        en: "Move attention through body: face, neck, shoulders, chest, belly, pelvis, legs. In each area say: releasing residual load. [Pause 120 seconds] If density remains somewhere, give that area more time.",
+      },
+      affirm: {
+        ru: "Я завершаю неделю с уважением к себе, а не через внутренний долг.",
+        en: "I close the week with self-respect, not internal debt.",
+      },
+      close: {
+        ru: "Выберите один фокус на следующую неделю: не список задач, а состояние, которое вы хотите сохранить. Откройте глаза и сделайте спокойный переход в реальность.",
+        en: "Choose one focus for next week: not a task list, but a state you want to preserve. Open your eyes and transition calmly back into your evening.",
+      },
+      journal: {
+        ru: "Какое одно правило поможет мне не перенести старый перегруз в новую неделю?",
+        en: "What one rule will help me avoid carrying old overload into the new week?",
       },
     },
   },

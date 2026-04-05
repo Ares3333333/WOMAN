@@ -1,7 +1,9 @@
 ﻿import { Link } from "react-router-dom";
 import { SESSIONS } from "../data/sessions";
+import { readOnboarding } from "../lib/onboarding";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
+import { buildRhythmInsightKeys, loadRhythmProfile, pickRhythmSession } from "../lib/rhythmTracker";
 import { useTelegram } from "../telegram/useTelegram";
 
 function todayISO(): string {
@@ -11,17 +13,39 @@ function todayISO(): string {
 
 export function GoalsPage() {
   const { lang, t } = useI18n();
-  const { state, selfCareToday } = useProgress();
+  const { state, selfCareToday, unlockPremium } = useProgress();
   const { app } = useTelegram();
 
   const L = lang === "ru" ? "ru" : "en";
   const today = todayISO();
   const marked = state.lastSelfCareDate === today;
   const weekPct = Math.min(100, (state.weekCompletions / 3) * 100);
+  const rhythmProfile = loadRhythmProfile();
+  const mood = readOnboarding().mood;
+  const rhythmInsight = buildRhythmInsightKeys({ profile: rhythmProfile, state, mood });
+  const rhythmSession = pickRhythmSession(rhythmProfile, state);
+  const trackerSnapshot = [
+    t(`trackerPhase_${rhythmProfile.phase}`),
+    t(`trackerStress_${rhythmProfile.stress}`),
+    t(`trackerSleep_${rhythmProfile.sleep}`),
+  ];
+  const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
 
   const nextPremium = state.premium
     ? SESSIONS.find((s) => !s.freeTier && !state.completedSlugs.includes(s.slug))
     : null;
+
+  const openPremium = () => {
+    if (!bot) {
+      unlockPremium();
+      return;
+    }
+    try {
+      app.openTelegramLink(`${bot}?start=premium`);
+    } catch {
+      window.open(`${bot}?start=premium`, "_blank");
+    }
+  };
 
   return (
     <div className="tm-page">
@@ -64,14 +88,53 @@ export function GoalsPage() {
         </div>
       </section>
 
+      <section className="tm-card">
+        <div className="tm-head">
+          <p className="tm-kicker tm-kicker--muted">{t("goalsInsightKicker")}</p>
+          <h2 className="tm-h2">{t("goalsInsightTitle")}</h2>
+          <p className="tm-subtle">{t("goalsInsightSub")}</p>
+        </div>
+
+        {state.premium ? (
+          <div className="goals-insight-stack">
+            <div className="tracker-pill-row">
+              {trackerSnapshot.map((label) => (
+                <span key={label} className="tm-pill">
+                  {label}
+                </span>
+              ))}
+            </div>
+
+            <article className="home-insight-card">
+              <p className="tm-kicker tm-kicker--muted">{t(rhythmInsight.headline)}</p>
+              <p className="tm-subtle">{t(rhythmInsight.note)}</p>
+              <p className="tm-subtle">{t(rhythmInsight.suggestion)}</p>
+            </article>
+
+            {rhythmSession ? (
+              <Link to={`/session/${rhythmSession.slug}`} className="tm-btn tm-btn-secondary tm-btn-block">
+                {t("goalsInsightCta")} • {rhythmSession.title[L]}
+              </Link>
+            ) : null}
+          </div>
+        ) : (
+          <div className="goals-insight-stack">
+            <p className="tm-subtle">{t("goalsInsightLocked")}</p>
+            <button type="button" className="tm-btn tm-btn-secondary tm-btn-block" onClick={openPremium}>
+              {t("homePrimaryLockedCta")}
+            </button>
+          </div>
+        )}
+      </section>
+
       {state.premium ? (
         <section className="tm-card">
           <p className="tm-kicker tm-kicker--muted">{t("goalsPremiumKicker")}</p>
           <h2 className="tm-h2">{t("goalsPremiumTitle")}</h2>
           <p className="tm-subtle">{t("goalsPremiumSub")}</p>
-          {nextPremium ? (
-            <Link to={`/session/${nextPremium.slug}`} className="tm-btn tm-btn-secondary tm-btn-block">
-              {t("goalsPremiumNext")} · {nextPremium.title[L]}
+          {nextPremium ?? rhythmSession ? (
+            <Link to={`/session/${(nextPremium ?? rhythmSession)!.slug}`} className="tm-btn tm-btn-secondary tm-btn-block">
+              {t("goalsPremiumNext")} • {(nextPremium ?? rhythmSession)!.title[L]}
             </Link>
           ) : (
             <p className="tm-subtle">{t("goalsPremiumDone")}</p>
@@ -103,3 +166,4 @@ export function GoalsPage() {
     </div>
   );
 }
+

@@ -22,7 +22,7 @@ function formatClock(totalSec: number): string {
 export function SessionPlayPage() {
   const { slug } = useParams<{ slug: string }>();
   const { lang, t } = useI18n();
-  const { state, completeSession, selfCareToday, rememberSession } = useProgress();
+  const { state, completeSession, selfCareToday, rememberSession, unlockPremium } = useProgress();
   const { app } = useTelegram();
   const nav = useNavigate();
 
@@ -253,7 +253,10 @@ export function SessionPlayPage() {
 
   const openPremium = () => {
     const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
-    if (!bot) return;
+    if (!bot) {
+      unlockPremium();
+      return;
+    }
     try {
       app.openTelegramLink(`${bot}?start=premium`);
     } catch {

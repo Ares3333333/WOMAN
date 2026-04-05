@@ -252,12 +252,12 @@ select {
 
 .tm-page {
   display: grid;
-  gap: var(--space-xl);
+  gap: calc(var(--space-xl) + 6px);
 }
 
 .tm-head {
   display: grid;
-  gap: var(--space-sm);
+  gap: 14px;
 }
 
 .tm-kicker {
@@ -320,11 +320,13 @@ p {
 }
 
 .tm-card {
+  display: grid;
+  gap: 14px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--line-soft);
   background: linear-gradient(170deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015));
   box-shadow: var(--shadow-surface);
-  padding: var(--space-lg);
+  padding: 22px;
 }
 
 .tm-card-link {
@@ -460,7 +462,7 @@ p {
 
 .tm-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .tm-list-item {
@@ -472,7 +474,7 @@ p {
   border-radius: 14px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.01);
-  padding: 14px;
+  padding: 16px;
   color: inherit;
 }
 
@@ -507,7 +509,7 @@ p {
 .home-hero {
   position: relative;
   overflow: hidden;
-  padding: 24px;
+  padding: 28px;
   border-radius: var(--radius-xxl);
   border: 1px solid var(--line-mid);
   background:
@@ -531,7 +533,7 @@ p {
 
 .home-hero-copy {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   position: relative;
   z-index: 1;
 }
@@ -558,8 +560,8 @@ p {
 
 .home-hero-actions {
   display: grid;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 14px;
+  margin-top: 6px;
 }
 
 .home-hero-links {
@@ -583,15 +585,15 @@ p {
 
 .home-next {
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
 
 .home-next-card {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   text-decoration: none;
   color: inherit;
-  padding: 20px;
+  padding: 22px;
   border-radius: var(--radius-xl);
   border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow: var(--shadow-surface);
@@ -646,13 +648,13 @@ p {
 
 .home-grid-2 {
   display: grid;
-  gap: var(--space-md);
+  gap: 18px;
 }
 
 .home-path-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .home-path-card {
@@ -660,9 +662,9 @@ p {
   border-radius: 14px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.02);
-  padding: 12px;
+  padding: 14px;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .home-path-card--locked {
@@ -697,7 +699,7 @@ p {
   margin: 0;
   padding-left: 18px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
   color: var(--text-1);
   font-size: 0.85rem;
   line-height: 1.5;
@@ -706,13 +708,13 @@ p {
 .home-value-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .home-value-item {
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: rgba(255, 255, 255, 0.02);
   display: grid;
   gap: 5px;
@@ -740,8 +742,8 @@ p {
 
 .home-week {
   display: grid;
-  gap: 10px;
-  padding: 16px;
+  gap: 12px;
+  padding: 18px;
   border-radius: 16px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.01);
@@ -782,9 +784,9 @@ p {
     radial-gradient(140% 120% at 100% 0%, rgba(212, 178, 123, 0.26), transparent 52%),
     linear-gradient(166deg, rgba(19, 25, 36, 0.98), rgba(13, 18, 28, 0.98));
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  padding: 22px;
+  padding: 24px;
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .onboarding-head {
@@ -836,7 +838,7 @@ p {
 .onboarding-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 
 .onboarding-feature-list {
@@ -851,16 +853,16 @@ p {
 
 .onboarding-tier-grid {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .onboarding-tier-card {
   border-radius: 14px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.02);
-  padding: 12px;
+  padding: 14px;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .onboarding-tier-card--premium {
@@ -877,7 +879,7 @@ p {
 
 .paths-layout {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .path-pillar {
@@ -891,12 +893,12 @@ p {
 
 .path-card {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   text-decoration: none;
   border-radius: 18px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.014);
-  padding: 16px;
+  padding: 18px;
 }
 
 .path-card--premium {
@@ -925,7 +927,8 @@ p {
   justify-content: space-between;
   gap: 10px;
   color: var(--text-2);
-  font-size: 0.76rem;
+  font-size: 0.74rem;
+  line-height: 1.4;
 }
 
 .path-locked-hint {
@@ -936,8 +939,8 @@ p {
 
 .path-detail-hero {
   display: grid;
-  gap: 10px;
-  padding: 18px;
+  gap: 12px;
+  padding: 20px;
   border-radius: 18px;
   border: 1px solid var(--line-mid);
   background: linear-gradient(170deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
@@ -948,7 +951,7 @@ p {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .path-session-item {
@@ -960,7 +963,7 @@ p {
   border-radius: 16px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.01);
-  padding: 14px;
+  padding: 16px;
 }
 
 .path-session-item--locked {
@@ -978,7 +981,7 @@ p {
 
 .path-session-copy {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -991,7 +994,7 @@ p {
 
 .session-stage {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .session-back {
@@ -1008,13 +1011,13 @@ p {
 
 .session-intro {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .session-control {
   display: grid;
-  gap: 12px;
-  padding: 16px;
+  gap: 14px;
+  padding: 20px;
   border-radius: 18px;
   border: 1px solid var(--line-mid);
   background: linear-gradient(160deg, rgba(29, 38, 52, 0.82), rgba(17, 23, 35, 0.92));
@@ -1106,8 +1109,8 @@ p {
 
 .session-script {
   display: grid;
-  gap: 10px;
-  padding: 16px;
+  gap: 12px;
+  padding: 18px;
   border-radius: 16px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.01);
@@ -1133,16 +1136,16 @@ p {
 .goals-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .metric-card {
   border-radius: 16px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.014);
-  padding: 14px;
+  padding: 16px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .metric-label {
@@ -1177,16 +1180,16 @@ p {
 
 .profile-stack {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .profile-card {
   border-radius: 18px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.015);
-  padding: 16px;
+  padding: 18px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .profile-card--premium {
@@ -1221,6 +1224,129 @@ p {
 
 .segmented.segmented-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.segmented.segmented-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.home-insight-stack,
+.goals-insight-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.tracker-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.home-insight-card {
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.home-concierge-list {
+  display: grid;
+  gap: 10px;
+}
+
+.home-concierge-item {
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.015);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.premium-compare-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.premium-feature-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.premium-feature-card {
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.015);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.premium-compare-card {
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.015);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.premium-compare-card--accent {
+  border-color: rgba(212, 178, 123, 0.34);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(212, 178, 123, 0.14), transparent 62%),
+    rgba(255, 255, 255, 0.015);
+}
+
+.profile-tracker-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-included-list {
+  display: grid;
+  gap: 6px;
+}
+
+.profile-tracker-group {
+  display: grid;
+  gap: 8px;
+}
+
+.concierge-list {
+  display: grid;
+  gap: 12px;
+}
+
+.concierge-card {
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.018);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.concierge-card--locked {
+  border-color: rgba(212, 178, 123, 0.24);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(212, 178, 123, 0.14), transparent 62%),
+    rgba(255, 255, 255, 0.018);
+}
+
+.concierge-meta {
+  display: grid;
+  gap: 6px;
+}
+
+.concierge-meta-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .profile-footnote {
@@ -1323,6 +1449,14 @@ p {
   .home-grid-2 {
     grid-template-columns: 1fr 1fr;
   }
+
+  .premium-compare-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .premium-feature-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 360px) {
@@ -1341,5 +1475,9 @@ p {
 
   .segmented {
     grid-template-columns: 1fr;
+  }
+
+  .segmented.segmented-5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

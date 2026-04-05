@@ -1,8 +1,17 @@
-﻿import { useRef } from "react";
+﻿import { useRef, useState } from "react";
+import { CONCIERGE_SERVICES } from "../data/concierge";
+import { CIRCLE_INCLUDED_ITEMS } from "../data/premium";
 import { PROGRAM_PATHS } from "../data/programs";
 import { SESSIONS } from "../data/sessions";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
+import {
+  loadRhythmProfile,
+  updateRhythmProfile,
+  type RhythmPhase,
+  type RhythmSleep,
+  type RhythmStress,
+} from "../lib/rhythmTracker";
 import { useTelegram } from "../telegram/useTelegram";
 
 const DEV_PREMIUM_UNLOCK = import.meta.env.DEV;
@@ -14,10 +23,13 @@ export function ProfilePage() {
 
   const pressRef = useRef<number | null>(null);
   const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
+  const [rhythm, setRhythm] = useState(() => loadRhythmProfile());
+  const L = lang === "ru" ? "ru" : "en";
 
   const premiumSessionCount = SESSIONS.filter((s) => !s.freeTier).length;
   const premiumPathCount = PROGRAM_PATHS.filter((p) => p.tier === "premium").length;
   const signatureCount = PROGRAM_PATHS.filter((p) => p.signature).length;
+  const deepTracksCount = SESSIONS.filter((s) => !s.freeTier && s.durationMin >= 15).length;
 
   const titleHandlers = DEV_PREMIUM_UNLOCK
     ? {
@@ -39,6 +51,35 @@ export function ProfilePage() {
         },
       }
     : {};
+
+  const openPremium = () => {
+    if (!bot) {
+      unlockPremium();
+      return;
+    }
+    try {
+      app.openTelegramLink(`${bot}?start=premium`);
+    } catch {
+      window.open(`${bot}?start=premium`, "_blank");
+    }
+  };
+
+  const openConcierge = () => {
+    if (!bot) {
+      openPremium();
+      return;
+    }
+    try {
+      app.openTelegramLink(`${bot}?start=concierge`);
+    } catch {
+      window.open(`${bot}?start=concierge`, "_blank");
+    }
+  };
+
+  const setRhythmField = (patch: Partial<{ phase: RhythmPhase; stress: RhythmStress; sleep: RhythmSleep }>) => {
+    const next = updateRhythmProfile(patch);
+    setRhythm(next);
+  };
 
   return (
     <div className="tm-page">
@@ -62,6 +103,10 @@ export function ProfilePage() {
               <span className="home-value-label">{t("profilePremiumStatSessions")}</span>
             </article>
             <article className="home-value-item">
+              <span className="home-value-number">{deepTracksCount}</span>
+              <span className="home-value-label">{t("homeValueSignature")}</span>
+            </article>
+            <article className="home-value-item">
               <span className="home-value-number">{premiumPathCount}</span>
               <span className="home-value-label">{t("profilePremiumStatPaths")}</span>
             </article>
@@ -69,6 +114,14 @@ export function ProfilePage() {
               <span className="home-value-number">{signatureCount}</span>
               <span className="home-value-label">{t("profilePremiumStatSignature")}</span>
             </article>
+          </div>
+
+          <div className="profile-included-list">
+            {CIRCLE_INCLUDED_ITEMS.map((item) => (
+              <p key={item.en} className="tm-subtle">
+                • {item[L]}
+              </p>
+            ))}
           </div>
 
           {!state.premium ? (
@@ -79,21 +132,7 @@ export function ProfilePage() {
                 <li>{t("profileCircleBullet3")}</li>
               </ul>
 
-              <button
-                type="button"
-                className="tm-btn tm-btn-primary tm-btn-block"
-                onClick={() => {
-                  if (!bot) {
-                    unlockPremium();
-                    return;
-                  }
-                  try {
-                    app.openTelegramLink(`${bot}?start=premium`);
-                  } catch {
-                    window.open(`${bot}?start=premium`, "_blank");
-                  }
-                }}
-              >
+              <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={openPremium}>
                 {t("profileUpgrade")}
               </button>
               <p className="tm-subtle">{t("profilePremiumPrice")}</p>
@@ -115,6 +154,113 @@ export function ProfilePage() {
               {t("profileManage")}
             </button>
           ) : null}
+        </section>
+
+        <section className="profile-card">
+          <p className="tm-kicker tm-kicker--muted">{t("profileTrackerTitle")}</p>
+          <p className="tm-subtle">{t("profileTrackerSub")}</p>
+
+          {state.premium ? (
+            <div className="profile-tracker-stack">
+              <div className="profile-tracker-group">
+                <p className="tm-subtle">{t("trackerPhaseLabel")}</p>
+                <div className="segmented segmented-5">
+                  {(["unknown", "period", "rising", "social", "late"] as RhythmPhase[]).map((phase) => (
+                    <button
+                      key={phase}
+                      type="button"
+                      className={rhythm.phase === phase ? "on" : ""}
+                      onClick={() => setRhythmField({ phase })}
+                    >
+                      {t(`trackerPhase_${phase}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="profile-tracker-group">
+                <p className="tm-subtle">{t("trackerStressLabel")}</p>
+                <div className="segmented">
+                  {(["light", "loaded", "high"] as RhythmStress[]).map((stress) => (
+                    <button
+                      key={stress}
+                      type="button"
+                      className={rhythm.stress === stress ? "on" : ""}
+                      onClick={() => setRhythmField({ stress })}
+                    >
+                      {t(`trackerStress_${stress}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="profile-tracker-group">
+                <p className="tm-subtle">{t("trackerSleepLabel")}</p>
+                <div className="segmented">
+                  {(["steady", "sensitive", "broken"] as RhythmSleep[]).map((sleep) => (
+                    <button
+                      key={sleep}
+                      type="button"
+                      className={rhythm.sleep === sleep ? "on" : ""}
+                      onClick={() => setRhythmField({ sleep })}
+                    >
+                      {t(`trackerSleep_${sleep}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="profile-tracker-stack">
+              <p className="tm-subtle">{t("profileTrackerLocked")}</p>
+              <button type="button" className="tm-btn tm-btn-secondary tm-btn-block" onClick={openPremium}>
+                {t("profileUpgrade")}
+              </button>
+            </div>
+          )}
+        </section>
+
+        <section className="profile-card">
+          <p className="tm-kicker tm-kicker--muted">{t("profileConciergeTitle")}</p>
+          <p className="tm-subtle">{t("profileConciergeSub")}</p>
+
+          {state.premium ? (
+            <div className="concierge-list">
+              {CONCIERGE_SERVICES.map((item) => (
+                <article key={item.id} className="concierge-card">
+                  <p className="tm-list-title">{item.title[L]}</p>
+                  <p className="tm-subtle">{item.summary[L]}</p>
+                  <p className="tm-subtle">{item.bookingHint[L]}</p>
+                  <div className="concierge-meta">
+                    <span className="tm-pill">{t(`conciergeCategory_${item.category}`)}</span>
+                    <span className="tm-pill tm-pill--accent">
+                      {t("profileConciergeAddon").replace("{price}", `$${item.priceFromUsd}`)}
+                    </span>
+                    <span className="tm-subtle">{item.premiumBenefit[L]}</span>
+                  </div>
+                </article>
+              ))}
+
+              <p className="tm-subtle">{t("profileConciergeTrust")}</p>
+              <button type="button" className="tm-btn tm-btn-secondary tm-btn-block" onClick={openConcierge}>
+                {t("profileConciergeRequest")}
+              </button>
+            </div>
+          ) : (
+            <div className="concierge-list">
+              {CONCIERGE_SERVICES.slice(0, 2).map((item) => (
+                <article key={item.id} className="concierge-card concierge-card--locked">
+                  <p className="tm-list-title">{item.title[L]}</p>
+                  <p className="tm-subtle">{item.summary[L]}</p>
+                  <div className="concierge-meta-inline">
+                    <span className="tm-pill">{t(`conciergeCategory_${item.category}`)}</span>
+                    <span className="tm-subtle">{t("profileConciergeAddon").replace("{price}", `$${item.priceFromUsd}`)}</span>
+                  </div>
+                </article>
+              ))}
+              <p className="tm-subtle">{t("profileConciergeLocked")}</p>
+            </div>
+          )}
         </section>
 
         <section className="profile-card">

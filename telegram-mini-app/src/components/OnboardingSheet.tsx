@@ -101,11 +101,20 @@ export function OnboardingSheet({ onClose }: Props) {
             <article className="onboarding-tier-card onboarding-tier-card--premium">
               <p className="tm-kicker">{t("onboardingPremiumLabel")}</p>
               <p className="tm-subtle">{t("onboardingPremiumCopy")}</p>
+              <ul className="onboarding-feature-list">
+                <li>{t("homePremiumPoint1")}</li>
+                <li>{t("homePremiumPoint2")}</li>
+                <li>{t("homePremiumPoint3")}</li>
+              </ul>
             </article>
           </div>
         ) : null}
 
-        {step === 3 ? <div className="tm-card"><p className="tm-subtle">{t("onboardingFinalNote")}</p></div> : null}
+        {step === 3 ? (
+          <div className="onboarding-tier-card onboarding-tier-card--premium">
+            <p className="tm-subtle">{t("onboardingFinalNote")}</p>
+          </div>
+        ) : null}
 
         <div className="onboarding-footer">
           <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={next}>

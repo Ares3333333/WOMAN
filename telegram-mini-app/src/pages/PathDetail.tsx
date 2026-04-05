@@ -10,7 +10,7 @@ import { useTelegram } from "../telegram/useTelegram";
 export function PathDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { lang, pathTitle, t } = useI18n();
-  const { state } = useProgress();
+  const { state, unlockPremium } = useProgress();
   const { app } = useTelegram();
 
   const L = lang === "ru" ? "ru" : "en";
@@ -24,7 +24,10 @@ export function PathDetailPage() {
 
   const openPremium = () => {
     const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
-    if (!bot) return;
+    if (!bot) {
+      unlockPremium();
+      return;
+    }
     try {
       app.openTelegramLink(`${bot}?start=premium`);
     } catch {
@@ -76,6 +79,10 @@ export function PathDetailPage() {
             {sessions.length} {t("pathSessions")}
           </span>
           <span>{lockedCount > 0 ? `${lockedCount} ${t("pathsLockedLabel")}` : t("pathsOpenLabel")}</span>
+        </div>
+        <div className="path-card-meta">
+          <span>{t(`pathAxis_${path.valueAxis}`)}</span>
+          <span>{t("pathContinuity").replace("{count}", String(path.continuityWeeks))}</span>
         </div>
       </section>
 

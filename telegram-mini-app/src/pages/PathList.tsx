@@ -61,6 +61,10 @@ export function PathListPage() {
                 : t("pathsMembersOnly")}
             </span>
           </div>
+          <div className="path-card-meta">
+            <span>{t(`pathAxis_${path.valueAxis}`)}</span>
+            <span>{t("pathContinuity").replace("{count}", String(path.continuityWeeks))}</span>
+          </div>
           {lockedCount > 0 ? <p className="path-locked-hint">{t("pathsLockedHint").replace("{count}", String(lockedCount))}</p> : null}
         </Link>
       </li>
