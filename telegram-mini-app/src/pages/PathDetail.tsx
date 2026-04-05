@@ -1,23 +1,43 @@
-import { Link, useParams } from "react-router-dom";
+﻿import { Link, useParams } from "react-router-dom";
 import { IconChevron } from "../components/MiniNavIcons";
 import { SessionMetaRow } from "../components/SessionMetaRow";
 import { PROGRAM_PATHS } from "../data/programs";
 import { SESSION_BY_SLUG, type MiniSession } from "../data/sessions";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
+import { useTelegram } from "../telegram/useTelegram";
 
 export function PathDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { lang, pathTitle, t } = useI18n();
   const { state } = useProgress();
+  const { app } = useTelegram();
+
   const L = lang === "ru" ? "ru" : "en";
 
   const path = PROGRAM_PATHS.find((p) => p.id === id);
+
+  const openPremium = () => {
+    const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
+    if (!bot) return;
+    try {
+      app.openTelegramLink(`${bot}?start=premium`);
+    } catch {
+      window.open(`${bot}?start=premium`, "_blank");
+    }
+  };
+
   if (!path) {
     return (
-      <p>
-        <Link to="/paths">{t("back")}</Link>
-      </p>
+      <div className="tm-page">
+        <Link to="/paths" className="session-back">
+          ← {t("back")}
+        </Link>
+        <section className="tm-card">
+          <h2 className="tm-h2">{t("pathNotFound")}</h2>
+          <p className="tm-subtle">{t("pathNotFoundSub")}</p>
+        </section>
+      </div>
     );
   }
 
@@ -29,27 +49,66 @@ export function PathDetailPage() {
   const introKey = `pathIntro_${path.id}`;
   const intro = t(introKey);
 
+  const lockedCount = sessions.filter((s) => !s.freeTier && !state.premium).length;
+
   return (
-    <div className="page-head path-detail-page">
+    <div className="tm-page">
       <Link to="/paths" className="session-back">
         ← {t("back")}
       </Link>
-      <p className="page-eyebrow">{t(`pillarLabel_${path.pillarId}`)}</p>
-      <h1 className="path-detail-title">{pathTitle(path.id)}</h1>
-      <p className="sub path-detail-intro">{intro !== introKey ? intro : t("pathsSub")}</p>
+
+      <section className="path-detail-hero">
+        <p className="tm-kicker">{t(`pillarLabel_${path.pillarId}`)}</p>
+        <h1 className="tm-h1">{pathTitle(path.id)}</h1>
+        <p className="tm-lead">{intro !== introKey ? intro : t("pathsHeroSub")}</p>
+        <div className="path-card-meta">
+          <span>
+            {sessions.length} {t("pathSessions")}
+          </span>
+          <span>
+            {lockedCount > 0 ? `${lockedCount} ${t("pathsLockedLabel")}` : t("pathsOpenLabel")}
+          </span>
+        </div>
+      </section>
+
       <ul className="path-session-list">
-        {sessions.map((s) => (
-          <li key={s.slug}>
-            <Link to={`/session/${s.slug}`} className="home-support-row path-session-link">
-              <div className="home-support-copy">
-                <span className="home-support-title">{s.title[L]}</span>
+        {sessions.map((s) => {
+          const locked = !s.freeTier && !state.premium;
+
+          const body = (
+            <>
+              <div className="path-session-copy">
+                <span className="tm-pill">{t(`pillarTag_${s.pillarId}`)}</span>
+                <span className="tm-list-title">{s.title[L]}</span>
                 <p className="path-session-desc">{s.short[L]}</p>
-                <SessionMetaRow session={s} t={t} className="session-meta-tight" />
+                <SessionMetaRow session={s} t={t} />
               </div>
-              <IconChevron className="home-support-chevron" />
-            </Link>
-          </li>
-        ))}
+              <IconChevron className="tm-chevron" />
+            </>
+          );
+
+          if (locked) {
+            return (
+              <li key={s.slug}>
+                <button
+                  type="button"
+                  className="path-session-item path-session-item--locked path-session-button"
+                  onClick={openPremium}
+                >
+                  {body}
+                </button>
+              </li>
+            );
+          }
+
+          return (
+            <li key={s.slug}>
+              <Link to={`/session/${s.slug}`} className="path-session-item">
+                {body}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

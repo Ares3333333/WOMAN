@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { OnboardingSheet } from "../components/OnboardingSheet";
 import { IconChevron } from "../components/MiniNavIcons";
@@ -41,42 +41,36 @@ export function HomePage() {
 
   const alternates = useMemo(() => {
     const { mood } = readOnboarding();
-    return pickAlternateSessions(SESSIONS, state, mood, pick.slug, 2);
+    return pickAlternateSessions(SESSIONS, state, mood, pick.slug, 3);
   }, [state, onboardingOpen, moodVersion, pick.slug]);
 
   const tonightPick = useMemo(() => pickTonightSession(SESSIONS, state), [state]);
+  const timeKey = homeTimeKey();
+  const weekPct = Math.min(100, (state.weekCompletions / 3) * 100);
+
+  const continueSession =
+    state.lastPlayedSlug &&
+    SESSION_BY_SLUG[state.lastPlayedSlug] &&
+    canUserAccessSession(SESSION_BY_SLUG[state.lastPlayedSlug], state)
+      ? SESSION_BY_SLUG[state.lastPlayedSlug]
+      : null;
 
   const firstName = app.initDataUnsafe.user?.first_name;
-  const greetTitle = firstName ? t("homeCommandNamed").replace("{name}", firstName) : t("homeCommandAnonymous");
+  const heroTitle = firstName
+    ? t("homeHeroNamed").replace("{name}", firstName)
+    : t("homeHeroAnonymous");
 
-  const weekPct = Math.min(100, (state.weekCompletions / 3) * 100);
-  const timeKey = homeTimeKey();
-
-  const continueSlug = state.lastPlayedSlug;
-  const continueSession =
-    continueSlug && SESSION_BY_SLUG[continueSlug] && canUserAccessSession(SESSION_BY_SLUG[continueSlug], state)
-      ? SESSION_BY_SLUG[continueSlug]
-      : null;
-  const showContinue = Boolean(continueSession && continueSession.slug !== pick.slug);
-
-  const showTonightBlock =
-    Boolean(tonightPick) && timeKey === "Evening" && tonightPick!.slug !== pick.slug;
-
-  const setMood = (m: OnboardingMood) => {
-    saveOnboarding({ done: true, mood: m });
-    setMoodVersion((v) => v + 1);
-  };
-
-  const currentMood = readOnboarding().mood;
+  const primaryLocked = !pick.freeTier && !state.premium;
+  const primaryHref = `/session/${pick.slug}`;
+  const showTonight = Boolean(tonightPick && tonightPick.slug !== pick.slug && timeKey === "Evening");
 
   const openPremium = () => {
     const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
-    if (bot) {
-      try {
-        app.openTelegramLink(`${bot}?start=premium`);
-      } catch {
-        window.open(`${bot}?start=premium`, "_blank");
-      }
+    if (!bot) return;
+    try {
+      app.openTelegramLink(`${bot}?start=premium`);
+    } catch {
+      window.open(`${bot}?start=premium`, "_blank");
     }
   };
 
@@ -89,177 +83,183 @@ export function HomePage() {
     }
   };
 
-  const primaryLocked = !pick.freeTier && !state.premium;
-  const primaryHref = `/session/${pick.slug}`;
+  const setMood = (m: OnboardingMood) => {
+    saveOnboarding({ done: true, mood: m });
+    setMoodVersion((v) => v + 1);
+  };
+
+  const currentMood = readOnboarding().mood;
 
   return (
-    <div className="page-head home-page">
+    <div className="tm-page">
       {onboardingOpen ? <OnboardingSheet onClose={() => setOnboardingOpen(false)} /> : null}
 
-      <div className="home-canvas-glow" aria-hidden />
+      <section className="home-hero">
+        <div className="home-hero-copy">
+          <p className="home-hero-time">{t(`homeTime${timeKey}`)}</p>
+          <h1 className="home-hero-title">{heroTitle}</h1>
+          <p className="tm-lead home-hero-name">{t("homeHeroLead")}</p>
 
-      <header className="home-command">
-        <p className="home-command-eyebrow">{t("homeCommandEyebrow")}</p>
-        <h1 className="home-command-title">{greetTitle}</h1>
-        <p className="home-command-lead">{t("homeCommandLead")}</p>
-        <p className="home-time-hint">{t(`homeTime${timeKey}`)}</p>
+          <div className="home-hero-actions">
+            {primaryLocked ? (
+              <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={openPremium}>
+                {t("homePrimaryLockedCta")}
+              </button>
+            ) : (
+              <Link to={primaryHref} className="tm-btn tm-btn-primary tm-btn-block">
+                {t("homePrimaryCta")}
+              </Link>
+            )}
 
-        <div className="home-command-actions">
-          {primaryLocked ? (
-            <button type="button" className="btn btn-primary btn-command" onClick={openPremium}>
-              {t("homePrimaryLockedCta")}
-            </button>
-          ) : (
-            <Link to={primaryHref} className="btn btn-primary btn-command">
-              {t("homePrimaryCta")}
-            </Link>
-          )}
-          <div className="home-command-links">
-            <a href="#home-mood-anchor" className="home-command-link home-command-link--accent">
-              {t("homeLinkMood")}
-            </a>
-            <Link to="/paths" className="home-command-link">
-              {t("homeLinkPaths")}
-            </Link>
-            <button type="button" className="home-command-link" onClick={openPremium}>
-              {t("homeLinkCircle")}
-            </button>
+            <div className="home-hero-links">
+              <Link to="/paths" className="home-hero-link">
+                {t("homeQuickPaths")}
+              </Link>
+              <Link to="/goals" className="home-hero-link">
+                {t("homeQuickGoals")}
+              </Link>
+              <button
+                type="button"
+                className="home-hero-link"
+                onClick={() => document.getElementById("home-mood")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
+                {t("homeQuickMood")}
+              </button>
+            </div>
           </div>
         </div>
-
-        <p className="home-command-disclaimer">
-          {t("homeDisclaimer")}{" "}
-          <button type="button" className="home-inline-link" onClick={openCrisis}>
-            {t("homeCrisisLink")}
-          </button>
-        </p>
-      </header>
-
-      <section className="home-band" aria-labelledby="home-today-h">
-        <h2 id="home-today-h" className="home-band-label">
-          {t("homeTodayBand")}
-        </h2>
-        <p className="home-band-desc">{t("homeTodayBandDesc")}</p>
-
-        {primaryLocked ? (
-          <button type="button" className={`home-hero-card card home-hero-card--action ${pick.gradient}`} onClick={openPremium}>
-            <span className="home-hero-accent" aria-hidden />
-            <span className="home-hero-eyebrow">{t("homeHeroMomentLabel")}</span>
-            <h3 className="home-hero-title">{pick.title[L]}</h3>
-            <p className="home-hero-desc">{pick.short[L]}</p>
-            <p className="home-hero-meta">
-              <span>{t(`pillarTag_${pick.pillarId}`)}</span>
-              <span className="home-meta-dot">·</span>
-              <span>
-                {pick.durationMin} {t("sessionMin")}
-              </span>
-              <span className="home-meta-dot">·</span>
-              <span>{t("sessionPremium")}</span>
-            </p>
-            <span className="home-hero-hint">{t("homeHeroHintUnlock")}</span>
-          </button>
-        ) : (
-          <Link to={primaryHref} className={`home-hero-card card ${pick.gradient}`}>
-            <span className="home-hero-accent" aria-hidden />
-            <span className="home-hero-eyebrow">{t("homeHeroMomentLabel")}</span>
-            <h3 className="home-hero-title">{pick.title[L]}</h3>
-            <p className="home-hero-desc">{pick.short[L]}</p>
-            <p className="home-hero-meta">
-              <span>{t(`pillarTag_${pick.pillarId}`)}</span>
-              <span className="home-meta-dot">·</span>
-              <span>
-                {pick.durationMin} {t("sessionMin")}
-              </span>
-              <span className="home-meta-dot">·</span>
-              <span>{pick.freeTier ? t("free") : t("sessionPremium")}</span>
-            </p>
-            <span className="home-hero-hint">{t("homeHeroHint")}</span>
-          </Link>
-        )}
-
-        {alternates.length > 0 ? (
-          <ul className="home-support-list">
-            {alternates.map((s) => {
-              const locked = !s.freeTier && !state.premium;
-              return (
-                <li key={s.slug}>
-                  <Link
-                    to={locked ? "#premium-home" : `/session/${s.slug}`}
-                    className="home-support-row"
-                    onClick={(e) => {
-                      if (locked) {
-                        e.preventDefault();
-                        openPremium();
-                      }
-                    }}
-                  >
-                    <div className="home-support-copy">
-                      <span className="home-support-eyebrow">{t(`pillarTag_${s.pillarId}`)}</span>
-                      <span className="home-support-title">{s.title[L]}</span>
-                      <span className="home-support-meta">
-                        {s.durationMin} {t("sessionMin")} · {s.freeTier ? t("free") : t("sessionPremium")}
-                      </span>
-                    </div>
-                    <IconChevron className="home-support-chevron" />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
       </section>
 
-      {showTonightBlock && tonightPick ? (
-        <section className="home-band home-band--tight" aria-labelledby="home-tonight-h">
-          <h2 id="home-tonight-h" className="home-band-label">
-            {t("homeTonightSectionLabel")}
+      <section className="home-next" aria-labelledby="home-next-title">
+        <div className="tm-head">
+          <p className="tm-kicker tm-kicker--muted">{t("homeSectionTodayKicker")}</p>
+          <h2 id="home-next-title" className="tm-h2">
+            {t("homeSectionTodayTitle")}
           </h2>
-          <p className="home-band-desc">{t("homeTonightSub")}</p>
-          <Link to={`/session/${tonightPick.slug}`} className={`home-tonight-card card ${tonightPick.gradient}`}>
-            <span className="home-hero-eyebrow">{t("homeCtaListen")}</span>
-            <h3 className="home-tonight-title">{tonightPick.title[L]}</h3>
-            <p className="home-hero-desc">{tonightPick.short[L]}</p>
-            <p className="home-hero-meta">
-              {tonightPick.durationMin} {t("sessionMin")}
-              {tonightPick.freeTier ? ` · ${t("free")}` : ` · ${t("sessionPremium")}`}
+        </div>
+
+        {primaryLocked ? (
+          <button
+            type="button"
+            className={`home-next-card ${pick.gradient} home-next-card--locked`}
+            onClick={openPremium}
+          >
+            <p className="home-next-kicker">{t("homeCurrentKicker")}</p>
+            <h3 className="home-next-title">{pick.title[L]}</h3>
+            <p className="home-next-desc">{pick.short[L]}</p>
+            <p className="home-next-meta">
+              <span>{t(`pillarTag_${pick.pillarId}`)}</span>
+              <span className="home-next-dot" />
+              <span>
+                {pick.durationMin} {t("sessionMin")}
+              </span>
+              <span className="home-next-dot" />
+              <span>{t("sessionPremium")}</span>
             </p>
+            <p className="home-next-note">{t("homeUnlockHint")}</p>
+          </button>
+        ) : (
+          <Link to={primaryHref} className={`home-next-card ${pick.gradient}`}>
+            <p className="home-next-kicker">{t("homeCurrentKicker")}</p>
+            <h3 className="home-next-title">{pick.title[L]}</h3>
+            <p className="home-next-desc">{pick.short[L]}</p>
+            <p className="home-next-meta">
+              <span>{t(`pillarTag_${pick.pillarId}`)}</span>
+              <span className="home-next-dot" />
+              <span>
+                {pick.durationMin} {t("sessionMin")}
+              </span>
+              <span className="home-next-dot" />
+              <span>{pick.freeTier ? t("free") : t("sessionPremium")}</span>
+            </p>
+            <p className="home-next-note">{t("homeOpenHint")}</p>
           </Link>
-        </section>
-      ) : null}
+        )}
+      </section>
 
-      <section className="home-studio" aria-labelledby="home-studio-h">
-        <h2 id="home-studio-h" className="home-band-label">
-          {t("homeStudioTitle")}
-        </h2>
-        <p className="home-band-desc">{t("homeStudioDesc")}</p>
+      <section className="tm-card" aria-labelledby="home-studio-title">
+        <div className="tm-head">
+          <p className="tm-kicker tm-kicker--muted">{t("homeStudioKicker")}</p>
+          <h2 id="home-studio-title" className="tm-h2">
+            {t("homeStudioTitle")}
+          </h2>
+          <p className="tm-subtle">{t("homeStudioSub")}</p>
+        </div>
 
-        <div className="home-studio-block">
-          <h3 className="home-studio-sub">{t("homeStudioContinue")}</h3>
-          {showContinue && continueSession ? (
-            <Link to={`/session/${continueSession.slug}`} className="home-studio-row">
-              <div>
-                <span className="home-studio-row-title">{continueSession.title[L]}</span>
-                <span className="home-studio-row-sub">{t("homeContinueSub")}</span>
+        <div className="tm-list">
+          {continueSession ? (
+            <Link to={`/session/${continueSession.slug}`} className="tm-list-item">
+              <div className="tm-list-copy">
+                <span className="tm-pill tm-pill--accent">{t("homeContinueLabel")}</span>
+                <span className="tm-list-title">{continueSession.title[L]}</span>
+                <span className="tm-list-sub">{t("homeContinueSub")}</span>
               </div>
-              <IconChevron className="home-support-chevron" />
+              <IconChevron className="tm-chevron" />
             </Link>
           ) : (
-            <p className="home-studio-empty">{t("homeContinueEmpty")}</p>
+            <div className="tm-list-item">
+              <div className="tm-list-copy">
+                <span className="tm-list-title">{t("homeContinueEmptyTitle")}</span>
+                <span className="tm-list-sub">{t("homeContinueEmptySub")}</span>
+              </div>
+            </div>
           )}
+
+          {showTonight && tonightPick ? (
+            <Link to={`/session/${tonightPick.slug}`} className="tm-list-item">
+              <div className="tm-list-copy">
+                <span className="tm-pill">{t("homeTonightLabel")}</span>
+                <span className="tm-list-title">{tonightPick.title[L]}</span>
+                <span className="tm-list-sub">
+                  {tonightPick.durationMin} {t("sessionMin")} • {t(`pillarTag_${tonightPick.pillarId}`)}
+                </span>
+              </div>
+              <IconChevron className="tm-chevron" />
+            </Link>
+          ) : null}
+
+          {alternates.map((s) => {
+            const locked = !s.freeTier && !state.premium;
+            return (
+              <Link
+                key={s.slug}
+                to={locked ? "#premium-home" : `/session/${s.slug}`}
+                className="tm-list-item"
+                onClick={(e) => {
+                  if (!locked) return;
+                  e.preventDefault();
+                  openPremium();
+                }}
+              >
+                <div className="tm-list-copy">
+                  <span className="tm-pill">{t(`pillarTag_${s.pillarId}`)}</span>
+                  <span className="tm-list-title">{s.title[L]}</span>
+                  <span className="tm-list-sub">
+                    {s.durationMin} {t("sessionMin")} • {s.freeTier ? t("free") : t("sessionPremium")}
+                  </span>
+                </div>
+                <IconChevron className="tm-chevron" />
+              </Link>
+            );
+          })}
         </div>
       </section>
 
-      <section className="home-band" id="home-mood-anchor" aria-labelledby="home-mood-heading">
-        <h2 id="home-mood-heading" className="home-band-label">
-          {t("homeMoodSectionLabel")}
-        </h2>
-        <p className="home-band-desc">{t("homeMoodSectionDesc")}</p>
-        <div className="mood-strip" role="group">
+      <section id="home-mood" className="tm-card" aria-labelledby="home-mood-title">
+        <div className="tm-head">
+          <p className="tm-kicker tm-kicker--muted">{t("homeMoodKicker")}</p>
+          <h2 id="home-mood-title" className="tm-h2">
+            {t("homeMoodTitle")}
+          </h2>
+          <p className="tm-subtle">{t("homeMoodSub")}</p>
+        </div>
+
+        <div className="tm-chip-row">
           {ONBOARDING_MOOD_ORDER.map((m) => (
             <button
               key={m}
               type="button"
-              className={`mood-chip ${currentMood === m ? "on" : ""}`}
+              className={`tm-chip ${currentMood === m ? "on" : ""}`}
               onClick={() => setMood(m)}
             >
               {t(MOOD_KEYS[m])}
@@ -268,12 +268,16 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="home-band" aria-labelledby="home-paths-heading">
-        <h2 id="home-paths-heading" className="home-band-label">
-          {t("homePathsSectionTitle")}
-        </h2>
-        <p className="home-band-desc">{t("homePathsSectionSub")}</p>
-        <div className="home-path-scroll">
+      <section className="tm-card" aria-labelledby="home-path-title">
+        <div className="tm-head">
+          <p className="tm-kicker tm-kicker--muted">{t("homePathsKicker")}</p>
+          <h2 id="home-path-title" className="tm-h2">
+            {t("homePathsTitle")}
+          </h2>
+          <p className="tm-subtle">{t("homePathsSub")}</p>
+        </div>
+
+        <div className="home-path-grid">
           {PROGRAM_PATHS.slice(0, HOME_PATH_SLICE).map((path) => {
             const count = path.sessionSlugs.filter((slug) => {
               const s = SESSION_BY_SLUG[slug];
@@ -283,10 +287,10 @@ export function HomePage() {
             }).length;
             if (count === 0) return null;
             return (
-              <Link key={path.id} to={`/path/${path.id}`} className="home-path-chip">
-                <span className="home-path-chip-pillar">{t(`pillarTag_${path.pillarId}`)}</span>
-                <span className="home-path-chip-title">{pathTitle(path.id)}</span>
-                <span className="home-path-chip-meta">
+              <Link key={path.id} to={`/path/${path.id}`} className="home-path-card">
+                <span className="tm-pill">{t(`pillarTag_${path.pillarId}`)}</span>
+                <span className="home-path-title">{pathTitle(path.id)}</span>
+                <span className="home-path-meta">
                   {count} {t("pathSessions")}
                 </span>
               </Link>
@@ -295,47 +299,46 @@ export function HomePage() {
         </div>
       </section>
 
-      {timeKey === "Evening" ? (
-        <Link to="/path/sleep_deep_rest" className="home-evening-hint">
-          {t("homeEveningRowCta")}
-        </Link>
-      ) : null}
-
       {!state.premium ? (
-        <section className="home-premium-block" id="premium-home" aria-labelledby="home-premium-h">
-          <p id="home-premium-h" className="home-premium-eyebrow">
-            {t("homePremiumEyebrow")}
-          </p>
-          <h2 className="home-premium-title">{t("homePremiumBlockTitle")}</h2>
-          <p className="home-premium-sub">{t("homePremiumBlockSub")}</p>
-          <ul className="home-premium-bullets">
-            <li>{t("homePremiumPt1")}</li>
-            <li>{t("homePremiumPt2")}</li>
-            <li>{t("homePremiumPt3")}</li>
+        <section id="premium-home" className="tm-card home-premium">
+          <div className="tm-head">
+            <p className="tm-kicker">{t("homePremiumKicker")}</p>
+            <h2 className="tm-h2">{t("homePremiumTitle")}</h2>
+            <p className="tm-lead">{t("homePremiumSub")}</p>
+          </div>
+
+          <ul className="home-premium-list">
+            <li>{t("homePremiumPoint1")}</li>
+            <li>{t("homePremiumPoint2")}</li>
+            <li>{t("homePremiumPoint3")}</li>
           </ul>
-          <button type="button" className="btn btn-primary home-premium-cta" onClick={openPremium}>
+
+          <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={openPremium}>
             {t("homePremiumCta")}
           </button>
         </section>
       ) : null}
 
-      <div className="week-block home-week">
-        <p className="pill">{t("goalsWeeklyTarget")}</p>
-        <div className="wave-meter" aria-hidden>
-          <span style={{ width: `${weekPct}%` }} />
+      <section className="home-grid-2">
+        <div className="home-week">
+          <div className="home-week-head">
+            <span className="tm-pill">{t("goalsWeeklyTarget")}</span>
+            <span className="tm-subtle">{state.weekCompletions}/3</span>
+          </div>
+          <div className="wave-meter" aria-hidden>
+            <span style={{ width: `${weekPct}%` }} />
+          </div>
+          <p className="home-footer-line">{t("homeWeekHint")}</p>
         </div>
-        <p className="home-week-caption">
-          {state.weekCompletions}/3 · {t("goalsWeek")}
-        </p>
-      </div>
 
-      <div className="home-footer-links">
-        <Link to="/paths">{t("homeFooterPaths")}</Link>
-        <span className="home-footer-dot" aria-hidden>
-          ·
-        </span>
-        <Link to="/goals">{t("homeFooterGoals")}</Link>
-      </div>
+        <div className="home-week">
+          <span className="tm-pill">{t("homeSupportKicker")}</span>
+          <p className="home-footer-line">{t("homeSupportCopy")}</p>
+          <button type="button" className="tm-btn-inline" onClick={openCrisis}>
+            {t("homeSupportLink")}
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { pillarSortIndex } from "../data/pillars";
 import { PROGRAM_PATHS } from "../data/programs";
@@ -17,43 +17,61 @@ export function PathListPage() {
   let prevPillar: (typeof sorted)[number]["pillarId"] | null = null;
 
   const items = sorted.flatMap((path) => {
-    const count = path.sessionSlugs.filter((slug) => {
-      const s = SESSION_BY_SLUG[slug];
-      if (!s) return false;
-      if (s.sensual && state.sensualMode === "hidden") return false;
-      return true;
-    }).length;
-    if (count === 0) return [] as ReactNode[];
+    const sessions = path.sessionSlugs
+      .map((slug) => SESSION_BY_SLUG[slug])
+      .filter((s): s is NonNullable<(typeof SESSION_BY_SLUG)[string]> => Boolean(s))
+      .filter((s) => !(s.sensual && state.sensualMode === "hidden"));
+
+    if (sessions.length === 0) return [] as ReactNode[];
+
+    const lockedCount = sessions.filter((s) => !s.freeTier && !state.premium).length;
 
     const nodes: ReactNode[] = [];
     if (path.pillarId !== prevPillar) {
       prevPillar = path.pillarId;
       nodes.push(
-        <li key={`pillar-${path.pillarId}`} className="path-pillar-heading">
-          <p className="path-pillar-label">{t(`pillarLabel_${path.pillarId}`)}</p>
+        <li key={`pillar-${path.pillarId}`} className="path-pillar">
+          {t(`pillarLabel_${path.pillarId}`)}
         </li>
       );
     }
+
     nodes.push(
       <li key={path.id}>
-        <Link to={`/path/${path.id}`} className="card path-list-card">
-          <span className="path-list-tag">{t(`pillarTag_${path.pillarId}`)}</span>
-          <h2 className="path-list-card-title">{pathTitle(path.id)}</h2>
-          <p className="path-list-card-meta">
-            {count} {t("pathSessions")}
-          </p>
+        <Link to={`/path/${path.id}`} className="path-card">
+          <span className="tm-pill">{t(`pillarTag_${path.pillarId}`)}</span>
+          <h2 className="path-card-title">{pathTitle(path.id)}</h2>
+          <p className="tm-subtle">{t(`pathIntro_${path.id}`)}</p>
+          <div className="path-card-meta">
+            <span>
+              {sessions.length} {t("pathSessions")}
+            </span>
+            {lockedCount > 0 ? (
+              <span>
+                {lockedCount} {t("pathsLockedLabel")}
+              </span>
+            ) : (
+              <span>{t("pathsOpenLabel")}</span>
+            )}
+          </div>
         </Link>
       </li>
     );
+
     return nodes;
   });
 
   return (
-    <div className="page-head path-list-page">
-      <p className="page-eyebrow">{t("pathsCatalogEyebrow")}</p>
-      <h1>{t("pathsTitle")}</h1>
-      <p className="sub paths-catalog-lead">{t("pathsSub")}</p>
-      <ul className="path-list-ul">{items}</ul>
+    <div className="tm-page">
+      <header className="tm-head">
+        <p className="tm-kicker">{t("pathsHeroKicker")}</p>
+        <h1 className="tm-h1">{t("pathsHeroTitle")}</h1>
+        <p className="tm-lead">{t("pathsHeroSub")}</p>
+      </header>
+
+      <ul className="paths-layout" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {items}
+      </ul>
     </div>
   );
 }

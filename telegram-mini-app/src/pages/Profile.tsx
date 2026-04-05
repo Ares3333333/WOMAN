@@ -1,4 +1,4 @@
-import { useRef } from "react";
+﻿import { useRef } from "react";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
 import { useTelegram } from "../telegram/useTelegram";
@@ -9,8 +9,8 @@ export function ProfilePage() {
   const { lang, setLang, t } = useI18n();
   const { state, unlockPremium, setSensual, setReminderMode } = useProgress();
   const { app, isTelegram } = useTelegram();
-  const pressRef = useRef<number | null>(null);
 
+  const pressRef = useRef<number | null>(null);
   const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
 
   const titleHandlers = DEV_PREMIUM_UNLOCK
@@ -31,138 +31,147 @@ export function ProfilePage() {
         onPointerLeave: () => {
           if (pressRef.current) clearTimeout(pressRef.current);
         },
-        style: { userSelect: "none" as const },
       }
     : {};
 
   return (
-    <div className="page-head profile-page">
-      <p className="profile-eyebrow">{t("profilePageEyebrow")}</p>
-      <h1 {...titleHandlers} style={{ marginBottom: 8 }}>
-        {t("profileTitle")}
-      </h1>
-      <p className="sub" style={{ fontSize: "0.8rem", marginBottom: 6 }}>
-        {state.premium ? t("profilePremiumActive") : t("profilePremium")}
-      </p>
-      <p className="sub" style={{ fontSize: "0.72rem", marginBottom: 20 }}>
-        {t("profileAge")}
-      </p>
+    <div className="tm-page">
+      <header className="tm-head">
+        <p className="tm-kicker">{t("profileHeroKicker")}</p>
+        <h1 className="tm-h1" {...titleHandlers} style={{ userSelect: "none" }}>
+          {t("profileHeroTitle")}
+        </h1>
+        <p className="tm-lead">{state.premium ? t("profilePremiumActive") : t("profilePremiumSub")}</p>
+      </header>
 
-      <div className="profile-premium-card">
-        <h2 className="profile-card-heading">{t("profilePremium")}</h2>
-        <p className="sub profile-card-lead">{t("profilePremiumBody")}</p>
-        {!state.premium ? (
-          <ul className="home-premium-bullets">
-            <li>{t("profileCircleBullet1")}</li>
-            <li>{t("profileCircleBullet2")}</li>
-            <li>{t("profileCircleBullet3")}</li>
-          </ul>
-        ) : null}
-        {!state.premium ? (
-          <button
-            type="button"
-            className="btn btn-primary btn-command"
-            onClick={() => {
-              if (bot) {
+      <div className="profile-stack">
+        <section className="profile-card profile-card--premium">
+          <p className="tm-kicker tm-kicker--muted">{t("profilePremium")}</p>
+          <h2 className="tm-h2">{t("profilePremiumTitle")}</h2>
+          <p className="tm-subtle">{t("profilePremiumBody")}</p>
+
+          {!state.premium ? (
+            <ul className="home-premium-list">
+              <li>{t("profileCircleBullet1")}</li>
+              <li>{t("profileCircleBullet2")}</li>
+              <li>{t("profileCircleBullet3")}</li>
+            </ul>
+          ) : null}
+
+          {!state.premium ? (
+            <button
+              type="button"
+              className="tm-btn tm-btn-primary tm-btn-block"
+              onClick={() => {
+                if (!bot) {
+                  unlockPremium();
+                  return;
+                }
                 try {
                   app.openTelegramLink(`${bot}?start=premium`);
                 } catch {
                   window.open(`${bot}?start=premium`, "_blank");
                 }
-              } else {
-                unlockPremium();
-              }
-            }}
-          >
-            {t("profileUpgrade")}
-          </button>
-        ) : null}
-        {bot ? (
+              }}
+            >
+              {t("profileUpgrade")}
+            </button>
+          ) : null}
+
+          {bot ? (
+            <button
+              type="button"
+              className="tm-btn tm-btn-ghost tm-btn-block"
+              onClick={() => {
+                try {
+                  app.openTelegramLink(bot);
+                } catch {
+                  window.open(bot, "_blank");
+                }
+              }}
+            >
+              {t("profileManage")}
+            </button>
+          ) : null}
+        </section>
+
+        <section className="profile-card">
+          <p className="tm-kicker tm-kicker--muted">{t("profileReminderTitle")}</p>
+          <p className="tm-subtle">{t("profileReminderSub")}</p>
+          <div className="segmented">
+            {(
+              [
+                ["off", "profileReminderOff"],
+                ["evening", "profileReminderEvening"],
+                ["night", "profileReminderNight"],
+              ] as const
+            ).map(([key, labelKey]) => (
+              <button
+                key={key}
+                type="button"
+                className={state.reminderMode === key ? "on" : ""}
+                onClick={() => setReminderMode(key)}
+              >
+                {t(labelKey)}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="profile-card">
+          <p className="tm-kicker tm-kicker--muted">{t("profileLang")}</p>
+          <div className="segmented segmented-2">
+            <button type="button" className={lang === "ru" ? "on" : ""} onClick={() => setLang("ru")}>
+              Русский
+            </button>
+            <button type="button" className={lang === "en" ? "on" : ""} onClick={() => setLang("en")}>
+              English
+            </button>
+          </div>
+        </section>
+
+        <section className="profile-card">
+          <p className="tm-kicker tm-kicker--muted">{t("profileSensualSectionTitle")}</p>
+          <p className="tm-subtle">{t("profileSensualSectionSub")}</p>
+          <div className="segmented">
+            {(
+              [
+                ["welcome", "profileSensualWelcome"],
+                ["optional", "profileSensualOptional"],
+                ["hidden", "profileSensualHidden"],
+              ] as const
+            ).map(([key, labelKey]) => (
+              <button
+                key={key}
+                type="button"
+                className={state.sensualMode === key ? "on" : ""}
+                onClick={() => setSensual(key)}
+              >
+                {t(labelKey)}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="profile-card">
+          <p className="profile-footnote">{isTelegram ? t("profileEnvTelegram") : t("profileEnvLocal")}</p>
+          <p className="profile-footnote">{t("profileAge")}</p>
           <button
             type="button"
-            className="btn btn-ghost"
-            style={{ marginTop: 10 }}
+            className="tm-btn tm-btn-secondary tm-btn-block"
             onClick={() => {
+              const url = lang === "ru" ? "https://www.telefonseelsorge.ru/" : "https://findahelpline.com/";
               try {
-                app.openTelegramLink(bot);
+                app.openLink(url);
               } catch {
-                window.open(bot, "_blank");
+                window.open(url, "_blank");
               }
             }}
           >
-            {t("profileManage")}
+            {t("profileCrisis")}
           </button>
-        ) : null}
+        </section>
       </div>
-
-      <h2 className="profile-section-title">{t("profileReminderTitle")}</h2>
-      <p className="profile-section-sub">{t("profileReminderSub")}</p>
-      <div className="select-row select-row--profile">
-        {(
-          [
-            ["off", "profileReminderOff"],
-            ["evening", "profileReminderEvening"],
-            ["night", "profileReminderNight"],
-          ] as const
-        ).map(([key, labelKey]) => (
-          <button
-            key={key}
-            type="button"
-            className={state.reminderMode === key ? "on" : ""}
-            onClick={() => setReminderMode(key)}
-          >
-            {t(labelKey)}
-          </button>
-        ))}
-      </div>
-
-      <h2 className="profile-section-title">{t("profileLang")}</h2>
-      <div className="select-row select-row--profile">
-        <button type="button" className={lang === "ru" ? "on" : ""} onClick={() => setLang("ru")}>
-          Русский
-        </button>
-        <button type="button" className={lang === "en" ? "on" : ""} onClick={() => setLang("en")}>
-          English
-        </button>
-      </div>
-
-      <h2 className="profile-section-title">{t("profileSensualSectionTitle")}</h2>
-      <p className="profile-section-sub">{t("profileSensualSectionSub")}</p>
-      <div className="select-row select-row--profile">
-        {(
-          [
-            ["welcome", "profileSensualWelcome"],
-            ["optional", "profileSensualOptional"],
-            ["hidden", "profileSensualHidden"],
-          ] as const
-        ).map(([key, labelKey]) => (
-          <button
-            key={key}
-            type="button"
-            className={state.sensualMode === key ? "on" : ""}
-            onClick={() => setSensual(key)}
-          >
-            {t(labelKey)}
-          </button>
-        ))}
-      </div>
-
-      <p className="sub profile-env-line">{isTelegram ? t("profileEnvTelegram") : t("profileEnvLocal")}</p>
-      <button
-        type="button"
-        className="btn btn-ghost"
-        style={{ marginTop: 8 }}
-        onClick={() => {
-          const url = lang === "ru" ? "https://www.telefonseelsorge.ru/" : "https://findahelpline.com/";
-          try {
-            app.openLink(url);
-          } catch {
-            window.open(url, "_blank");
-          }
-        }}
-      >
-        {t("profileCrisis")}
-      </button>
     </div>
   );
 }

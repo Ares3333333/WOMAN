@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { SESSION_BY_SLUG, scriptToText } from "../data/sessions";
 import { useI18n } from "../lib/i18n";
@@ -12,6 +12,7 @@ export function SessionPlayPage() {
   const { state, completeSession, selfCareToday, rememberSession } = useProgress();
   const { app } = useTelegram();
   const nav = useNavigate();
+
   const L = lang === "ru" ? "ru" : "en";
   const locale = lang === "ru" ? "ru-RU" : "en-US";
 
@@ -54,10 +55,12 @@ export function SessionPlayPage() {
 
   const play = useCallback(() => {
     if (!session || !canAccess) return;
+
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(fullText);
     u.lang = locale;
     u.rate = 0.92;
+
     u.onend = () => {
       setPlaying(false);
       setDone(true);
@@ -69,6 +72,7 @@ export function SessionPlayPage() {
         /* ignore */
       }
     };
+
     u.onerror = () => setPlaying(false);
     utterRef.current = u;
     window.speechSynthesis.speak(u);
@@ -78,103 +82,132 @@ export function SessionPlayPage() {
 
   const openPremium = () => {
     const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
-    if (bot) {
-      try {
-        app.openTelegramLink(`${bot}?start=premium`);
-      } catch {
-        window.open(`${bot}?start=premium`, "_blank");
-      }
+    if (!bot) return;
+    try {
+      app.openTelegramLink(`${bot}?start=premium`);
+    } catch {
+      window.open(`${bot}?start=premium`, "_blank");
     }
   };
 
   if (!session) {
     return (
-      <div className="page-head">
+      <div className="tm-page session-stage">
         <Link to="/paths" className="session-back">
           ← {t("back")}
         </Link>
+        <section className="tm-card">
+          <h2 className="tm-h2">{t("sessionNotFound")}</h2>
+          <p className="tm-subtle">{t("sessionNotFoundSub")}</p>
+          <Link to="/paths" className="tm-btn tm-btn-secondary tm-btn-block">
+            {t("navPaths")}
+          </Link>
+        </section>
       </div>
     );
   }
 
   if (session.sensual && state.sensualMode === "hidden") {
     return (
-      <div className="page-head">
-        <p className="session-page-lead">{t("sensualNote")}</p>
-        <Link to="/profile" className="btn btn-primary btn-command">
-          {t("profileTitle")}
+      <div className="tm-page session-stage">
+        <Link to="/paths" className="session-back">
+          ← {t("back")}
         </Link>
+        <section className="tm-card">
+          <h2 className="tm-h2">{t("sensualGateTitle")}</h2>
+          <p className="tm-subtle">{t("sensualNote")}</p>
+          <Link to="/profile" className="tm-btn tm-btn-primary tm-btn-block">
+            {t("profileTitle")}
+          </Link>
+        </section>
       </div>
     );
   }
 
   if (!session.freeTier && !state.premium) {
     return (
-      <div className="page-head session-play-page">
+      <div className="tm-page session-stage">
         <Link to="/paths" className="session-back">
           ← {t("back")}
         </Link>
-        <p className="page-eyebrow">{t("premiumGateEyebrow")}</p>
-        <h1 className="path-detail-title">{session.title[L]}</h1>
-        <p className="session-page-lead">{session.short[L]}</p>
 
-        <div className="premium-gate-card premium-gate-card--v2">
-          <h2 className="premium-gate-heading">{t("premiumGateTitle")}</h2>
-          <p className="sub premium-gate-lead">{t("premiumGateLead")}</p>
-          <ul className="home-premium-bullets">
+        <section className="session-intro">
+          <p className="tm-kicker">{t("premiumGateEyebrow")}</p>
+          <h1 className="tm-h1">{session.title[L]}</h1>
+          <p className="tm-lead">{session.short[L]}</p>
+        </section>
+
+        <section className="tm-card session-gate">
+          <h2 className="tm-h2">{t("premiumGateTitle")}</h2>
+          <p className="tm-subtle">{t("premiumGateLead")}</p>
+
+          <ul className="home-premium-list">
             <li>{t("premiumGateBullet1")}</li>
             <li>{t("premiumGateBullet2")}</li>
             <li>{t("premiumGateBullet3")}</li>
           </ul>
-          <p className="sub gate-privacy">{t("premiumGatePrivacy")}</p>
-          <button type="button" className="btn btn-primary btn-command" onClick={openPremium}>
+
+          <p className="tm-subtle">{t("premiumGatePrivacy")}</p>
+
+          <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={openPremium}>
             {t("premiumGateCta")}
           </button>
-          <button type="button" className="btn btn-ghost" style={{ marginTop: 10 }} onClick={() => nav("/profile")}>
-            {t("premiumGateProfile")}
-          </button>
-          <button type="button" className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => nav(-1)}>
-            {t("premiumGateLater")}
-          </button>
-        </div>
-        {!import.meta.env.VITE_TELEGRAM_BOT && !import.meta.env.PROD ? (
-          <p className="sub" style={{ marginTop: 12, fontSize: "0.8rem" }}>
-            Укажи VITE_TELEGRAM_BOT=https://t.me/ТвойБот в .env — кнопка откроет бота для оплаты Stars / подписки.
-          </p>
-        ) : null}
+
+          <div className="home-grid-2">
+            <button type="button" className="tm-btn tm-btn-ghost tm-btn-block" onClick={() => nav("/profile")}>
+              {t("premiumGateProfile")}
+            </button>
+            <button type="button" className="tm-btn tm-btn-secondary tm-btn-block" onClick={() => nav(-1)}>
+              {t("premiumGateLater")}
+            </button>
+          </div>
+        </section>
       </div>
     );
   }
 
   return (
-    <div className="page-head session-play-page">
+    <div className="tm-page session-stage">
       <Link to="/paths" className="session-back">
         ← {t("back")}
       </Link>
-      <p className="page-eyebrow">{t("sessionAbout")}</p>
-      <h1 className="path-detail-title">{session.title[L]}</h1>
-      <p className="session-page-lead">{session.short[L]}</p>
-      <p className="session-page-lead" style={{ fontSize: "0.78rem", marginTop: -4 }}>
-        {t("playerTts")}
-      </p>
 
-      <div className="play-cta-frame">
-        <button type="button" className="btn btn-primary btn-command" onClick={() => (playing ? stop() : play())}>
+      <section className="session-intro">
+        <p className="tm-kicker">{t("sessionAbout")}</p>
+        <h1 className="tm-h1">{session.title[L]}</h1>
+        <p className="tm-lead">{session.short[L]}</p>
+      </section>
+
+      <section className={`session-control ${session.gradient}`}>
+        <div className="session-control-meta">
+          <span>{t(`pillarTag_${session.pillarId}`)}</span>
+          <span>•</span>
+          <span>
+            {session.durationMin} {t("sessionMin")}
+          </span>
+          <span>•</span>
+          <span>{session.freeTier ? t("free") : t("sessionPremium")}</span>
+        </div>
+
+        <p className="tm-subtle">{t("playerTts")}</p>
+
+        <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={() => (playing ? stop() : play())}>
           {playing ? t("playerPause") : t("playerPlay")}
         </button>
-      </div>
 
-      {done ? (
-        <p className="session-complete-line">{t("sessionCompleteLine")}</p>
-      ) : null}
+        {done ? <p className="session-done">{t("sessionCompleteLine")}</p> : null}
+      </section>
 
-      <h2 className="transcript-heading">{t("sessionTranscript")}</h2>
-      <div className="transcript">{fullText}</div>
+      <section className="session-script">
+        <p className="tm-kicker tm-kicker--muted">{t("sessionTranscript")}</p>
+        <div className="session-script-body">{fullText}</div>
+      </section>
 
       {session.script.journal ? (
-        <p className="sub journal-block">
-          <strong>{t("sessionJournal")}:</strong> {session.script.journal[L]}
-        </p>
+        <section className="tm-card">
+          <p className="tm-kicker tm-kicker--muted">{t("sessionJournal")}</p>
+          <p className="tm-lead">{session.script.journal[L]}</p>
+        </section>
       ) : null}
     </div>
   );

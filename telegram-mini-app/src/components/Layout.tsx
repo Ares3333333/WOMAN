@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+﻿import { NavLink, Outlet } from "react-router-dom";
 import { useI18n } from "../lib/i18n";
 import { IconGoals, IconHome, IconPaths, IconProfile } from "./MiniNavIcons";
 
@@ -14,31 +14,36 @@ export function Layout() {
 
   return (
     <>
-      <header className="shell-header">
-        <div className="shell-header-inner">
-          <div className="shell-brand-mark" aria-hidden>
-            <span className="shell-brand-glyph" />
+      <header className="tm-shell-header">
+        <div className="tm-shell-header-inner">
+          <div className="tm-brand">
+            <div className="tm-brand-mark" aria-hidden>
+              <span className="tm-brand-dot" />
+            </div>
+            <div className="tm-brand-copy">
+              <span className="tm-brand-name">{t("brand")}</span>
+              <span className="tm-brand-sub">{t("shellTagline")}</span>
+            </div>
           </div>
-          <div className="shell-brand-text">
-            <span className="shell-brand-name">{t("brand")}</span>
-            <span className="shell-brand-tag">{t("shellTagline")}</span>
-          </div>
+          <span className="tm-shell-status">{t("shellPrivate")}</span>
         </div>
       </header>
-      <div className="app-shell">
+
+      <main className="tm-shell-main">
         <Outlet />
-      </div>
-      <nav className="bottom-dock-wrap" aria-label={t("navAriaMain")}>
-        <div className="bottom-dock">
+      </main>
+
+      <nav className="tm-shell-nav-wrap" aria-label={t("navAriaMain")}>
+        <div className="tm-shell-nav">
           {items.map(({ to, end, label, Icon }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
-              className={({ isActive }) => `dock-link${isActive ? " dock-link--active" : ""}`}
+              className={({ isActive }) => `tm-shell-link${isActive ? " active" : ""}`}
             >
-              <Icon className="dock-link-icon" />
-              <span className="dock-link-label">{label}</span>
+              <Icon />
+              <span>{label}</span>
             </NavLink>
           ))}
         </div>
