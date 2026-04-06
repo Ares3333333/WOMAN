@@ -23,13 +23,13 @@ export function PremiumPage() {
     L === "ru"
       ? {
           title: "Circle",
-          lead: "Один спокойный премиум-слой: глубокие практики, личные инсайты и поддержка.",
+          lead: "Премиальный уровень: глубокие треки, личные инсайты и private care.",
+          price: "$100/month · private membership",
           freeTitle: "Starter",
-          freeItems: ["Короткие базовые практики", "Ограниченный каталог"],
+          freeItems: ["Короткие базовые практики", "Ограниченная библиотека"],
           premiumTitle: "Circle",
           premiumItems: ["Длинные вечерние и ночные треки", "Личный ритм и точные рекомендации", "Private Care по запросу"],
-          includes: "Что открывается",
-          guidance: "Дальше",
+          includes: "Что входит в Circle",
           trackerLine: "Инсайты помогают выбрать лучший трек на сегодня.",
           conciergeLine: "Private Care открывает доступ к проверенной поддержке.",
           unlock: "Включить Circle (test)",
@@ -38,18 +38,18 @@ export function PremiumPage() {
         }
       : {
           title: "Circle",
-          lead: "One clear premium layer: deep tracks, tracker, and curated support.",
+          lead: "Premium level: deep tracks, personal insights, and private care.",
+          price: "$100/month · private membership",
           freeTitle: "Starter",
-          freeItems: ["Short core practices", "Limited catalog"],
+          freeItems: ["Short core practices", "Limited library"],
           premiumTitle: "Circle",
-          premiumItems: ["Long evening and sleep tracks", "Personal tracker and continuity", "Private concierge layer"],
-          includes: "What opens",
-          guidance: "Next",
+          premiumItems: ["Long evening and night tracks", "Personal tracker and continuity", "Private Care on request"],
+          includes: "Included in Circle",
           trackerLine: "Tracker suggests what to play tonight.",
           conciergeLine: "Concierge gives quiet access to trusted services.",
           unlock: "Unlock Circle (test)",
           active: "Circle is already active",
-          concierge: "Send concierge request",
+          concierge: "Open Private Care",
         };
 
   const openBot = (start?: string) => {
@@ -71,6 +71,8 @@ export function PremiumPage() {
       </header>
 
       <section className="tm-card home-premium">
+        <p className="tm-subtle">{copy.price}</p>
+
         <div className="home-value-grid">
           <article className="home-value-item">
             <span className="home-value-number">{premiumSessions.length}</span>
@@ -82,8 +84,8 @@ export function PremiumPage() {
           </article>
         </div>
 
-        <div className="premium-compare-grid" aria-label="plan comparison">
-          <article className="premium-compare-card">
+        <div className="premium-compact-compare" aria-label="plan comparison">
+          <article className="premium-compact-col">
             <p className="tm-kicker tm-kicker--muted">{copy.freeTitle}</p>
             <ul className="home-premium-list">
               {copy.freeItems.map((item) => (
@@ -91,7 +93,7 @@ export function PremiumPage() {
               ))}
             </ul>
           </article>
-          <article className="premium-compare-card premium-compare-card--accent">
+          <article className="premium-compact-col">
             <p className="tm-kicker">{copy.premiumTitle}</p>
             <ul className="home-premium-list">
               {copy.premiumItems.map((item) => (
@@ -117,59 +119,48 @@ export function PremiumPage() {
             {copy.active}
           </button>
         )}
-
       </section>
 
-      <section className="tm-card">
+      <section className="tm-card tm-card--quiet">
         <div className="tm-head">
-          <p className="tm-kicker tm-kicker--muted">{copy.includes}</p>
-          <h2 className="tm-h2">{t("shellCircle")}</h2>
+          <h2 className="tm-h2">{copy.includes}</h2>
         </div>
 
         <div className="profile-included-list">
-          {CIRCLE_INCLUDED_ITEMS.slice(0, 4).map((item) => (
+          {CIRCLE_INCLUDED_ITEMS.slice(0, 3).map((item) => (
             <p key={item.en} className="tm-subtle">
               • {item[L]}
             </p>
           ))}
         </div>
 
-        <div className="premium-program-list">
-          {premiumPaths.slice(0, 3).map((path) => (
-            <article key={path.id} className="premium-program-item">
-              <p className="tm-list-title">{pathTitle(path.id)}</p>
-              <p className="tm-list-sub">{path.sessionSlugs.length} {t("pathSessions")}</p>
-            </article>
+        <div className="premium-line-list">
+          {premiumPaths.slice(0, 2).map((path) => (
+            <p key={path.id} className="premium-line">
+              <span className="tm-list-title">{pathTitle(path.id)}</span>
+              <span className="tm-list-sub">
+                {path.sessionSlugs.length} {t("pathSessions")}
+              </span>
+            </p>
           ))}
         </div>
-      </section>
 
-      <section className="tm-card">
-        <div className="tm-head">
-          <p className="tm-kicker tm-kicker--muted">{copy.guidance}</p>
-          <h2 className="tm-h2">{t("homeTrackerTitle")}</h2>
-          <p className="tm-subtle">{copy.trackerLine}</p>
-          <p className="tm-subtle">{copy.conciergeLine}</p>
-        </div>
+        <p className="tm-subtle">{copy.trackerLine}</p>
+        <p className="tm-subtle">{copy.conciergeLine}</p>
 
-        <div className="home-grid-2">
-          <Link to="/paths" className="tm-btn tm-btn-secondary tm-btn-block">
-            {t("navPaths")}
-          </Link>
-          <Link to="/profile" className="tm-btn tm-btn-ghost tm-btn-block">
-            {t("navProfile")}
-          </Link>
-        </div>
+        <Link to="/paths" className="tm-btn tm-btn-secondary tm-btn-block">
+          {t("navPaths")}
+        </Link>
 
-        {bot ? (
-          <button type="button" className="tm-btn tm-btn-secondary tm-btn-block" onClick={() => openBot("concierge")}>
+        {state.premium && bot ? (
+          <button type="button" className="tm-btn tm-btn-ghost tm-btn-block" onClick={() => openBot("concierge")}>
             {copy.concierge}
           </button>
-        ) : (
-          <Link to="/profile" className="tm-btn tm-btn-secondary tm-btn-block">
+        ) : state.premium ? (
+          <Link to="/profile" className="tm-btn tm-btn-ghost tm-btn-block">
             {t("profileConciergeRequest")}
           </Link>
-        )}
+        ) : null}
       </section>
     </div>
   );

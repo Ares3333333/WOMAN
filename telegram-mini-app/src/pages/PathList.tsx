@@ -1,73 +1,110 @@
 ﻿import { Link } from "react-router-dom";
 import { PROGRAM_PATHS } from "../data/programs";
-import { SESSION_BY_SLUG } from "../data/sessions";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
 
-function priority(tier: "free" | "mixed" | "premium", signature?: boolean): number {
-  if (signature) return 0;
-  if (tier === "premium") return 1;
-  if (tier === "mixed") return 2;
-  return 3;
-}
+type Collection = {
+  id: string;
+  title: string;
+  subtitle: string;
+  pathIds: string[];
+  premium?: boolean;
+};
 
 export function PathListPage() {
-  const { pathTitle, t } = useI18n();
+  const { lang, pathTitle, t } = useI18n();
   const { state } = useProgress();
+  const L = lang === "ru" ? "ru" : "en";
 
-  const visible = PROGRAM_PATHS.filter((path) =>
-    path.sessionSlugs.some((slug) => {
-      const s = SESSION_BY_SLUG[slug];
-      if (!s) return false;
-      if (s.sensual && state.sensualMode === "hidden") return false;
-      return true;
-    })
-  )
-    .sort((a, b) => priority(a.tier, a.signature) - priority(b.tier, b.signature))
-    .slice(0, 6);
+  const findPath = (ids: string[]) => ids.find((id) => PROGRAM_PATHS.some((p) => p.id === id));
 
-  const tierLabel = (tier: "free" | "mixed" | "premium") => {
-    if (tier === "free") return t("tierFree");
-    if (tier === "mixed") return t("tierMixed");
-    return t("tierPremium");
-  };
+  const collections: Collection[] =
+    L === "ru"
+      ? [
+          {
+            id: "stress",
+            title: "Stress",
+            subtitle: "Снять перегруз и вернуть ровный темп.",
+            pathIds: ["overload_cycle_care", "nervous_system"],
+          },
+          {
+            id: "sleep",
+            title: "Sleep",
+            subtitle: "Тихий переход в ночь и более глубокий сон.",
+            pathIds: ["sleep_deep_rest", "premium_sleep_collection"],
+          },
+          {
+            id: "body-reset",
+            title: "Body reset",
+            subtitle: "Вернуть контакт с телом и дыханием.",
+            pathIds: ["body_embodiment", "nervous_system"],
+          },
+          {
+            id: "circle",
+            title: "Circle",
+            subtitle: "Премиальные вечерние коллекции и private-маршруты.",
+            pathIds: ["signature_evening_rituals", "cycle_rhythm_support"],
+            premium: true,
+          },
+        ]
+      : [
+          {
+            id: "stress",
+            title: "Stress",
+            subtitle: "Lower overload and regain a steady pace.",
+            pathIds: ["overload_cycle_care", "nervous_system"],
+          },
+          {
+            id: "sleep",
+            title: "Sleep",
+            subtitle: "A calmer transition into deeper sleep.",
+            pathIds: ["sleep_deep_rest", "premium_sleep_collection"],
+          },
+          {
+            id: "body-reset",
+            title: "Body reset",
+            subtitle: "Reconnect with your body and breath.",
+            pathIds: ["body_embodiment", "nervous_system"],
+          },
+          {
+            id: "circle",
+            title: "Circle",
+            subtitle: "Premium evening collections and private routes.",
+            pathIds: ["signature_evening_rituals", "cycle_rhythm_support"],
+            premium: true,
+          },
+        ];
 
   return (
     <div className="tm-page">
       <header className="tm-head">
         <h1 className="tm-h1">{t("navPaths")}</h1>
-        <p className="tm-lead">{t("pathsHeroSub")}</p>
+        <p className="tm-lead">{L === "ru" ? "Кураторские коллекции без перегруза." : "Curated collections with clear intent."}</p>
       </header>
 
-      <ul className="paths-layout" style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        {visible.map((path) => {
-          const sessionsCount = path.sessionSlugs.filter((slug) => {
-            const s = SESSION_BY_SLUG[slug];
-            if (!s) return false;
-            if (s.sensual && state.sensualMode === "hidden") return false;
-            return true;
-          }).length;
+      <ul className="library-list" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {collections.map((collection) => {
+          const primaryPathId = findPath(collection.pathIds);
+          if (!primaryPathId) return null;
+
+          const lockCircle = Boolean(collection.premium && !state.premium);
+          const href = lockCircle ? "/premium" : `/path/${primaryPathId}`;
 
           return (
-            <li key={path.id}>
-              <Link to={`/path/${path.id}`} className={`path-card${path.tier === "premium" ? " path-card--premium" : ""}`}>
-                <div className="path-card-head">
-                  <span className="tm-pill">{tierLabel(path.tier)}</span>
-                  {path.signature ? <span className="tm-pill tm-pill--accent">{t("pathsSignature")}</span> : null}
+            <li key={collection.id}>
+              <Link to={href} className="library-row">
+                <div className="library-row-head">
+                  <h2 className="library-row-title">{collection.title}</h2>
+                  {collection.premium ? <span className="tm-pill tm-pill--accent">{t("tierPremium")}</span> : null}
                 </div>
-                <h2 className="path-card-title">{pathTitle(path.id)}</h2>
-                <p className="tm-subtle">{sessionsCount} {t("pathSessions")}</p>
+                <p className="tm-subtle">{collection.subtitle}</p>
+                <p className="tm-list-sub">{pathTitle(primaryPathId)}</p>
+                {lockCircle ? <p className="path-locked-hint">{t("homePrimaryLockedCta")}</p> : null}
               </Link>
             </li>
           );
         })}
       </ul>
-
-      {!state.premium ? (
-        <Link to="/premium" className="tm-btn tm-btn-ghost tm-btn-block">
-          {t("homePrimaryLockedCta")}
-        </Link>
-      ) : null}
     </div>
   );
 }

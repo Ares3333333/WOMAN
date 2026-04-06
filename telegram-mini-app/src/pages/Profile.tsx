@@ -3,15 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { readOnboarding } from "../lib/onboarding";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
-import {
-  buildRhythmInsightKeys,
-  loadRhythmProfile,
-  pickRhythmSession,
-  updateRhythmProfile,
-  type RhythmPhase,
-  type RhythmSleep,
-  type RhythmStress,
-} from "../lib/rhythmTracker";
+import { buildRhythmInsightKeys, loadRhythmProfile, pickRhythmSession, updateRhythmProfile, type RhythmPhase } from "../lib/rhythmTracker";
 import { useTelegram } from "../telegram/useTelegram";
 
 export function ProfilePage() {
@@ -22,7 +14,7 @@ export function ProfilePage() {
 
   const L = lang === "ru" ? "ru" : "en";
   const supportTitle = L === "ru" ? "Поддержка" : "Support";
-  const careTitle = L === "ru" ? "Персональная поддержка" : "Private Care";
+  const careTitle = L === "ru" ? "Private Care" : "Private Care";
   const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
 
   const [rhythm, setRhythm] = useState(() => loadRhythmProfile());
@@ -30,8 +22,8 @@ export function ProfilePage() {
   const rhythmInsight = buildRhythmInsightKeys({ profile: rhythm, state, mood });
   const rhythmSession = pickRhythmSession(rhythm, state);
 
-  const setRhythmField = (patch: Partial<{ phase: RhythmPhase; stress: RhythmStress; sleep: RhythmSleep }>) => {
-    const next = updateRhythmProfile(patch);
+  const setPhase = (phase: RhythmPhase) => {
+    const next = updateRhythmProfile({ phase });
     setRhythm(next);
   };
 
@@ -65,28 +57,23 @@ export function ProfilePage() {
             <p className="tm-subtle">{t("profilePremiumPrice")}</p>
           </>
         ) : (
-          <Link to="/premium" className="tm-btn tm-btn-secondary tm-btn-block">
-            {t("shellCircle")}
-          </Link>
+          <p className="tm-subtle">{t("profilePremiumActive")}</p>
         )}
       </section>
 
-      <section className="profile-card">
+      <section className="profile-card profile-card--quiet">
         <h2 className="tm-h2">{t("profileTrackerTitle")}</h2>
+
         {state.premium ? (
           <>
             <p className="tm-subtle">{t(rhythmInsight.headline)}</p>
             <p className="tm-subtle">{t(rhythmInsight.suggestion)}</p>
+
             <div className="profile-tracker-group">
               <p className="tm-subtle">{t("trackerPhaseLabel")}</p>
               <div className="segmented segmented-5">
                 {(["unknown", "period", "rising", "social", "late"] as RhythmPhase[]).map((phase) => (
-                  <button
-                    key={phase}
-                    type="button"
-                    className={rhythm.phase === phase ? "on" : ""}
-                    onClick={() => setRhythmField({ phase })}
-                  >
+                  <button key={phase} type="button" className={rhythm.phase === phase ? "on" : ""} onClick={() => setPhase(phase)}>
                     {t(`trackerPhase_${phase}`)}
                   </button>
                 ))}
@@ -98,22 +85,19 @@ export function ProfilePage() {
                 {rhythmSession.title[L]}
               </Link>
             ) : null}
-            <Link to="/goals" className="tm-btn tm-btn-ghost tm-btn-block">
-              {t("navGoals")}
-            </Link>
           </>
         ) : (
-          <>
-            <p className="tm-subtle">{t("profileTrackerLocked")}</p>
-            <Link to="/premium" className="tm-btn tm-btn-secondary tm-btn-block">
+          <p className="tm-subtle">
+            {t("profileTrackerLocked")}{" "}
+            <Link to="/premium" className="tm-btn-inline">
               {t("profileUpgrade")}
             </Link>
-          </>
+          </p>
         )}
-      </section>
 
-      <section className="profile-card">
-        <h2 className="tm-h2">{t("profileReminderTitle")}</h2>
+        <div className="tm-divider" />
+
+        <h3 className="tm-h3">{t("profileReminderTitle")}</h3>
 
         <div className="profile-tracker-group">
           <p className="tm-subtle">{t("profileReminderSub")}</p>
@@ -169,7 +153,7 @@ export function ProfilePage() {
         </div>
       </section>
 
-      <section className="profile-card">
+      <section className="profile-card profile-card--quiet">
         <h2 className="tm-h2">{supportTitle}</h2>
         <p className="profile-footnote">{isTelegram ? t("profileEnvTelegram") : t("profileEnvLocal")}</p>
         <p className="profile-footnote">{t("profileAge")}</p>
@@ -187,17 +171,17 @@ export function ProfilePage() {
         >
           {t("profileCrisis")}
         </button>
-      </section>
 
-      <section className="profile-card">
-        <h2 className="tm-h2">{careTitle}</h2>
+        <div className="tm-divider" />
+
+        <h3 className="tm-h3">{careTitle}</h3>
         <p className="tm-subtle">{t("profileConciergeSub")}</p>
         {state.premium ? (
           <button type="button" className="tm-btn tm-btn-secondary tm-btn-block" onClick={openConcierge}>
             {t("profileConciergeRequest")}
           </button>
         ) : (
-          <Link to="/premium" className="tm-btn tm-btn-secondary tm-btn-block">
+          <Link to="/premium" className="tm-btn-inline">
             {t("profileUpgrade")}
           </Link>
         )}

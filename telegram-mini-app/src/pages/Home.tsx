@@ -2,7 +2,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { OnboardingSheet } from "../components/OnboardingSheet";
 import { SESSION_BY_SLUG, SESSIONS } from "../data/sessions";
-import { homeTimeKey, pickSessionForHome } from "../lib/homePick";
+import { homeTimeKey, pickSessionForHome, pickTonightSession } from "../lib/homePick";
 import { useI18n } from "../lib/i18n";
 import { readOnboarding } from "../lib/onboarding";
 import { useProgress } from "../lib/ProgressContext";
@@ -23,6 +23,8 @@ export function HomePage() {
     return pickSessionForHome(SESSIONS, state, mood);
   }, [state, onboardingOpen]);
 
+  const tonight = useMemo(() => pickTonightSession(SESSIONS, state), [state]);
+
   const continueSession =
     state.lastPlayedSlug &&
     SESSION_BY_SLUG[state.lastPlayedSlug] &&
@@ -37,6 +39,7 @@ export function HomePage() {
     : t("homeHeroAnonymous");
 
   const primaryLocked = !pick.freeTier && !state.premium;
+  const tonightLocked = tonight ? !tonight.freeTier && !state.premium : false;
   const premiumSessionsCount = SESSIONS.filter((s) => !s.freeTier && !(s.sensual && state.sensualMode === "hidden")).length;
 
   return (
@@ -68,54 +71,38 @@ export function HomePage() {
           </h2>
         </div>
 
-        {primaryLocked ? (
-          <button type="button" className={`home-next-card ${pick.gradient} home-next-card--locked`} onClick={() => nav("/premium")}>
-            <h3 className="home-next-title">{pick.title[L]}</h3>
-            <p className="home-next-meta">
-              <span>
-                {pick.durationMin} {t("sessionMin")}
-              </span>
-              <span className="home-next-dot" />
-              <span>{t("sessionPremium")}</span>
-            </p>
-          </button>
-        ) : (
-          <Link to={`/session/${pick.slug}`} className={`home-next-card ${pick.gradient}`}>
-            <h3 className="home-next-title">{pick.title[L]}</h3>
-            <p className="home-next-meta">
-              <span>
-                {pick.durationMin} {t("sessionMin")}
-              </span>
-              <span className="home-next-dot" />
-              <span>{pick.freeTier ? t("free") : t("sessionPremium")}</span>
-            </p>
-          </Link>
-        )}
+        <article className={`home-next-card ${pick.gradient}${primaryLocked ? " home-next-card--locked" : ""}`}>
+          <h3 className="home-next-title">{pick.title[L]}</h3>
+          <p className="home-next-meta">
+            <span>
+              {pick.durationMin} {t("sessionMin")}
+            </span>
+            <span className="home-next-dot" />
+            <span>{pick.freeTier ? t("free") : t("sessionPremium")}</span>
+          </p>
+          <p className="tm-subtle">{primaryLocked ? t("homeUnlockHint") : t("homeOpenHint")}</p>
+        </article>
       </section>
 
-      <section className="tm-card" aria-labelledby="home-continue-title">
-        <div className="tm-head">
-          <h2 id="home-continue-title" className="tm-h2">
-            {t("homeContinueLabel")}
-          </h2>
-        </div>
+      <section className="tm-card tm-card--quiet home-flow">
+        <Link to={continueSession ? `/session/${continueSession.slug}` : "/paths"} className="home-row">
+          <span className="home-row-label">{t("homeContinueLabel")}</span>
+          <span className="home-row-title">{continueSession ? continueSession.title[L] : t("navPaths")}</span>
+        </Link>
 
-        {continueSession ? (
-          <Link to={`/session/${continueSession.slug}`} className="tm-btn tm-btn-secondary tm-btn-block">
-            {continueSession.title[L]}
-          </Link>
-        ) : (
-          <Link to="/paths" className="tm-btn tm-btn-secondary tm-btn-block">
-            {t("navPaths")}
-          </Link>
-        )}
+        <Link to={tonight ? (tonightLocked ? "/premium" : `/session/${tonight.slug}`) : "/paths"} className="home-row">
+          <span className="home-row-label">{t("homeTonightLabel")}</span>
+          <span className="home-row-title">
+            {tonight ? (tonightLocked ? t("homePrimaryLockedCta") : tonight.title[L]) : t("navPaths")}
+          </span>
+        </Link>
       </section>
 
       {!state.premium ? (
-        <section className="tm-card home-premium">
+        <section className="home-premium-strip">
           <p className="tm-subtle">{t("homePremiumSub")}</p>
-          <p className="tm-subtle">+{premiumSessionsCount} {t("homeValueLocked")}</p>
-          <Link to="/premium" className="tm-btn tm-btn-primary tm-btn-block">
+          <p className="tm-subtle home-premium-count">+{premiumSessionsCount} {t("homeValueLocked")}</p>
+          <Link to="/premium" className="tm-btn tm-btn-ghost tm-btn-block">
             {t("homePrimaryLockedCta")}
           </Link>
         </section>
