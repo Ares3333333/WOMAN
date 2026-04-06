@@ -1,7 +1,7 @@
 ﻿import { Link, NavLink, Outlet } from "react-router-dom";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
-import { IconGoals, IconHome, IconPaths, IconProfile } from "./MiniNavIcons";
+import { IconHome, IconPaths, IconProfile } from "./MiniNavIcons";
 
 export function Layout() {
   const { t } = useI18n();
@@ -10,7 +10,6 @@ export function Layout() {
   const items: { to: string; end?: boolean; label: string; Icon: typeof IconHome }[] = [
     { to: "/", end: true, label: t("navHome"), Icon: IconHome },
     { to: "/paths", label: t("navPaths"), Icon: IconPaths },
-    { to: "/goals", label: t("navGoals"), Icon: IconGoals },
     { to: "/profile", label: t("navProfile"), Icon: IconProfile },
   ];
 
@@ -55,4 +54,3 @@ export function Layout() {
     </>
   );
 }
-

@@ -164,7 +164,7 @@ select {
 .tm-brand-sub {
   font-size: 0.64rem;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--text-2);
   white-space: nowrap;
 }
@@ -176,7 +176,7 @@ select {
   color: var(--text-1);
   font-size: 0.62rem;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
+  text-transform: none;
   white-space: nowrap;
   background: rgba(255, 255, 255, 0.02);
 }
@@ -214,7 +214,7 @@ select {
   width: min(100%, 520px);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-xs);
   border-radius: 20px;
   border: 1px solid var(--line-soft);
@@ -235,10 +235,10 @@ select {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-transform: none;
   transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
     box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
@@ -275,7 +275,7 @@ select {
   margin: 0;
   font-size: 0.64rem;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--accent-0);
   font-weight: 700;
 }
@@ -435,7 +435,7 @@ p {
   border: 1px solid var(--line-soft);
   font-size: 0.62rem;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--text-2);
   font-weight: 700;
   white-space: nowrap;
@@ -552,7 +552,7 @@ p {
 .home-hero-time {
   font-size: 0.7rem;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
+  text-transform: none;
   color: #e1c498;
   font-weight: 700;
 }
@@ -588,7 +588,7 @@ p {
   text-decoration: none;
   font-size: 0.76rem;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--text-1);
   font-weight: 600;
   background: rgba(255, 255, 255, 0.01);
@@ -618,7 +618,7 @@ p {
   color: var(--text-2);
   font-size: 0.65rem;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
+  text-transform: none;
   font-weight: 700;
 }
 
@@ -641,8 +641,8 @@ p {
   flex-wrap: wrap;
   color: var(--text-2);
   font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  text-transform: none;
+  letter-spacing: 0.03em;
 }
 
 .home-next-dot {
@@ -695,8 +695,8 @@ p {
 .home-path-meta {
   font-size: 0.73rem;
   color: var(--text-2);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  text-transform: none;
+  letter-spacing: 0.03em;
 }
 
 .home-premium {
@@ -741,7 +741,7 @@ p {
   font-size: 0.68rem;
   color: var(--text-2);
   letter-spacing: 0.08em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .home-premium--active {
@@ -819,7 +819,7 @@ p {
 
 .onboarding-progress {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -898,7 +898,7 @@ p {
   color: var(--text-2);
   font-size: 0.66rem;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
+  text-transform: none;
   font-weight: 700;
 }
 
@@ -1013,7 +1013,7 @@ p {
   color: var(--text-2);
   font-size: 0.78rem;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .session-back:hover {
@@ -1041,8 +1041,8 @@ p {
   gap: 8px;
   color: var(--text-2);
   font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  text-transform: none;
+  letter-spacing: 0.03em;
 }
 
 .player-source-row {
@@ -1075,7 +1075,7 @@ p {
 .player-speed-label {
   color: var(--text-2);
   font-size: 0.72rem;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.1em;
   font-weight: 700;
 }
@@ -1163,7 +1163,7 @@ p {
   color: var(--text-2);
   font-size: 0.67rem;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
+  text-transform: none;
   font-weight: 700;
 }
 
@@ -1386,7 +1386,7 @@ p {
   gap: 8px;
   color: var(--text-2);
   font-size: 0.72rem;
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.06em;
 }
 
@@ -1403,7 +1403,7 @@ p {
   margin: 0;
   font-size: 0.64rem;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--text-2);
   font-weight: 700;
 }
@@ -1505,6 +1505,7 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
 
 
 

@@ -12,7 +12,7 @@ const RU: Dict = {
 
   navAriaMain: "Основная навигация",
   navHome: "Сегодня",
-  navPaths: "Пути",
+  navPaths: "Библиотека",
   navGoals: "Ритм",
   navProfile: "Профиль",
   back: "Назад",
@@ -24,7 +24,7 @@ const RU: Dict = {
 
   homeHeroAnonymous: "Вечер, в котором можно выдохнуть.",
   homeHeroNamed: "{name}, вечер, в котором можно выдохнуть.",
-  homeHeroLead: "Без ленты, без шума, без лишних решений. Только следующий точный шаг.",
+  homeHeroLead: "Тихий вечерний маршрут. Один шаг за раз.",
   homeTimeMorning: "Утро · мягкий вход",
   homeTimeAfternoon: "День · короткая перезагрузка",
   homeTimeEvening: "Вечер · мягкое замедление",
@@ -35,7 +35,7 @@ const RU: Dict = {
   homeQuickMood: "Состояние",
 
   homeSectionTodayKicker: "Сегодня",
-  homeSectionTodayTitle: "Что лучше сделать сейчас",
+  homeSectionTodayTitle: "Лучший шаг сейчас",
   homeCurrentKicker: "Рекомендация",
   homeOpenHint: "Открыть и слушать",
   homeUnlockHint: "Доступно в Circle",
@@ -59,7 +59,7 @@ const RU: Dict = {
 
   homePremiumKicker: "Circle",
   homePremiumTitle: "Премиальный слой продукта",
-  homePremiumSub: "Circle - это полноценная система: длинные треки, непрерывность, персональные подсказки и приватный support-слой.",
+  homePremiumSub: "Circle открывает глубокие треки, личные инсайты и персональную поддержку.",
   homePremiumPoint1: "Signature вечерние и ночные треки до 22 минут",
   homePremiumPoint2: "Rhythm Tracker: цикл, нагрузка, сон и персональные рекомендации",
   homePremiumPoint3: "Curated Concierge: массаж, терапия, spa и trusted support без шума",
@@ -76,7 +76,7 @@ const RU: Dict = {
   homeComparePremiumItem3: "Curated concierge и private support",
 
   homeValueUnlocked: "доступно сейчас",
-  homeValueLocked: "закрытых треков",
+  homeValueLocked: "закрытых практик",
   homeValuePremiumPaths: "premium paths",
   homeValueSignature: "signature линии",
 
@@ -204,11 +204,11 @@ const RU: Dict = {
 
   profileTitle: "Профиль",
   profileHeroKicker: "Profile",
-  profileHeroTitle: "Ваш private‑кабинет",
+  profileHeroTitle: "Ваше пространство",
   profilePremium: "Sora Circle",
   profilePremiumTitle: "Подписка",
   profilePremiumSub: "Сейчас активен стартовый доступ. Circle открывает полный продукт.",
-  profilePremiumBody: "Это не «еще аудио». Это premium-система: structured journeys, tracker insights и curated concierge.",
+  profilePremiumBody: "Полный уровень доступа: длинные треки, ритм-инсайты и private care.",
   profilePremiumActive: "Circle активен",
   profilePremiumPrice: "$100/month · формат private premium membership",
   profilePremiumStatSessions: "premium sessions",
@@ -220,21 +220,21 @@ const RU: Dict = {
   profileUpgrade: "Подключить Circle",
   profileManage: "Управление подпиской",
 
-  profileReminderTitle: "Напоминания",
-  profileReminderSub: "Редкие и точные nudges из бота, чтобы не выпадать из ритма.",
+  profileReminderTitle: "Настройки",
+  profileReminderSub: "Тихие напоминания без перегруза.",
   profileReminderOff: "Выкл",
   profileReminderEvening: "Вечер",
   profileReminderNight: "Ночь",
 
   profileLang: "Язык",
 
-  profileSensualSectionTitle: "Private контент",
+  profileSensualSectionTitle: "Чувствительный контент",
   profileSensualSectionSub: "Чувствительный контент появляется только по вашему выбору и всегда в деликатной подаче.",
   profileTrackerTitle: "Rhythm Tracker",
   profileTrackerSub: "Без диагнозов. Только личные наблюдения, чтобы лучше понимать свой ритм.",
   profileTrackerLocked: "В Free tracker доступен в режиме preview. В Circle открывается персональная настройка и insights-слой.",
   profileConciergeTitle: "Curated Concierge",
-  profileConciergeSub: "Опциональные paid add-ons через private подбор: массаж, терапия, spa и support services.",
+  profileConciergeSub: "Персональная поддержка по запросу: аккуратный подбор проверенных специалистов.",
   profileConciergeLocked: "Concierge-слой доступен только в Circle. Никакого навязчивого каталога, только аккуратные рекомендации.",
   profileConciergeIncluded: "Включено в Circle",
   profileConciergeAddon: "От {price}",
@@ -328,7 +328,7 @@ const EN: Dict = {
 
   navAriaMain: "Main navigation",
   navHome: "Today",
-  navPaths: "Paths",
+  navPaths: "Library",
   navGoals: "Rhythm",
   navProfile: "Profile",
   back: "Back",
@@ -340,7 +340,7 @@ const EN: Dict = {
 
   homeHeroAnonymous: "An evening where you can finally exhale.",
   homeHeroNamed: "{name}, an evening where you can finally exhale.",
-  homeHeroLead: "No feed. No noise. No extra decisions. Just the right next step.",
+  homeHeroLead: "A quiet evening flow. One step at a time.",
   homeTimeMorning: "Morning · soft entry",
   homeTimeAfternoon: "Day · compact reset",
   homeTimeEvening: "Evening · softer downshift",
@@ -351,7 +351,7 @@ const EN: Dict = {
   homeQuickMood: "State",
 
   homeSectionTodayKicker: "Today",
-  homeSectionTodayTitle: "What to do next",
+  homeSectionTodayTitle: "Best next step",
   homeCurrentKicker: "Recommendation",
   homeOpenHint: "Open and listen",
   homeUnlockHint: "Available in Circle",
@@ -375,7 +375,7 @@ const EN: Dict = {
 
   homePremiumKicker: "Circle",
   homePremiumTitle: "Premium product layer",
-  homePremiumSub: "Circle adds real depth: long tracks, continuity, private support, and curated care.",
+  homePremiumSub: "Circle unlocks deep tracks, personal insight, and private care.",
   homePremiumPoint1: "Signature evening tracks up to 22 minutes",
   homePremiumPoint2: "Premium tracker: cycle rhythm, stress load, sleep-aware guidance",
   homePremiumPoint3: "Curated concierge for massage, therapists, spa, and trusted support",
@@ -392,7 +392,7 @@ const EN: Dict = {
   homeComparePremiumItem3: "Curated concierge and private support",
 
   homeValueUnlocked: "available now",
-  homeValueLocked: "locked tracks",
+  homeValueLocked: "locked sessions",
   homeValuePremiumPaths: "premium paths",
   homeValueSignature: "signature lines",
 
@@ -520,11 +520,11 @@ const EN: Dict = {
 
   profileTitle: "Profile",
   profileHeroKicker: "Profile",
-  profileHeroTitle: "Your private cabinet",
+  profileHeroTitle: "Your space",
   profilePremium: "Sora Circle",
   profilePremiumTitle: "Subscription",
   profilePremiumSub: "Starter access is active. Circle unlocks the full product.",
-  profilePremiumBody: "Not just more audio. A premium system: structured journeys, rhythm insights, curated concierge.",
+  profilePremiumBody: "Full access layer: deep tracks, rhythm insight, and private care.",
   profilePremiumActive: "Circle is active",
   profilePremiumPrice: "$100/month · private premium membership format",
   profilePremiumStatSessions: "premium sessions",
@@ -536,21 +536,21 @@ const EN: Dict = {
   profileUpgrade: "Unlock Circle",
   profileManage: "Manage subscription",
 
-  profileReminderTitle: "Reminders",
-  profileReminderSub: "Low-frequency, high-signal nudges from the bot.",
+  profileReminderTitle: "Preferences",
+  profileReminderSub: "Quiet reminders without noise.",
   profileReminderOff: "Off",
   profileReminderEvening: "Evening",
   profileReminderNight: "Night",
 
   profileLang: "Language",
 
-  profileSensualSectionTitle: "Private content",
+  profileSensualSectionTitle: "Sensitive content",
   profileSensualSectionSub: "Sensitive content appears only by your choice and always in a respectful tone.",
   profileTrackerTitle: "Rhythm Tracker",
   profileTrackerSub: "No diagnosis. Just personal pattern awareness for better evening choices.",
   profileTrackerLocked: "In Free, tracker is preview-only. Circle unlocks personal setup and insight layer.",
   profileConciergeTitle: "Curated Concierge",
-  profileConciergeSub: "Optional paid add-ons through private matching: massage, therapy, spa, support services.",
+  profileConciergeSub: "Private care on request with vetted specialists.",
   profileConciergeLocked: "Concierge layer is Circle-only. No aggressive selling, just careful recommendations.",
   profileConciergeIncluded: "Included in Circle",
   profileConciergeAddon: "From {price}",
@@ -702,3 +702,4 @@ export function detectLangFromTelegram(code: string | undefined): Lang {
   if (!code) return "ru";
   return code.toLowerCase().startsWith("ru") ? "ru" : "en";
 }
+

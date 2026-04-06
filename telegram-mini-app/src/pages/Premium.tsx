@@ -23,18 +23,18 @@ export function PremiumPage() {
     L === "ru"
       ? {
           title: "Circle",
-          lead: "Один спокойный premium-слой: глубокие треки, tracker и curated support.",
+          lead: "Один спокойный премиум-слой: глубокие практики, личные инсайты и поддержка.",
           freeTitle: "Starter",
           freeItems: ["Короткие базовые практики", "Ограниченный каталог"],
           premiumTitle: "Circle",
-          premiumItems: ["Длинные вечерние и ночные треки", "Личный tracker и continuity", "Private concierge layer"],
+          premiumItems: ["Длинные вечерние и ночные треки", "Личный ритм и точные рекомендации", "Private Care по запросу"],
           includes: "Что открывается",
           guidance: "Дальше",
-          trackerLine: "Tracker подсказывает, что слушать именно сегодня.",
-          conciergeLine: "Concierge дает тихий доступ к проверенным сервисам.",
+          trackerLine: "Инсайты помогают выбрать лучший трек на сегодня.",
+          conciergeLine: "Private Care открывает доступ к проверенной поддержке.",
           unlock: "Включить Circle (test)",
           active: "Circle уже активен",
-          concierge: "Запрос в concierge",
+          concierge: "Открыть Private Care",
         }
       : {
           title: "Circle",

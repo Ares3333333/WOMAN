@@ -1,6 +1,4 @@
 ﻿import { Link, useNavigate, useParams } from "react-router-dom";
-import { IconChevron } from "../components/MiniNavIcons";
-import { SessionMetaRow } from "../components/SessionMetaRow";
 import { PROGRAM_PATHS } from "../data/programs";
 import { SESSION_BY_SLUG, type MiniSession } from "../data/sessions";
 import { useI18n } from "../lib/i18n";
@@ -19,10 +17,6 @@ export function PathDetailPage() {
     if (tier === "free") return t("tierFree");
     if (tier === "mixed") return t("tierMixed");
     return t("tierPremium");
-  };
-
-  const openPremium = () => {
-    nav("/premium");
   };
 
   if (!path) {
@@ -44,12 +38,6 @@ export function PathDetailPage() {
     .filter((s): s is MiniSession => Boolean(s))
     .filter((s) => !(s.sensual && state.sensualMode === "hidden"));
 
-  const introKey = `pathIntro_${path.id}`;
-  const intro = t(introKey);
-  const lockedCount = sessions.filter((s) => !s.freeTier && !state.premium).length;
-  const freeCount = sessions.filter((s) => s.freeTier).length;
-  const membersOnlyPath = path.tier === "premium" && freeCount === 0;
-
   return (
     <div className="tm-page">
       <Link to="/paths" className="session-back">
@@ -61,26 +49,16 @@ export function PathDetailPage() {
           <span className="tm-pill">{tierLabel(path.tier)}</span>
           {path.signature ? <span className="tm-pill tm-pill--accent">{t("pathsSignature")}</span> : null}
         </div>
-        <p className="tm-kicker">{t(`pillarLabel_${path.pillarId}`)}</p>
         <h1 className="tm-h1">{pathTitle(path.id)}</h1>
-        <p className="tm-lead">{intro !== introKey ? intro : t("pathsHeroSub")}</p>
-        <div className="path-card-meta">
-          <span>
-            {sessions.length} {t("pathSessions")}
-          </span>
-          <span>{lockedCount > 0 ? `${lockedCount} ${t("pathsLockedLabel")}` : t("pathsOpenLabel")}</span>
-        </div>
-        <div className="path-card-meta">
-          <span>{t(`pathAxis_${path.valueAxis}`)}</span>
-          <span>{t("pathContinuity").replace("{count}", String(path.continuityWeeks))}</span>
-        </div>
+        <p className="tm-subtle">
+          {sessions.length} {t("pathSessions")}
+        </p>
       </section>
 
       {path.tier === "premium" && !state.premium ? (
         <section className="tm-card session-gate">
-          <h2 className="tm-h2">{t("pathsPremiumGateTitle")}</h2>
           <p className="tm-subtle">{t("pathsPremiumGateSub")}</p>
-          <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={openPremium}>
+          <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={() => nav("/premium")}>
             {t("pathsPremiumGateCta")}
           </button>
         </section>
@@ -90,27 +68,20 @@ export function PathDetailPage() {
         {sessions.map((s) => {
           const locked = !s.freeTier && !state.premium;
 
-          const body = (
-            <>
-              <div className="path-session-copy">
-                <span className="tm-pill">{t(`pillarTag_${s.pillarId}`)}</span>
-                <span className="tm-list-title">{s.title[L]}</span>
-                <p className="path-session-desc">{s.short[L]}</p>
-                <SessionMetaRow session={s} t={t} />
-              </div>
-              <IconChevron className="tm-chevron" />
-            </>
-          );
-
           if (locked) {
             return (
               <li key={s.slug}>
                 <button
                   type="button"
                   className="path-session-item path-session-item--locked path-session-button"
-                  onClick={openPremium}
+                  onClick={() => nav("/premium")}
                 >
-                  {body}
+                  <div className="path-session-copy">
+                    <span className="tm-list-title">{s.title[L]}</span>
+                    <span className="tm-list-sub">
+                      {s.durationMin} {t("sessionMin")} · {t("sessionPremium")}
+                    </span>
+                  </div>
                 </button>
               </li>
             );
@@ -119,23 +90,17 @@ export function PathDetailPage() {
           return (
             <li key={s.slug}>
               <Link to={`/session/${s.slug}`} className="path-session-item">
-                {body}
+                <div className="path-session-copy">
+                  <span className="tm-list-title">{s.title[L]}</span>
+                  <span className="tm-list-sub">
+                    {s.durationMin} {t("sessionMin")}
+                  </span>
+                </div>
               </Link>
             </li>
           );
         })}
       </ul>
-
-      {membersOnlyPath && !state.premium ? (
-        <section className="tm-card">
-          <p className="tm-subtle">{t("pathsMembersOnlyHint")}</p>
-        </section>
-      ) : null}
     </div>
   );
 }
-
-
-
-
-
