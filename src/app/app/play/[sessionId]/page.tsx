@@ -39,6 +39,9 @@ export default async function PlayPage({ params }: { params: { sessionId: string
 
   const useBrowserTts =
     process.env.NEXT_PUBLIC_USE_BROWSER_TTS === "true" || !ws.audioFileUrl;
+  const breathCoachEligible = ["breathing", "stress-relief", "emotional-reset", "sleep"].includes(
+    ws.category.slug
+  );
 
   return (
     <PlayClient
@@ -48,6 +51,9 @@ export default async function PlayPage({ params }: { params: { sessionId: string
       script={script}
       favorited={favorited}
       useBrowserTts={useBrowserTts}
+      meditationType={ws.category.slug}
+      biofeedbackOnboardingComplete={pref?.biofeedbackOnboardingComplete ?? false}
+      breathCoachEligible={breathCoachEligible}
     />
   );
 }

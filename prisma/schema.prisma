@@ -58,6 +58,10 @@ model User {
   playbackHistory      PlaybackHistory[]
   journalEntries       JournalEntry[]
   moodCheckins         MoodCheckin[]
+  biometricScans       BiometricScan[]
+  calmScoreSnapshots   CalmScoreSnapshot[]
+  biofeedbackSessions  MeditationBiofeedbackSession[]
+  biometricBaseline    PersonalBiometricBaseline?
 }
 
 model Account {
@@ -113,6 +117,8 @@ model Preference {
   voiceTonePref         String?
   listeningTimePref     String?
   skipSensualInFeed     Boolean            @default(false)
+  biofeedbackOnboardingComplete Boolean    @default(false)
+  biofeedbackConsentAt  DateTime?
   user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -156,6 +162,8 @@ model WellnessSession {
   favorites             Favorite[]
   playbackHistory       PlaybackHistory[]
   journalEntries        JournalEntry[]
+  biometricScans        BiometricScan[]
+  biofeedbackSessions   MeditationBiofeedbackSession[]
 
   @@map("wellness_sessions")
 }
@@ -228,4 +236,78 @@ model AdminGenerationLog {
   outputJson String?
   error     String?
   createdAt DateTime          @default(now())
+}
+
+model PersonalBiometricBaseline {
+  id           String          @id @default(cuid())
+  userId       String          @unique
+  restingPulse Float           @default(72)
+  pulseSpread  Float           @default(8)
+  sampleCount  Int             @default(0)
+  version      Int             @default(1)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scans        BiometricScan[]
+}
+
+model BiometricScan {
+  id            String          @id @default(cuid())
+  userId        String
+  createdAt     DateTime        @default(now())
+  measurementType String
+  pulse         Int?
+  breathingRate Float?
+  signalQuality Float
+  durationMs    Int
+  deviceMode    String
+  rawStatus     String
+  failureReason String?
+  baselineVersion Int?
+  baselineId    String?
+  sessionId     String?
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  baseline      PersonalBiometricBaseline? @relation(fields: [baselineId], references: [id], onDelete: SetNull)
+  session       WellnessSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  calmSnapshot  CalmScoreSnapshot?
+  preFor        MeditationBiofeedbackSession[] @relation("PreScan")
+  postFor       MeditationBiofeedbackSession[] @relation("PostScan")
+}
+
+model CalmScoreSnapshot {
+  id             String          @id @default(cuid())
+  userId         String
+  createdAt      DateTime        @default(now())
+  calmScore      Int
+  recoveryScore  Int
+  confidence     Float
+  inputsSummary  String
+  scanId         String?
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scan           BiometricScan?  @relation(fields: [scanId], references: [id], onDelete: SetNull)
+  preFor         MeditationBiofeedbackSession[] @relation("PreCalmSnapshot")
+  postFor        MeditationBiofeedbackSession[] @relation("PostCalmSnapshot")
+}
+
+model MeditationBiofeedbackSession {
+  id                String          @id @default(cuid())
+  userId            String
+  meditationSessionId String
+  startedAt         DateTime        @default(now())
+  endedAt           DateTime?
+  meditationType    String
+  durationMs        Int?
+  preScanId         String?
+  postScanId        String?
+  preCalmSnapshotId String?
+  postCalmSnapshotId String?
+  sessionEffect     Int?
+  summaryText       String?
+  notes             String?
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meditationSession WellnessSession @relation(fields: [meditationSessionId], references: [id], onDelete: Cascade)
+  preScan           BiometricScan?  @relation("PreScan", fields: [preScanId], references: [id], onDelete: SetNull)
+  postScan          BiometricScan?  @relation("PostScan", fields: [postScanId], references: [id], onDelete: SetNull)
+  preCalmSnapshot   CalmScoreSnapshot? @relation("PreCalmSnapshot", fields: [preCalmSnapshotId], references: [id], onDelete: SetNull)
+  postCalmSnapshot  CalmScoreSnapshot? @relation("PostCalmSnapshot", fields: [postCalmSnapshotId], references: [id], onDelete: SetNull)
 }
