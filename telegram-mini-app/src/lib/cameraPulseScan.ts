@@ -6,6 +6,13 @@ type ScanOptions = {
   durationMs?: number;
   onProgress?: (progress: number) => void;
   onStateChange?: (state: PulseScanState) => void;
+  onSignal?: (value: {
+    contactConfidence: number;
+    contactDetected: boolean;
+    redDominance: number;
+    brightness: number;
+    elapsedMs: number;
+  }) => void;
   signal?: AbortSignal;
   deviceId?: string | null;
 };
@@ -31,6 +38,17 @@ function std(values: number[]): number {
   const m = avg(values);
   const variance = avg(values.map((v) => (v - m) ** 2));
   return Math.sqrt(variance);
+}
+
+function estimateContactConfidence(redDominance: number, brightness: number): number {
+  const red = clamp01((redDominance - 0.98) / 0.22);
+  const light =
+    brightness < 20
+      ? clamp01(brightness / 20)
+      : brightness > 248
+        ? clamp01((260 - brightness) / 12)
+        : 1;
+  return Number(clamp01(red * 0.75 + light * 0.25).toFixed(2));
 }
 
 function sleep(ms: number): Promise<void> {
@@ -69,7 +87,8 @@ function buildFailure(
   rawStatus: PulseScanResult["rawStatus"],
   failureReason: BiofeedbackFailureReason,
   durationMs: number,
-  device?: PulseScanResult["device"]
+  device?: PulseScanResult["device"],
+  meta?: { contactDetected?: boolean; contactConfidence?: number; torchMode?: PulseScanResult["torchMode"] }
 ): PulseScanResult {
   return {
     pulse: null,
@@ -78,6 +97,9 @@ function buildFailure(
     rawStatus,
     failureReason,
     confidence: 0,
+    contactDetected: meta?.contactDetected ?? false,
+    contactConfidence: meta?.contactConfidence ?? 0,
+    torchMode: meta?.torchMode ?? "unavailable",
     device,
   };
 }
@@ -255,6 +277,11 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
     const torchStatus = await enableTorch(track);
     device.torchAvailable = torchStatus.available;
     device.torchEnabled = torchStatus.enabled;
+    const torchMode: PulseScanResult["torchMode"] = torchStatus.available
+      ? torchStatus.enabled
+        ? "enabled"
+        : "fallback"
+      : "unavailable";
 
     const view = document.createElement("video");
     video = view;
@@ -292,6 +319,8 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
     const samples: PulseSample[] = [];
     let signalFound = false;
     let stableHits = 0;
+    let contactDetected = false;
+    let contactConfidencePeak = 0;
     options.onStateChange?.("searching");
 
     while (Date.now() - startedAt < durationMs) {
@@ -316,6 +345,35 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
 
       const elapsed = Date.now() - startedAt;
       options.onProgress?.(Math.min(1, elapsed / durationMs));
+
+      const contactConfidence = estimateContactConfidence(redDominance, brightness);
+      contactConfidencePeak = Math.max(contactConfidencePeak, contactConfidence);
+      if (!contactDetected && contactConfidence >= 0.68) {
+        contactDetected = true;
+      }
+
+      options.onSignal?.({
+        contactConfidence: contactConfidencePeak,
+        contactDetected,
+        redDominance: Number(redDominance.toFixed(3)),
+        brightness: Number(brightness.toFixed(1)),
+        elapsedMs: elapsed,
+      });
+
+      if (elapsed >= 5_500 && !contactDetected) {
+        return {
+          pulse: null,
+          signalQuality: Number(contactConfidencePeak.toFixed(2)),
+          durationMs: Date.now() - startedAt,
+          rawStatus: "low_signal",
+          failureReason: "finger_not_detected",
+          confidence: Number(contactConfidencePeak.toFixed(2)),
+          contactDetected: false,
+          contactConfidence: Number(contactConfidencePeak.toFixed(2)),
+          torchMode,
+          device,
+        };
+      }
 
       if (!signalFound && elapsed > 1700 && redDominance > 1.08 && brightness > 18 && brightness < 245) {
         signalFound = true;
@@ -350,6 +408,9 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
         rawStatus: "low_signal",
         failureReason: quality.failureReason ?? "unstable_signal",
         confidence: Number(Math.min(quality.quality, pulse.confidence).toFixed(2)),
+        contactDetected,
+        contactConfidence: Number(contactConfidencePeak.toFixed(2)),
+        torchMode,
         device,
       };
     }
@@ -360,6 +421,9 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
       durationMs: Date.now() - startedAt,
       rawStatus: "ok",
       confidence: Number(Math.min(0.98, pulse.confidence).toFixed(2)),
+      contactDetected,
+      contactConfidence: Number(contactConfidencePeak.toFixed(2)),
+      torchMode,
       device,
     };
   } catch (error) {

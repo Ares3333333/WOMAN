@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { SESSIONS } from "../data/sessions";
 import { loadBiofeedbackStore, summarizeBiofeedbackTrends } from "../lib/biofeedback";
 import { useI18n } from "../lib/i18n";
 
@@ -65,6 +66,14 @@ export function BiofeedbackPage() {
           </article>
         </div>
         <p className="tm-subtle">{trendText}</p>
+        <div className="bio-actions">
+          <Link to={`/session/${SESSIONS[0]?.slug ?? ""}`} className="tm-btn tm-btn-primary">
+            {t("homePrimaryCta")}
+          </Link>
+          <Link to="/paths" className="tm-btn tm-btn-ghost">
+            {t("navPaths")}
+          </Link>
+        </div>
       </section>
 
       <section className="tm-card tm-card--quiet">

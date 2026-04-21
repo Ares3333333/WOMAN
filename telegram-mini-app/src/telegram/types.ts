@@ -62,6 +62,8 @@ export type TelegramWebApp = {
     params: { title?: string; message: string; buttons?: { id?: string; type?: string; text: string }[] },
     cb?: (id: string) => void
   ) => void;
+  onEvent?: (eventType: string, eventHandler: () => void) => void;
+  offEvent?: (eventType: string, eventHandler: () => void) => void;
 };
 
 declare global {

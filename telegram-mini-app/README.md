@@ -84,6 +84,7 @@ Added inside `telegram-mini-app` as a wellness-only feature (no medical claims):
 - If dual front+rear capture is supported: front and rear scans run in parallel.
 - If not supported (common in Telegram WebView): seamless fallback runs front scan first, then rear pulse scan.
 - Rear pulse scan includes explicit camera guidance and finger placement visual.
+- Rear pulse scan now also exposes live finger-contact confidence, so users see when the lens is properly covered before full measurement.
 - Front scan estimates breathing rhythm, regularity, and calm/activation state with quality/confidence gating.
 - During practice, microphone breathing capture tracks pace consistency and produces gentle post-session feedback.
 - During practice, cameras are off by design: user follows voice + visual breathing guide while microphone tracks rhythm.
@@ -103,12 +104,18 @@ Added inside `telegram-mini-app` as a wellness-only feature (no medical claims):
 
 - `src/pages/SessionPlay.tsx`
 - `src/pages/Biofeedback.tsx`
+- `src/pages/Home.tsx`
 - `src/lib/cameraPulseScan.ts`
 - `src/lib/frontBreathScan.ts`
 - `src/lib/audioBreathTracker.ts`
 - `src/lib/cameraCapabilities.ts`
+- `src/lib/smartCheckOrchestrator.ts`
+- `src/lib/wellnessFusion.ts`
 - `src/lib/smartRecommendations.ts`
 - `src/lib/biofeedback.ts`
+- `src/components/biofeedback/SmartCheckPanel.tsx`
+- `src/components/biofeedback/RecommendationPanel.tsx`
+- `src/components/biofeedback/OutcomeGuidanceCard.tsx`
 - `src/styles/global.css`
 - `src/lib/i18n.tsx`
 

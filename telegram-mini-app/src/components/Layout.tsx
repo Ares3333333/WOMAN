@@ -14,7 +14,7 @@ export function Layout() {
   ];
 
   return (
-    <>
+    <div className="tm-app-shell">
       <header className="tm-shell-header">
         <div className="tm-shell-header-inner">
           <div className="tm-brand">
@@ -51,6 +51,6 @@ export function Layout() {
           ))}
         </div>
       </nav>
-    </>
+    </div>
   );
 }

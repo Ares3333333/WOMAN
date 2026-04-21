@@ -26,6 +26,9 @@ export type PulseScanResult = {
   rawStatus: BiofeedbackRawStatus;
   failureReason?: BiofeedbackFailureReason;
   confidence: number;
+  contactDetected?: boolean;
+  contactConfidence?: number;
+  torchMode?: "enabled" | "fallback" | "unavailable";
   device?: {
     cameraFacing: "environment" | "unknown";
     torchAvailable: boolean;

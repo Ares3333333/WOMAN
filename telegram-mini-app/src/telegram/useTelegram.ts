@@ -69,6 +69,14 @@ function mockWebApp(): TelegramWebApp {
   };
 }
 
+function applyViewportVars(twa: TelegramWebApp): void {
+  const root = document.documentElement;
+  const vh = Math.max(1, twa.viewportHeight || window.innerHeight || 1);
+  const stable = Math.max(1, twa.viewportStableHeight || vh);
+  root.style.setProperty("--tg-vh", `${vh}px`);
+  root.style.setProperty("--tg-vh-stable", `${stable}px`);
+}
+
 export function getWebApp(): TelegramWebApp {
   if (typeof window === "undefined") return mockWebApp();
   const w = window.Telegram?.WebApp;
@@ -95,6 +103,7 @@ export function applyTelegramThemeVars(twa: TelegramWebApp): void {
 export function initTelegramApp(): TelegramWebApp {
   const twa = getWebApp();
   applyTelegramThemeVars(twa);
+  applyViewportVars(twa);
   twa.ready();
   twa.expand();
   return twa;
@@ -110,6 +119,14 @@ export function useTelegram() {
 
   useEffect(() => {
     applyTelegramThemeVars(app);
+    applyViewportVars(app);
+    const onViewportChanged = () => applyViewportVars(app);
+    app.onEvent?.("viewportChanged", onViewportChanged);
+    window.addEventListener("resize", onViewportChanged, { passive: true });
+    return () => {
+      app.offEvent?.("viewportChanged", onViewportChanged);
+      window.removeEventListener("resize", onViewportChanged);
+    };
   }, [app]);
 
   return { app, isTelegram };
