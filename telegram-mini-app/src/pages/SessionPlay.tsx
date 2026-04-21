@@ -15,7 +15,7 @@ import {
 import { startBreathAudioCapture, type BreathAudioCapture, type BreathAudioSummary } from "../lib/audioBreathTracker";
 import { probeDualCameraSupport, type DualCameraProbe } from "../lib/cameraCapabilities";
 import { runPulseScan, type PulseScanState } from "../lib/cameraPulseScan";
-import { runFrontBreathScan, type FrontBreathScanResult } from "../lib/frontBreathScan";
+import { runFrontBreathScan, type FrontBreathScanResult, type FrontFrameSignal } from "../lib/frontBreathScan";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
 import { canUserAccessSession } from "../lib/sessionAccess";
@@ -58,7 +58,7 @@ function mapFrontFailureKey(result: FrontBreathScanResult): string {
   if (result.rawStatus === "permission_denied") return "bioFrontPermission";
   if (result.rawStatus === "unsupported") return "bioFrontUnsupported";
   if (result.failureReason === "insufficient_light") return "bioFrontLight";
-  if (result.failureReason === "high_motion" || result.failureReason === "face_unstable") return "bioFrontMotion";
+  if (result.failureReason === "high_motion" || result.failureReason === "face_unstable") return "bioFrontMotionIssue";
   return "bioFrontSignalLow";
 }
 
@@ -92,6 +92,10 @@ function mapFrontToneKey(state: FrontBreathScanResult["stateLabel"]): string {
   if (state === "activated") return "bioFrontToneActivated";
   if (state === "tense") return "bioFrontToneTense";
   return "bioFrontToneNeutral";
+}
+
+function mapFrontTrackingKey(mode: "mesh" | "fallback"): string {
+  return mode === "mesh" ? "bioFrontTrackingMesh" : "bioFrontTrackingFallback";
 }
 
 function mapMicGuidanceKey(guidance: BreathAudioSummary["guidance"]): string {
@@ -177,6 +181,10 @@ export function SessionPlayPage() {
   const [frontProgress, setFrontProgress] = useState(0);
   const [frontScanState, setFrontScanState] = useState<"idle" | "initializing" | "tracking" | "analyzing" | "done">("idle");
   const [frontErrorKey, setFrontErrorKey] = useState<string | null>(null);
+  const [frontLiveSignalQuality, setFrontLiveSignalQuality] = useState<number | null>(null);
+  const [frontLiveConfidence, setFrontLiveConfidence] = useState<number | null>(null);
+  const [frontLiveMotion, setFrontLiveMotion] = useState<number | null>(null);
+  const [frontTrackingMode, setFrontTrackingMode] = useState<"mesh" | "fallback">("fallback");
 
   const [breathCoachOn, setBreathCoachOn] = useState(false);
   const [breathSeconds, setBreathSeconds] = useState(0);
@@ -189,6 +197,8 @@ export function SessionPlayPage() {
   const [micSummary, setMicSummary] = useState<BreathAudioSummary | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const frontPreviewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const frontPreviewOverlayRef = useRef<HTMLCanvasElement | null>(null);
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
   const ttsTickRef = useRef<number | null>(null);
   const ttsStartedRef = useRef<number | null>(null);
@@ -419,14 +429,26 @@ export function SessionPlayPage() {
     async (abortSignal: AbortSignal, deviceId: string | null, durationMs: number) => {
       setFrontProgress(0);
       setFrontScanState("initializing");
+      setFrontLiveSignalQuality(null);
+      setFrontLiveConfidence(null);
+      setFrontLiveMotion(null);
       const result = await runFrontBreathScan({
         signal: abortSignal,
         durationMs,
         deviceId,
         onProgress: setFrontProgress,
         onState: setFrontScanState,
+        previewVideo: frontPreviewVideoRef.current,
+        previewOverlay: frontPreviewOverlayRef.current,
+        onFrame: (frame: FrontFrameSignal) => {
+          setFrontLiveSignalQuality(frame.signalQuality);
+          setFrontLiveConfidence(frame.confidence);
+          setFrontLiveMotion(frame.motion);
+          setFrontTrackingMode(frame.trackingMode);
+        },
       });
       setFrontScanState("done");
+      setFrontTrackingMode(result.trackingMode);
       return result;
     },
     []
@@ -461,6 +483,9 @@ export function SessionPlayPage() {
       setScanVisualState("idle");
       setFrontProgress(0);
       setScanProgress(0);
+      setFrontLiveSignalQuality(null);
+      setFrontLiveConfidence(null);
+      setFrontLiveMotion(null);
 
       const abort = new AbortController();
       smartAbortRef.current = abort;
@@ -785,6 +810,10 @@ export function SessionPlayPage() {
     setFrontProgress(0);
     setFrontScanState("idle");
     setFrontErrorKey(null);
+    setFrontLiveSignalQuality(null);
+    setFrontLiveConfidence(null);
+    setFrontLiveMotion(null);
+    setFrontTrackingMode("fallback");
 
     setBreathCoachOn(false);
     setBreathSeconds(0);
@@ -881,6 +910,9 @@ export function SessionPlayPage() {
   const postReliable = Boolean(postScanRecord && postScanRecord.rawStatus === "ok" && postScanRecord.pulse != null);
   const scanStatusKey = mapPulseStateKey(scanVisualState);
   const frontStatusKey = mapFrontStateKey(frontScanState);
+  const frontQualityText = frontLiveSignalQuality != null ? `${Math.round(frontLiveSignalQuality * 100)}%` : "--";
+  const frontConfidenceText = frontLiveConfidence != null ? `${Math.round(frontLiveConfidence * 100)}%` : "--";
+  const frontMotionText = frontLiveMotion != null ? `${Math.round(frontLiveMotion * 100)}%` : "--";
   const breathPhaseLabel =
     breathPhase.id === "inhale" ? t("bioBreathInhale") : breathPhase.id === "pause" ? t("bioBreathPause") : t("bioBreathExhale");
   const breathPhaseScale = breathPhase.id === "inhale" ? 1.15 : breathPhase.id === "pause" ? 1.06 : 0.92;
@@ -904,6 +936,27 @@ export function SessionPlayPage() {
           <article className="bio-smart-item">
             <p className="tm-kicker tm-kicker--muted">{t("bioFrontTitle")}</p>
             <p className="tm-subtle">{t(frontStatusKey)}</p>
+            <div className="bio-front-pip">
+              <div className="bio-front-pip-stage">
+                <video ref={frontPreviewVideoRef} className="bio-front-pip-video" playsInline muted />
+                <canvas ref={frontPreviewOverlayRef} className="bio-front-pip-overlay" />
+                {!smartRunning ? <p className="bio-front-pip-hint">{t("bioFrontPreviewHint")}</p> : null}
+              </div>
+              <div className="bio-front-pip-meta">
+                <span>
+                  {t("bioMetricQuality")}: <strong>{frontQualityText}</strong>
+                </span>
+                <span>
+                  {t("bioFrontConfidence")}: <strong>{frontConfidenceText}</strong>
+                </span>
+                <span>
+                  {t("bioFrontMotion")}: <strong>{frontMotionText}</strong>
+                </span>
+                <span>
+                  {t("bioFrontTracking")}: <strong>{t(mapFrontTrackingKey(frontTrackingMode))}</strong>
+                </span>
+              </div>
+            </div>
             <div className="wave-meter" aria-hidden>
               <span style={{ width: `${Math.round(frontProgress * 100)}%` }} />
             </div>
@@ -920,6 +973,10 @@ export function SessionPlayPage() {
             <p className="tm-subtle">{t(scanStatusKey)}</p>
             <div className="wave-meter" aria-hidden>
               <span style={{ width: `${Math.round(scanProgress * 100)}%` }} />
+            </div>
+            <div className="bio-rear-target-row">
+              <span className={`bio-rear-lens-target ${scanVisualState === "measuring" ? "is-live" : ""}`} />
+              <p className="tm-subtle">{t("bioPulseGuideTarget")}</p>
             </div>
             <p className="tm-subtle">{t("bioPulseGuideRear")}</p>
             <p className="tm-subtle">
@@ -1319,6 +1376,8 @@ export function SessionPlayPage() {
     </div>
   );
 }
+
+
 
 
 

@@ -176,13 +176,15 @@ export async function probeDualCameraSupport(force = false): Promise<DualCameraP
     saveCachedProbe(probe);
     return probe;
   } catch (error) {
+    const name = error instanceof Error ? error.name : "";
     const message = error instanceof Error ? error.message : "";
+    const token = `${name} ${message}`;
     const reason: DualCameraProbe["reason"] =
-      /NotAllowedError|PermissionDeniedError/.test(message)
+      /NotAllowedError|PermissionDeniedError/i.test(token)
         ? "permission_denied"
-        : /NotFoundError/.test(message)
+        : /NotFoundError/i.test(token)
           ? "rear_unavailable"
-          : /OverconstrainedError/.test(message)
+          : /OverconstrainedError|NotReadableError/i.test(token)
             ? "concurrency_blocked"
             : "unknown";
 

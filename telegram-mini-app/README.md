@@ -125,3 +125,10 @@ Added inside `telegram-mini-app` as a wellness-only feature (no medical claims):
 - Concurrent front+rear capture depends on device + Telegram WebView policy.
 - Torch availability for rear camera is device/browser dependent.
 - Breath estimation quality depends on lighting, motion, and camera stability.
+
+### Camera UX details (new)
+
+- Rear pulse UI includes a tiny lens target marker to show exactly where finger should go.
+- Front camera scan shows a compact picture-in-picture preview with live landmark dots when mesh is available.
+- If mesh runtime is unavailable, scan falls back to optical signal mode with explicit reduced-trust messaging.
+- Dual-camera mode attempts true parallel front+rear streams; when blocked by WebView/device policy, app keeps one-button staged fallback.

@@ -1,4 +1,8 @@
-﻿export type FrontBreathRawStatus = "ok" | "low_signal" | "permission_denied" | "unsupported" | "canceled";
+type LandmarkPoint = { x: number; y: number; z?: number };
+type FaceLandmarkerResult = { faceLandmarks?: LandmarkPoint[][] };
+type FaceLandmarkerLike = { detectForVideo: (video: HTMLVideoElement, timestampMs: number) => FaceLandmarkerResult };
+
+export type FrontBreathRawStatus = "ok" | "low_signal" | "permission_denied" | "unsupported" | "canceled";
 
 export type FrontBreathScanResult = {
   breathingRate: number | null;
@@ -9,8 +13,25 @@ export type FrontBreathScanResult = {
   motionScore: number;
   durationMs: number;
   rawStatus: FrontBreathRawStatus;
-  failureReason?: "face_unstable" | "insufficient_light" | "high_motion" | "no_signal" | "permission_denied" | "camera_unavailable" | "canceled" | "unknown";
+  failureReason?:
+    | "face_unstable"
+    | "insufficient_light"
+    | "high_motion"
+    | "no_signal"
+    | "permission_denied"
+    | "camera_unavailable"
+    | "canceled"
+    | "unknown";
   deviceLabel?: string;
+  trackingMode: "mesh" | "fallback";
+};
+
+export type FrontFrameSignal = {
+  signalQuality: number;
+  confidence: number;
+  motion: number;
+  trackingMode: "mesh" | "fallback";
+  landmarksDetected: boolean;
 };
 
 export type FrontBreathScanOptions = {
@@ -19,27 +40,33 @@ export type FrontBreathScanOptions = {
   onProgress?: (value: number) => void;
   onState?: (state: "initializing" | "tracking" | "analyzing") => void;
   deviceId?: string | null;
+  previewVideo?: HTMLVideoElement | null;
+  previewOverlay?: HTMLCanvasElement | null;
+  onFrame?: (frame: FrontFrameSignal) => void;
 };
 
-type Sample = { t: number; value: number; brightness: number; motion: number };
+type SignalSample = { t: number; value: number };
+
+const DRAW_INDICES = [1, 10, 13, 14, 33, 61, 78, 93, 133, 152, 234, 263, 291, 308, 323, 356];
+const MEDIA_PIPE_WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm";
+const MEDIA_PIPE_MODEL =
+  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task";
+
+let faceLandmarkerPromise: Promise<FaceLandmarkerLike | null> | null = null;
+
+function clamp(value: number, min = 0, max = 1): number {
+  return Math.max(min, Math.min(max, value));
+}
 
 function avg(values: number[]): number {
   if (values.length === 0) return 0;
-  return values.reduce((sum, v) => sum + v, 0) / values.length;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function std(values: number[]): number {
   if (values.length < 2) return 0;
   const m = avg(values);
   return Math.sqrt(avg(values.map((v) => (v - m) ** 2)));
-}
-
-function clamp(value: number, min = 0, max = 1): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function smooth(values: number[], window = 6): number[] {
@@ -50,15 +77,25 @@ function smooth(values: number[], window = 6): number[] {
 }
 
 function detrend(values: number[]): number[] {
-  const long = smooth(values, 20);
-  return values.map((v, i) => v - long[i]);
+  const long = smooth(values, 22);
+  return values.map((value, index) => value - long[index]);
 }
 
-function estimateBreaths(samples: Sample[]): { breathingRate: number | null; regularity: number | null } {
-  if (samples.length < 40) return { breathingRate: null, regularity: null };
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  const signal = detrend(smooth(samples.map((s) => s.value), 4));
-  const threshold = avg(signal) + std(signal) * 0.25;
+function computeBrightnessScore(brightness: number): number {
+  if (brightness < 25) return clamp(brightness / 25);
+  if (brightness > 235) return clamp((255 - brightness) / 20);
+  return 1;
+}
+
+export function estimateBreathingFromSignal(samples: SignalSample[]): { breathingRate: number | null; regularity: number | null } {
+  if (samples.length < 34) return { breathingRate: null, regularity: null };
+
+  const signal = detrend(smooth(samples.map((item) => item.value), 4));
+  const threshold = avg(signal) + std(signal) * 0.22;
   const peaks: number[] = [];
 
   for (let i = 2; i < signal.length - 2; i += 1) {
@@ -72,21 +109,22 @@ function estimateBreaths(samples: Sample[]): { breathingRate: number | null; reg
     ) {
       const t = samples[i].t;
       const last = peaks[peaks.length - 1];
-      if (!last || t - last >= 1200) {
-        peaks.push(t);
-      }
+      if (!last || t - last >= 1300) peaks.push(t);
     }
   }
 
   if (peaks.length < 3) return { breathingRate: null, regularity: null };
 
-  const intervals = peaks.slice(1).map((t, i) => t - peaks[i]).filter((d) => d >= 1200 && d <= 8000);
+  const intervals = peaks
+    .slice(1)
+    .map((t, i) => t - peaks[i])
+    .filter((value) => value >= 1200 && value <= 8500);
   if (intervals.length < 2) return { breathingRate: null, regularity: null };
 
   const mean = avg(intervals);
-  const rate = Math.round(60000 / mean);
+  const rate = Math.round(60000 / Math.max(1, mean));
   const variation = std(intervals) / Math.max(1, mean);
-  const regularity = Number(clamp(1 - variation * 2.2).toFixed(2));
+  const regularity = Number(clamp(1 - variation * 2.3).toFixed(2));
 
   if (rate < 5 || rate > 34) return { breathingRate: null, regularity };
 
@@ -97,11 +135,107 @@ function estimateBreaths(samples: Sample[]): { breathingRate: number | null; reg
 }
 
 function classifyState(rate: number | null, regularity: number | null, motionScore: number): FrontBreathScanResult["stateLabel"] {
-  if (rate == null) return motionScore > 0.65 ? "activated" : "neutral";
-  if (rate <= 10 && (regularity ?? 0.4) > 0.55) return "calm";
-  if (rate >= 20 || motionScore > 0.72) return "activated";
-  if ((regularity ?? 0.5) < 0.35) return "tense";
+  if (rate == null) return motionScore > 0.63 ? "activated" : "neutral";
+  if (rate <= 10 && (regularity ?? 0.45) >= 0.58) return "calm";
+  if (rate >= 20 || motionScore > 0.7) return "activated";
+  if ((regularity ?? 0.5) < 0.36) return "tense";
   return "neutral";
+}
+
+function drawLandmarks(
+  overlay: HTMLCanvasElement | null,
+  landmarks: LandmarkPoint[] | null,
+  size: { width: number; height: number }
+): void {
+  if (!overlay) return;
+  if (overlay.width !== size.width || overlay.height !== size.height) {
+    overlay.width = size.width;
+    overlay.height = size.height;
+  }
+
+  const ctx = overlay.getContext("2d");
+  if (!ctx) return;
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+  if (!landmarks) return;
+  ctx.fillStyle = "rgba(212, 178, 123, 0.88)";
+  ctx.strokeStyle = "rgba(212, 178, 123, 0.35)";
+  ctx.lineWidth = 1;
+
+  for (const idx of DRAW_INDICES) {
+    const point = landmarks[idx];
+    if (!point) continue;
+    const x = point.x * overlay.width;
+    const y = point.y * overlay.height;
+    ctx.beginPath();
+    ctx.arc(x, y, 1.9, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const leftEye = landmarks[33];
+  const rightEye = landmarks[263];
+  const nose = landmarks[1];
+  if (leftEye && rightEye && nose) {
+    ctx.beginPath();
+    ctx.moveTo(leftEye.x * overlay.width, leftEye.y * overlay.height);
+    ctx.lineTo(nose.x * overlay.width, nose.y * overlay.height);
+    ctx.lineTo(rightEye.x * overlay.width, rightEye.y * overlay.height);
+    ctx.stroke();
+  }
+}
+
+async function loadFaceLandmarker(): Promise<FaceLandmarkerLike | null> {
+  if (faceLandmarkerPromise) return faceLandmarkerPromise;
+
+  faceLandmarkerPromise = (async () => {
+    try {
+      const visionPromise = import("@mediapipe/tasks-vision");
+      const timeoutPromise = new Promise<null>((resolve) => {
+        window.setTimeout(() => resolve(null), 3800);
+      });
+      const maybeVision = await Promise.race([visionPromise as Promise<unknown>, timeoutPromise]);
+      if (!maybeVision || typeof maybeVision !== "object") return null;
+      const vision = maybeVision as typeof import("@mediapipe/tasks-vision");
+      const fileset = await vision.FilesetResolver.forVisionTasks(MEDIA_PIPE_WASM_BASE);
+      const landmarker = await vision.FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: {
+          modelAssetPath: MEDIA_PIPE_MODEL,
+        },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: false,
+        outputFacialTransformationMatrixes: false,
+      });
+      return landmarker as unknown as FaceLandmarkerLike;
+    } catch {
+      return null;
+    }
+  })();
+
+  return faceLandmarkerPromise;
+}
+
+function frameAverageLuma(data: Uint8ClampedArray): number {
+  let luma = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    luma += data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722;
+  }
+  return luma / (data.length / 4);
+}
+
+function mapErrorToStatus(error: unknown): { status: FrontBreathRawStatus; reason: FrontBreathScanResult["failureReason"] } {
+  const name = typeof error === "object" && error && "name" in error ? String((error as { name?: unknown }).name ?? "") : "";
+  const message =
+    typeof error === "object" && error && "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+  const token = `${name} ${message}`;
+
+  if (/NotAllowedError|PermissionDeniedError/i.test(token)) {
+    return { status: "permission_denied", reason: "permission_denied" };
+  }
+  if (/NotFoundError|OverconstrainedError|NotReadableError/i.test(token)) {
+    return { status: "unsupported", reason: "camera_unavailable" };
+  }
+  return { status: "low_signal", reason: "unknown" };
 }
 
 export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): Promise<FrontBreathScanResult> {
@@ -118,6 +252,7 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
       durationMs: 0,
       rawStatus: "unsupported",
       failureReason: "camera_unavailable",
+      trackingMode: "fallback",
     };
   }
 
@@ -132,10 +267,11 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
       durationMs: 0,
       rawStatus: "canceled",
       failureReason: "canceled",
+      trackingMode: "fallback",
     };
   }
 
-  const started = Date.now();
+  const startedAt = Date.now();
   let stream: MediaStream | null = null;
   let video: HTMLVideoElement | null = null;
 
@@ -146,14 +282,14 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
       video: options.deviceId
         ? {
             deviceId: { exact: options.deviceId },
-            width: { ideal: 360 },
-            height: { ideal: 360 },
+            width: { ideal: 420 },
+            height: { ideal: 420 },
             frameRate: { ideal: 24, max: 30 },
           }
         : {
             facingMode: { ideal: "user" },
-            width: { ideal: 360 },
-            height: { ideal: 360 },
+            width: { ideal: 420 },
+            height: { ideal: 420 },
             frameRate: { ideal: 24, max: 30 },
           },
       audio: false,
@@ -161,11 +297,12 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
 
     const deviceLabel = stream.getVideoTracks()[0]?.label || undefined;
 
-    const view = document.createElement("video");
+    const view = options.previewVideo ?? document.createElement("video");
     video = view;
     view.srcObject = stream;
     view.muted = true;
     view.playsInline = true;
+    view.autoplay = true;
 
     await new Promise<void>((resolve, reject) => {
       const onLoaded = () => {
@@ -186,19 +323,32 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
 
     await view.play();
 
-    const canvas = document.createElement("canvas");
-    canvas.width = 72;
-    canvas.height = 72;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) throw new Error("canvas_unavailable");
+    const landmarker = await loadFaceLandmarker();
+    const trackingMode: FrontBreathScanResult["trackingMode"] = landmarker ? "mesh" : "fallback";
+
+    const processCanvas = document.createElement("canvas");
+    processCanvas.width = 96;
+    processCanvas.height = 96;
+    const processCtx = processCanvas.getContext("2d", { willReadFrequently: true });
+    if (!processCtx) throw new Error("canvas_unavailable");
 
     options.onState?.("tracking");
-    const samples: Sample[] = [];
 
-    let prevLuma: number | null = null;
+    const signalSamples: SignalSample[] = [];
+    const brightnessSamples: number[] = [];
+    const motionSamples: number[] = [];
+    let landmarksSeen = 0;
+    let iterations = 0;
+    let fallbackPrevLuma: number | null = null;
+    let previousCenter: { x: number; y: number; scale: number } | null = null;
 
-    while (Date.now() - started < durationMs) {
+    while (Date.now() - startedAt < durationMs) {
       if (options.signal?.aborted) {
+        drawLandmarks(options.previewOverlay ?? null, null, {
+          width: view.videoWidth || 180,
+          height: view.videoHeight || 180,
+        });
+
         return {
           breathingRate: null,
           regularity: null,
@@ -206,70 +356,130 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
           confidence: 0,
           stateLabel: "neutral",
           motionScore: 0,
-          durationMs: Date.now() - started,
+          durationMs: Date.now() - startedAt,
           rawStatus: "canceled",
           failureReason: "canceled",
+          trackingMode,
         };
       }
 
-      ctx.drawImage(view, 0, 0, canvas.width, canvas.height);
-      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      iterations += 1;
+      processCtx.drawImage(view, 0, 0, processCanvas.width, processCanvas.height);
+      const image = processCtx.getImageData(0, 0, processCanvas.width, processCanvas.height);
+      const luma = frameAverageLuma(image.data);
+      brightnessSamples.push(luma);
 
-      let luma = 0;
-      for (let i = 0; i < image.data.length; i += 4) {
-        luma += image.data[i] * 0.2126 + image.data[i + 1] * 0.7152 + image.data[i + 2] * 0.0722;
+      let motion = 0;
+      let landmarksDetected = false;
+
+      if (landmarker) {
+        const result = landmarker.detectForVideo(view, performance.now());
+        const landmarks = result.faceLandmarks?.[0] ?? null;
+
+        drawLandmarks(options.previewOverlay ?? null, landmarks, {
+          width: view.videoWidth || 180,
+          height: view.videoHeight || 180,
+        });
+
+        if (landmarks) {
+          landmarksSeen += 1;
+          landmarksDetected = true;
+
+          const leftEye = landmarks[33];
+          const rightEye = landmarks[263];
+          const nose = landmarks[1];
+          const chin = landmarks[152];
+
+          if (leftEye && rightEye && nose && chin) {
+            const eyeDist = Math.max(0.01, Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y));
+            const centerX = (leftEye.x + rightEye.x + nose.x) / 3;
+            const centerY = (leftEye.y + rightEye.y + chin.y) / 3;
+            const breathSignal = (chin.y - nose.y) / eyeDist;
+
+            if (previousCenter) {
+              motion = Math.hypot(centerX - previousCenter.x, centerY - previousCenter.y) / Math.max(0.01, previousCenter.scale);
+            }
+            previousCenter = { x: centerX, y: centerY, scale: eyeDist };
+
+            signalSamples.push({ t: Date.now() - startedAt, value: breathSignal });
+            motionSamples.push(motion);
+          }
+        }
+      } else {
+        if (fallbackPrevLuma != null) {
+          motion = Math.abs(luma - fallbackPrevLuma) / 10;
+          signalSamples.push({ t: Date.now() - startedAt, value: luma });
+          motionSamples.push(motion);
+        }
+        fallbackPrevLuma = luma;
       }
-      luma /= image.data.length / 4;
 
-      const motion = prevLuma == null ? 0 : Math.abs(luma - prevLuma);
-      prevLuma = luma;
+      const progress = clamp((Date.now() - startedAt) / durationMs);
+      options.onProgress?.(progress);
 
-      samples.push({
-        t: Date.now() - started,
-        value: luma,
-        brightness: luma,
-        motion,
+      const avgMotion = clamp(avg(motionSamples) * 5);
+      const brightnessScore = computeBrightnessScore(avg(brightnessSamples));
+      const landmarkPresence = trackingMode === "mesh" ? clamp(landmarksSeen / Math.max(1, iterations)) : 0.35;
+      const quality = Number(
+        clamp(
+          trackingMode === "mesh" ? brightnessScore * 0.2 + (1 - avgMotion) * 0.35 + landmarkPresence * 0.45 : brightnessScore * 0.45 + (1 - avgMotion) * 0.55
+        ).toFixed(2)
+      );
+      const confidence = Number(clamp(quality * 0.92, 0.15, 0.95).toFixed(2));
+
+      options.onFrame?.({
+        signalQuality: quality,
+        confidence,
+        motion: Number(avgMotion.toFixed(2)),
+        trackingMode,
+        landmarksDetected,
       });
 
-      options.onProgress?.(clamp((Date.now() - started) / durationMs));
-      await sleep(120);
+      await sleep(110);
     }
 
     options.onState?.("analyzing");
 
-    const breathing = estimateBreaths(samples);
-    const brightnessValues = samples.map((s) => s.brightness);
-    const motionValues = samples.map((s) => s.motion);
-
-    const brightness = avg(brightnessValues);
-    const brightnessScore = brightness < 28 ? clamp(brightness / 28) : brightness > 230 ? clamp((255 - brightness) / 25) : 1;
-    const motionStd = std(motionValues);
-    const motionScore = clamp(motionStd / 3.5);
-    const stabilityScore = clamp(1 - motionScore * 0.9);
-
-    const signalQuality = Number(clamp(brightnessScore * 0.45 + stabilityScore * 0.55).toFixed(2));
+    const breathing = estimateBreathingFromSignal(signalSamples);
+    const brightnessScore = computeBrightnessScore(avg(brightnessSamples));
+    const avgMotion = clamp(avg(motionSamples) * 5);
+    const landmarkPresence = trackingMode === "mesh" ? clamp(landmarksSeen / Math.max(1, iterations)) : 0.35;
+    const signalQuality = Number(
+      clamp(
+        trackingMode === "mesh" ? brightnessScore * 0.2 + (1 - avgMotion) * 0.35 + landmarkPresence * 0.45 : brightnessScore * 0.45 + (1 - avgMotion) * 0.55
+      ).toFixed(2)
+    );
     const confidence = Number(
       clamp(
+        signalQuality * (breathing.regularity != null ? 0.7 + breathing.regularity * 0.3 : 0.52),
         0.15,
-        signalQuality * (breathing.regularity != null ? 0.7 + breathing.regularity * 0.3 : 0.55),
         0.95
       ).toFixed(2)
     );
+    const stateLabel = classifyState(breathing.breathingRate, breathing.regularity, avgMotion);
 
-    const stateLabel = classifyState(breathing.breathingRate, breathing.regularity, motionScore);
+    if (signalQuality < 0.4 || breathing.breathingRate == null) {
+      const failureReason: FrontBreathScanResult["failureReason"] =
+        trackingMode === "mesh" && landmarkPresence < 0.22
+          ? "face_unstable"
+          : brightnessScore < 0.45
+            ? "insufficient_light"
+            : avgMotion > 0.68
+              ? "high_motion"
+              : "no_signal";
 
-    if (signalQuality < 0.38 || breathing.breathingRate == null) {
       return {
         breathingRate: breathing.breathingRate,
         regularity: breathing.regularity,
         signalQuality,
         confidence,
         stateLabel,
-        motionScore: Number(motionScore.toFixed(2)),
-        durationMs: Date.now() - started,
+        motionScore: Number(avgMotion.toFixed(2)),
+        durationMs: Date.now() - startedAt,
         rawStatus: "low_signal",
-        failureReason: brightnessScore < 0.4 ? "insufficient_light" : motionScore > 0.7 ? "high_motion" : "no_signal",
+        failureReason,
         deviceLabel,
+        trackingMode,
       };
     }
 
@@ -279,19 +489,14 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
       signalQuality,
       confidence,
       stateLabel,
-      motionScore: Number(motionScore.toFixed(2)),
-      durationMs: Date.now() - started,
+      motionScore: Number(avgMotion.toFixed(2)),
+      durationMs: Date.now() - startedAt,
       rawStatus: "ok",
       deviceLabel,
+      trackingMode,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    const rawStatus: FrontBreathRawStatus =
-      /NotAllowedError|PermissionDeniedError/.test(message)
-        ? "permission_denied"
-        : /NotFoundError|OverconstrainedError/.test(message)
-          ? "unsupported"
-          : "low_signal";
+    const mapped = mapErrorToStatus(error);
 
     return {
       breathingRate: null,
@@ -300,14 +505,10 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
       confidence: 0,
       stateLabel: "neutral",
       motionScore: 0,
-      durationMs: Date.now() - started,
-      rawStatus,
-      failureReason:
-        rawStatus === "permission_denied"
-          ? "permission_denied"
-          : rawStatus === "unsupported"
-            ? "camera_unavailable"
-            : "unknown",
+      durationMs: Date.now() - startedAt,
+      rawStatus: mapped.status,
+      failureReason: mapped.reason,
+      trackingMode: "fallback",
     };
   } finally {
     stream?.getTracks().forEach((track) => track.stop());
@@ -315,5 +516,9 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
       video.pause();
       video.srcObject = null;
     }
+    drawLandmarks(options.previewOverlay ?? null, null, {
+      width: options.previewVideo?.videoWidth || 180,
+      height: options.previewVideo?.videoHeight || 180,
+    });
   }
 }
