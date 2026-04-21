@@ -79,10 +79,19 @@ export function resolvePreferredCameras(devices: MediaDeviceInfo[]): {
   front: CameraSelection;
   rear: CameraSelection;
 } {
-  return {
-    front: pickDevice(devices, "front"),
-    rear: pickDevice(devices, "rear"),
-  };
+  const front = pickDevice(devices, "front");
+  const rear = pickDevice(devices, "rear");
+
+  // In low-permission/device-anonymous mode both selectors can resolve to the same id.
+  // Keep them distinct for dual-camera orchestration by dropping exact id in this case.
+  if (front.id && rear.id && front.id === rear.id) {
+    return {
+      front: { ...front, id: null },
+      rear: { ...rear, id: null },
+    };
+  }
+
+  return { front, rear };
 }
 
 export async function getPreferredCameras(): Promise<{

@@ -293,6 +293,14 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
     view.playsInline = true;
 
     await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("video_timeout"));
+      }, 4500);
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException("Aborted", "AbortError"));
+      };
       const onLoaded = () => {
         cleanup();
         resolve();
@@ -302,12 +310,15 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
         reject(new Error("video_error"));
       };
       const cleanup = () => {
+        window.clearTimeout(timeout);
         view.removeEventListener("loadedmetadata", onLoaded);
         view.removeEventListener("error", onError);
+        options.signal?.removeEventListener("abort", onAbort);
       };
 
       view.addEventListener("loadedmetadata", onLoaded);
       view.addEventListener("error", onError);
+      options.signal?.addEventListener("abort", onAbort, { once: true });
     });
 
     await view.play();
@@ -431,6 +442,12 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown";
+    const name = typeof error === "object" && error && "name" in error ? String((error as { name?: unknown }).name ?? "") : "";
+    const token = `${name} ${message}`;
+
+    if (/AbortError/i.test(token)) {
+      return buildFailure("canceled", "canceled", Date.now() - startedAt, device);
+    }
 
     if (message.includes("NotAllowedError") || message.includes("PermissionDeniedError")) {
       return buildFailure("permission_denied", "permission_denied", Date.now() - startedAt, device);

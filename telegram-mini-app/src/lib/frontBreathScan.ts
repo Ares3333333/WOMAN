@@ -230,6 +230,9 @@ function mapErrorToStatus(error: unknown): { status: FrontBreathRawStatus; reaso
     typeof error === "object" && error && "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
   const token = `${name} ${message}`;
 
+  if (/AbortError/i.test(token)) {
+    return { status: "canceled", reason: "canceled" };
+  }
   if (/NotAllowedError|PermissionDeniedError/i.test(token)) {
     return { status: "permission_denied", reason: "permission_denied" };
   }
@@ -308,6 +311,16 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
     view.autoplay = true;
 
     await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("video_timeout"));
+      }, 4500);
+
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException("Aborted", "AbortError"));
+      };
+
       const onLoaded = () => {
         cleanup();
         resolve();
@@ -317,11 +330,14 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
         reject(new Error("video_error"));
       };
       const cleanup = () => {
+        window.clearTimeout(timeout);
         view.removeEventListener("loadedmetadata", onLoaded);
         view.removeEventListener("error", onError);
+        options.signal?.removeEventListener("abort", onAbort);
       };
       view.addEventListener("loadedmetadata", onLoaded);
       view.addEventListener("error", onError);
+      options.signal?.addEventListener("abort", onAbort, { once: true });
     });
 
     await view.play();

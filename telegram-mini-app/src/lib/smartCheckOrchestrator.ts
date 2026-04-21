@@ -82,12 +82,7 @@ function baseRearConstraints(rear: CameraSelection, lowPower = false): MediaTrac
 }
 
 function buildDualStrategies(front: CameraSelection, rear: CameraSelection): DualStrategy[] {
-  return [
-    {
-      id: "dual_exact_ids",
-      frontConstraints: baseFrontConstraints(front, false),
-      rearConstraints: baseRearConstraints(rear, false),
-    },
+  const strategies: DualStrategy[] = [
     {
       id: "dual_facing_mode",
       frontConstraints: {
@@ -109,6 +104,16 @@ function buildDualStrategies(front: CameraSelection, rear: CameraSelection): Dua
       rearConstraints: baseRearConstraints(rear, true),
     },
   ];
+
+  if (front.id && rear.id && front.id !== rear.id) {
+    strategies.splice(1, 0, {
+      id: "dual_exact_ids",
+      frontConstraints: baseFrontConstraints(front, false),
+      rearConstraints: baseRearConstraints(rear, false),
+    });
+  }
+
+  return strategies;
 }
 
 function isConcurrencyIssue(front: FrontBreathScanResult, pulse: PulseScanResult): boolean {
@@ -141,15 +146,19 @@ async function runDualAttempt(
   strategy: DualStrategy,
   durations: SmartCheckDurations
 ): Promise<{ front: FrontBreathScanResult; pulse: PulseScanResult }> {
+  const attemptAbort = new AbortController();
+  const abortFromOuter = () => attemptAbort.abort();
+  options.signal.addEventListener("abort", abortFromOuter, { once: true });
+
   options.onMode?.("dual");
   options.onStage?.("dual");
   options.onStrategy?.(strategy.id);
   options.onFrontState?.("initializing");
   options.onPulseState?.("searching");
 
-  const [front, pulse] = await Promise.all([
-    runFrontBreathScan({
-      signal: options.signal,
+  try {
+    const frontPromise = runFrontBreathScan({
+      signal: attemptAbort.signal,
       durationMs: durations.frontDualMs,
       videoConstraints: strategy.frontConstraints,
       previewVideo: options.previewVideo,
@@ -157,20 +166,48 @@ async function runDualAttempt(
       onProgress: options.onFrontProgress,
       onState: (state) => options.onFrontState?.(state),
       onFrame: options.onFrontFrame,
-    }),
-    runPulseScan({
-      signal: options.signal,
+    });
+
+    const pulsePromise = runPulseScan({
+      signal: attemptAbort.signal,
       durationMs: durations.rearMs,
       videoConstraints: strategy.rearConstraints,
       onProgress: options.onPulseProgress,
       onStateChange: options.onPulseState,
       onSignal: options.onPulseSignal,
-    }),
-  ]);
+    });
 
-  options.onFrontState?.("done");
-  options.onPulseState?.(pulse.rawStatus === "ok" ? "success" : "idle");
-  return { front, pulse };
+    frontPromise
+      .then((front) => {
+        if (front.rawStatus === "unsupported" && front.failureReason === "camera_unavailable") {
+          attemptAbort.abort();
+        }
+      })
+      .catch(() => {
+        attemptAbort.abort();
+      });
+
+    pulsePromise
+      .then((pulse) => {
+        if (pulse.rawStatus === "unsupported" && pulse.failureReason === "camera_unavailable") {
+          attemptAbort.abort();
+        }
+      })
+      .catch(() => {
+        attemptAbort.abort();
+      });
+
+    const [front, pulse] = await Promise.all([frontPromise, pulsePromise]);
+
+    options.onFrontState?.("done");
+    options.onPulseState?.(pulse.rawStatus === "ok" ? "success" : "idle");
+    return { front, pulse };
+  } finally {
+    options.signal.removeEventListener("abort", abortFromOuter);
+    if (options.signal.aborted) {
+      attemptAbort.abort();
+    }
+  }
 }
 
 async function runStagedFallback(
@@ -289,4 +326,3 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
     strategyId: lastDual?.strategyId,
   };
 }
-
