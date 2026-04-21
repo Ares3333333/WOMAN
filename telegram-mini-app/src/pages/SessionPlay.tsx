@@ -1,17 +1,17 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { CameraPresenceOverlay } from "../components/biofeedback/CameraPresenceOverlay";
 import { SESSION_BY_SLUG, scriptToText } from "../data/sessions";
 import {
   savePostSessionCheckIn,
   savePreSessionCheckIn,
   saveStandaloneScan,
   type BreathCoachMetrics,
-  type PulseScanResult,
   type BiometricScanRecord,
   type MeditationBiofeedbackSessionRecord,
+  type PulseScanResult,
 } from "../lib/biofeedback";
-import { runPulseScan } from "../lib/cameraPulseScan";
-import { createStillnessMonitor } from "../lib/breathStillness";
+import { runPulseScan, type PulseScanState } from "../lib/cameraPulseScan";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
 import { canUserAccessSession } from "../lib/sessionAccess";
@@ -19,8 +19,11 @@ import { hapticLight, useTelegram } from "../telegram/useTelegram";
 
 type PlayerState = "idle" | "playing" | "paused" | "ended";
 type ScanPhase = "idle" | "pre" | "post";
+type PreMode = "pulse" | "breath";
+type SourceMode = "audio" | "voice" | "visual";
 
 const SPEED_OPTIONS = [0.9, 1, 1.15] as const;
+const BREATH_WARMUP_SECONDS = 60;
 
 function formatClock(totalSec: number): string {
   const safe = Math.max(0, Math.floor(totalSec));
@@ -40,12 +43,27 @@ function mapScanFailureKey(result: PulseScanResult): string {
   return "bioScanQualityLow";
 }
 
+function mapScanStateKey(state: PulseScanState | "idle" | "success"): string {
+  if (state === "searching") return "bioScanStatusSearching";
+  if (state === "signal_found") return "bioScanStatusFound";
+  if (state === "measuring") return "bioScanStatusMeasuring";
+  if (state === "success") return "bioScanStatusSuccess";
+  return "bioScanInstruction";
+}
+
 function breathPhaseAt(second: number): { id: "inhale" | "pause" | "exhale"; progress: number } {
   const cycle = 11;
   const tick = second % cycle;
   if (tick < 4) return { id: "inhale", progress: (tick + 1) / 4 };
   if (tick < 5) return { id: "pause", progress: 1 };
   return { id: "exhale", progress: (tick - 5 + 1) / 6 };
+}
+
+function summaryKey(summaryCode: MeditationBiofeedbackSessionRecord["summaryCode"] | undefined): string {
+  if (summaryCode === "strong") return "bioEffectSummaryStrong";
+  if (summaryCode === "moderate") return "bioEffectSummaryModerate";
+  if (summaryCode === "mixed") return "bioEffectSummaryMixed";
+  return "bioEffectIncomplete";
 }
 
 export function SessionPlayPage() {
@@ -65,22 +83,29 @@ export function SessionPlayPage() {
   const [playerState, setPlayerState] = useState<PlayerState>("idle");
   const [done, setDone] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
-  const [durationSec, setDurationSec] = useState(session?.audio.durationSec ?? 0);
-  const [sourceMode, setSourceMode] = useState<"audio" | "voice">(session?.audio.src ? "audio" : "voice");
+  const [durationSec, setDurationSec] = useState(session ? Math.max(session.audio.durationSec, session.durationMin * 60) : 0);
+  const [sourceMode, setSourceMode] = useState<SourceMode>(session?.audio.src ? "audio" : "visual");
 
+  const [preMode, setPreMode] = useState<PreMode>("pulse");
   const [scanPhase, setScanPhase] = useState<ScanPhase>("idle");
   const [scanProgress, setScanProgress] = useState(0);
+  const [scanVisualState, setScanVisualState] = useState<PulseScanState | "idle" | "success">("idle");
   const [scanErrorKey, setScanErrorKey] = useState<string | null>(null);
+  const [lastScanDevice, setLastScanDevice] = useState<PulseScanResult["device"] | null>(null);
   const [preScanRecord, setPreScanRecord] = useState<BiometricScanRecord | null>(null);
   const [postScanRecord, setPostScanRecord] = useState<BiometricScanRecord | null>(null);
   const [bioSessionRecord, setBioSessionRecord] = useState<MeditationBiofeedbackSessionRecord | null>(null);
+
+  const [warmupActive, setWarmupActive] = useState(false);
+  const [warmupSeconds, setWarmupSeconds] = useState(0);
+  const [warmupDone, setWarmupDone] = useState(false);
 
   const [breathCoachOn, setBreathCoachOn] = useState(false);
   const [breathSeconds, setBreathSeconds] = useState(0);
   const [breathActiveSeconds, setBreathActiveSeconds] = useState(0);
   const [breathMetrics, setBreathMetrics] = useState<BreathCoachMetrics | null>(null);
   const [cameraAssistOn, setCameraAssistOn] = useState(false);
-  const [cameraAssistError, setCameraAssistError] = useState<string | null>(null);
+  const [cameraAssistStillness, setCameraAssistStillness] = useState<number | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -90,7 +115,10 @@ export function SessionPlayPage() {
 
   const scanAbortRef = useRef<AbortController | null>(null);
   const breathTickRef = useRef<number | null>(null);
-  const stillnessRef = useRef(createStillnessMonitor());
+  const visualTickRef = useRef<number | null>(null);
+  const warmupTickRef = useRef<number | null>(null);
+  const stillnessAggregateRef = useRef<{ sum: number; count: number }>({ sum: 0, count: 0 });
+  const phaseHapticRef = useRef<"inhale" | "pause" | "exhale" | null>(null);
 
   const fullText = session ? scriptToText(session.script, L) : "";
   const textWords = useMemo(() => fullText.split(/\s+/).filter(Boolean).length, [fullText]);
@@ -101,7 +129,13 @@ export function SessionPlayPage() {
     return Math.max(180, Math.round(textWords / 2.2));
   }, [session, textWords]);
 
-  const resolvedDuration = durationSec > 0 ? durationSec : estimatedVoiceDuration;
+  const baseDuration = useMemo(() => {
+    if (!session) return 0;
+    if (durationSec > 0) return durationSec;
+    return Math.max(session.durationMin * 60, 180);
+  }, [session, durationSec]);
+
+  const resolvedDuration = sourceMode === "voice" ? estimatedVoiceDuration : baseDuration;
   const progressPct = resolvedDuration > 0 ? Math.min(100, (elapsedSec / resolvedDuration) * 100) : 0;
 
   const clearTtsTick = useCallback(() => {
@@ -110,8 +144,15 @@ export function SessionPlayPage() {
     ttsTickRef.current = null;
   }, []);
 
+  const clearVisualTick = useCallback(() => {
+    if (!visualTickRef.current) return;
+    window.clearInterval(visualTickRef.current);
+    visualTickRef.current = null;
+  }, []);
+
   const stopAllPlayback = useCallback(() => {
     clearTtsTick();
+    clearVisualTick();
     ttsStartedRef.current = null;
 
     const audioEl = audioRef.current;
@@ -122,7 +163,7 @@ export function SessionPlayPage() {
 
     window.speechSynthesis.cancel();
     utterRef.current = null;
-  }, [clearTtsTick]);
+  }, [clearTtsTick, clearVisualTick]);
 
   const stopBreathCoach = useCallback(async () => {
     if (!breathCoachOn) return;
@@ -132,27 +173,21 @@ export function SessionPlayPage() {
       breathTickRef.current = null;
     }
 
-    let stillnessScore: number | null = null;
-
-    if (cameraAssistOn) {
-      try {
-        const stillness = await stillnessRef.current.stop();
-        stillnessScore = stillness.stillnessScore;
-      } catch {
-        stillnessScore = null;
-      }
-    }
-
     const adherenceScore =
       breathSeconds > 5 ? Number(Math.max(0, Math.min(1, breathActiveSeconds / breathSeconds)).toFixed(2)) : null;
 
+    const stillnessScore =
+      stillnessAggregateRef.current.count > 0
+        ? Number((stillnessAggregateRef.current.sum / stillnessAggregateRef.current.count).toFixed(2))
+        : cameraAssistStillness;
+
     setBreathMetrics({
       adherenceScore,
-      stillnessScore,
+      stillnessScore: stillnessScore ?? null,
     });
 
     setBreathCoachOn(false);
-  }, [breathCoachOn, cameraAssistOn, breathSeconds, breathActiveSeconds]);
+  }, [breathCoachOn, breathSeconds, breathActiveSeconds, cameraAssistStillness]);
 
   const markSessionDone = useCallback(async () => {
     if (!session) return;
@@ -185,9 +220,36 @@ export function SessionPlayPage() {
         if (ttsStartedRef.current === null) return;
         const nextElapsed = Math.floor((Date.now() - ttsStartedRef.current) / 1000);
         setElapsedSec(Math.min(nextElapsed, resolvedDuration));
-      }, 400);
+      }, 350);
     },
     [clearTtsTick, resolvedDuration]
+  );
+
+  const startVisualPlayback = useCallback(
+    (fromStart: boolean) => {
+      if (!session) return;
+      doneOnceRef.current = null;
+
+      clearVisualTick();
+      setDone(false);
+      setPlayerState("playing");
+      if (fromStart) setElapsedSec(0);
+
+      visualTickRef.current = window.setInterval(() => {
+        setElapsedSec((prev) => {
+          const next = prev + 1;
+          if (next >= resolvedDuration) {
+            clearVisualTick();
+            void markSessionDone();
+            return resolvedDuration;
+          }
+          return next;
+        });
+      }, 1000);
+
+      hapticLight(app);
+    },
+    [app, clearVisualTick, markSessionDone, resolvedDuration, session]
   );
 
   const startVoiceFromStart = useCallback(() => {
@@ -212,13 +274,12 @@ export function SessionPlayPage() {
     setSourceMode("voice");
     setDone(false);
     setElapsedSec(0);
-    setDurationSec(estimatedVoiceDuration);
     setPlayerState("playing");
     startVoiceTick(0);
 
     window.speechSynthesis.speak(utter);
     hapticLight(app);
-  }, [session, canAccess, clearTtsTick, fullText, locale, speed, estimatedVoiceDuration, startVoiceTick, markSessionDone, app]);
+  }, [session, canAccess, clearTtsTick, fullText, locale, speed, startVoiceTick, markSessionDone, app]);
 
   const playAudio = useCallback(
     async (fromStart: boolean) => {
@@ -244,6 +305,11 @@ export function SessionPlayPage() {
 
   const handlePlay = useCallback(async () => {
     if (!session || !canAccess) return;
+
+    if (sourceMode === "visual") {
+      startVisualPlayback(playerState === "ended");
+      return;
+    }
 
     doneOnceRef.current = null;
 
@@ -271,10 +337,16 @@ export function SessionPlayPage() {
     }
 
     startVoiceFromStart();
-  }, [session, canAccess, playerState, sourceMode, playAudio, startVoiceTick, elapsedSec, startVoiceFromStart]);
+  }, [session, canAccess, sourceMode, playerState, startVisualPlayback, playAudio, startVoiceTick, elapsedSec, startVoiceFromStart]);
 
   const handlePause = useCallback(() => {
     if (playerState !== "playing") return;
+
+    if (sourceMode === "visual") {
+      clearVisualTick();
+      setPlayerState("paused");
+      return;
+    }
 
     if (sourceMode === "audio") {
       audioRef.current?.pause();
@@ -287,7 +359,7 @@ export function SessionPlayPage() {
       clearTtsTick();
       setPlayerState("paused");
     }
-  }, [playerState, sourceMode, clearTtsTick]);
+  }, [playerState, sourceMode, clearVisualTick, clearTtsTick]);
 
   const handleStop = useCallback(() => {
     stopAllPlayback();
@@ -302,6 +374,11 @@ export function SessionPlayPage() {
 
     if (!session || !canAccess) return;
 
+    if (sourceMode === "visual") {
+      startVisualPlayback(true);
+      return;
+    }
+
     if (session.audio.src) {
       const ok = await playAudio(true);
       if (ok) return;
@@ -309,11 +386,7 @@ export function SessionPlayPage() {
     }
 
     startVoiceFromStart();
-  }, [handleStop, session, canAccess, playAudio, startVoiceFromStart]);
-
-  const openPremium = () => {
-    nav("/premium");
-  };
+  }, [handleStop, session, canAccess, sourceMode, startVisualPlayback, playAudio, startVoiceFromStart]);
 
   const startScan = useCallback(
     async (phase: Exclude<ScanPhase, "idle">) => {
@@ -321,6 +394,7 @@ export function SessionPlayPage() {
 
       setScanErrorKey(null);
       setScanProgress(0);
+      setScanVisualState("searching");
       setScanPhase(phase);
 
       const abort = new AbortController();
@@ -331,7 +405,10 @@ export function SessionPlayPage() {
           durationMs: 35_000,
           signal: abort.signal,
           onProgress: setScanProgress,
+          onStateChange: setScanVisualState,
         });
+
+        setLastScanDevice(result.device ?? null);
 
         if (phase === "pre") {
           const saved = savePreSessionCheckIn({ meditationSlug: session.slug, scan: result });
@@ -354,9 +431,13 @@ export function SessionPlayPage() {
         }
 
         if (result.rawStatus !== "ok" || result.pulse == null) {
+          setScanVisualState("idle");
           setScanErrorKey(mapScanFailureKey(result));
+        } else {
+          setScanVisualState("success");
         }
       } catch {
+        setScanVisualState("idle");
         setScanErrorKey("bioScanUnknown");
       } finally {
         setScanPhase("idle");
@@ -369,7 +450,42 @@ export function SessionPlayPage() {
   const cancelScan = useCallback(() => {
     scanAbortRef.current?.abort();
     setScanPhase("idle");
+    setScanVisualState("idle");
   }, []);
+
+  useEffect(() => {
+    if (!warmupActive) {
+      if (warmupTickRef.current) {
+        window.clearInterval(warmupTickRef.current);
+        warmupTickRef.current = null;
+      }
+      return;
+    }
+
+    warmupTickRef.current = window.setInterval(() => {
+      setWarmupSeconds((prev) => {
+        const next = prev + 1;
+        if (next >= BREATH_WARMUP_SECONDS) {
+          if (warmupTickRef.current) {
+            window.clearInterval(warmupTickRef.current);
+            warmupTickRef.current = null;
+          }
+          setWarmupActive(false);
+          setWarmupDone(true);
+          hapticLight(app);
+          return BREATH_WARMUP_SECONDS;
+        }
+        return next;
+      });
+    }, 1000);
+
+    return () => {
+      if (warmupTickRef.current) {
+        window.clearInterval(warmupTickRef.current);
+        warmupTickRef.current = null;
+      }
+    };
+  }, [warmupActive, app]);
 
   useEffect(() => {
     if (!breathCoachOn) {
@@ -395,12 +511,25 @@ export function SessionPlayPage() {
     };
   }, [breathCoachOn, playerState]);
 
+  const breathPhase = breathPhaseAt(breathSeconds);
+  useEffect(() => {
+    if (!breathCoachOn) {
+      phaseHapticRef.current = null;
+      return;
+    }
+
+    if (phaseHapticRef.current !== breathPhase.id && breathPhase.id === "inhale") {
+      hapticLight(app);
+    }
+    phaseHapticRef.current = breathPhase.id;
+  }, [app, breathCoachOn, breathPhase.id]);
+
   useEffect(() => {
     return () => {
       stopAllPlayback();
       scanAbortRef.current?.abort();
       if (breathTickRef.current) window.clearInterval(breathTickRef.current);
-      void stillnessRef.current.stop();
+      if (warmupTickRef.current) window.clearInterval(warmupTickRef.current);
     };
   }, [stopAllPlayback]);
 
@@ -426,22 +555,30 @@ export function SessionPlayPage() {
     setPlayerState("idle");
     setDone(false);
     setElapsedSec(0);
-    setDurationSec(session.audio.durationSec);
-    setSourceMode(session.audio.src ? "audio" : "voice");
+    setDurationSec(Math.max(session.audio.durationSec, session.durationMin * 60));
+    setSourceMode(session.audio.src ? "audio" : "visual");
 
+    setPreMode("pulse");
     setScanPhase("idle");
     setScanProgress(0);
+    setScanVisualState("idle");
     setScanErrorKey(null);
+    setLastScanDevice(null);
     setPreScanRecord(null);
     setPostScanRecord(null);
     setBioSessionRecord(null);
+
+    setWarmupActive(false);
+    setWarmupSeconds(0);
+    setWarmupDone(false);
 
     setBreathCoachOn(false);
     setBreathSeconds(0);
     setBreathActiveSeconds(0);
     setBreathMetrics(null);
     setCameraAssistOn(false);
-    setCameraAssistError(null);
+    setCameraAssistStillness(null);
+    stillnessAggregateRef.current = { sum: 0, count: 0 };
 
     if (canAccess) rememberSession(session.slug);
   }, [session, canAccess, rememberSession, stopAllPlayback]);
@@ -506,7 +643,7 @@ export function SessionPlayPage() {
 
           <p className="tm-subtle">{t("premiumGatePrivacy")}</p>
 
-          <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={openPremium}>
+          <button type="button" className="tm-btn tm-btn-primary tm-btn-block" onClick={() => nav("/premium")}>
             {t("premiumGateCta")}
           </button>
 
@@ -534,15 +671,20 @@ export function SessionPlayPage() {
         : "balanced"
     : null;
 
-  const phase = breathPhaseAt(breathSeconds);
-  const phaseLabel =
-    phase.id === "inhale"
+  const breathPhaseLabel =
+    breathPhase.id === "inhale" ? t("bioBreathInhale") : breathPhase.id === "pause" ? t("bioBreathPause") : t("bioBreathExhale");
+  const breathPhaseScale = breathPhase.id === "inhale" ? 1.15 : breathPhase.id === "pause" ? 1.06 : 0.92;
+
+  const warmupPhase = breathPhaseAt(warmupSeconds);
+  const warmupPhaseLabel =
+    warmupPhase.id === "inhale"
       ? t("bioBreathInhale")
-      : phase.id === "pause"
+      : warmupPhase.id === "pause"
         ? t("bioBreathPause")
         : t("bioBreathExhale");
+  const warmupProgress = Math.min(1, warmupSeconds / BREATH_WARMUP_SECONDS);
 
-  const phaseScale = phase.id === "inhale" ? 1.12 : phase.id === "pause" ? 1.08 : 0.94;
+  const scanStatusKey = mapScanStateKey(scanVisualState);
 
   return (
     <div className="tm-page session-stage">
@@ -554,22 +696,99 @@ export function SessionPlayPage() {
         <div className="bio-head">
           <p className="tm-kicker tm-kicker--muted">{t("bioPreTitle")}</p>
           <h2 className="tm-h2">{t("bioPreLead")}</h2>
-          <p className="tm-subtle">{t("bioScanInstruction")}</p>
           <p className="tm-subtle">{t("bioWellnessDisclaimer")}</p>
         </div>
 
-        <div className="bio-actions">
+        <div className="bio-pre-mode-row">
           <button
             type="button"
-            className="tm-btn tm-btn-primary"
-            disabled={scanPhase !== "idle"}
-            onClick={() => void startScan("pre")}
+            className={`bio-mode-chip ${preMode === "pulse" ? "on" : ""}`}
+            onClick={() => setPreMode("pulse")}
           >
-            {scanPhase === "pre" ? t("bioScanMeasuring") : t("bioScanStart")}
+            <strong>{t("bioPreModePulse")}</strong>
+            <span>{t("bioPreModePulseHint")}</span>
           </button>
+          <button
+            type="button"
+            className={`bio-mode-chip ${preMode === "breath" ? "on" : ""}`}
+            onClick={() => setPreMode("breath")}
+          >
+            <strong>{t("bioPreModeBreath")}</strong>
+            <span>{t("bioPreModeBreathHint")}</span>
+          </button>
+        </div>
+
+        {preMode === "pulse" ? (
+          <div className="bio-pre-grid">
+            <article className="bio-guide-card">
+              <p className="tm-kicker tm-kicker--muted">{t("bioPulseGuideTitle")}</p>
+              <ul className="bio-guide-list">
+                <li>{t("bioPulseGuideRear")}</li>
+                <li>{t("bioPulseGuideCover")}</li>
+                <li>{t("bioPulseGuideStill")}</li>
+              </ul>
+            </article>
+
+            <article className="bio-pulse-visual">
+              <div className="bio-phone-mock" aria-hidden>
+                <span className="bio-phone-lens" />
+                <span className="bio-phone-flash" />
+                <span className={`bio-phone-finger ${scanPhase === "pre" ? "on" : ""}`} />
+              </div>
+
+              <div className="bio-ring-wrap" aria-live="polite">
+                <div className="bio-ring" style={{ ["--ring-progress" as string]: `${Math.round(scanProgress * 100)}%` }}>
+                  <span>{Math.round(scanProgress * 100)}%</span>
+                </div>
+                <p className="tm-subtle">{t(scanStatusKey)}</p>
+              </div>
+            </article>
+          </div>
+        ) : (
+          <div className="bio-warmup-card">
+            <div className="bio-warmup-orb" style={{ transform: `scale(${0.9 + warmupPhase.progress * 0.22})` }}>
+              <span>{warmupPhaseLabel}</span>
+            </div>
+            <p className="tm-subtle">{warmupActive ? t("bioBreathWarmupRunning") : t("bioPreModeBreathHint")}</p>
+            <div className="wave-meter" aria-hidden>
+              <span style={{ width: `${Math.round(warmupProgress * 100)}%` }} />
+            </div>
+            <p className="tm-subtle">{formatClock(BREATH_WARMUP_SECONDS - warmupSeconds)}</p>
+          </div>
+        )}
+
+        <div className="bio-actions">
+          {preMode === "pulse" ? (
+            <button
+              type="button"
+              className="tm-btn tm-btn-primary"
+              disabled={scanPhase !== "idle"}
+              onClick={() => void startScan("pre")}
+            >
+              {scanPhase === "pre" ? t("bioScanMeasuring") : preScanRecord ? t("bioScanRetry") : t("bioScanStart")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="tm-btn tm-btn-primary"
+              onClick={() => {
+                if (warmupActive) {
+                  setWarmupActive(false);
+                  return;
+                }
+                setWarmupSeconds(0);
+                setWarmupDone(false);
+                setWarmupActive(true);
+              }}
+            >
+              {warmupActive ? t("bioScanCancel") : t("bioBreathWarmupStart")}
+            </button>
+          )}
+
           <button type="button" className="tm-btn tm-btn-ghost" onClick={() => nav("/biofeedback")}>
             {t("bioHistoryOpen")}
           </button>
+
           {scanPhase !== "idle" ? (
             <button type="button" className="tm-btn tm-btn-secondary" onClick={cancelScan}>
               {t("bioScanCancel")}
@@ -585,6 +804,12 @@ export function SessionPlayPage() {
             <p className="tm-subtle">{Math.round(scanProgress * 100)}%</p>
           </div>
         ) : null}
+
+        {lastScanDevice && lastScanDevice.torchAvailable && !lastScanDevice.torchEnabled ? (
+          <p className="tm-subtle">{t("bioScanTorchFallback")}</p>
+        ) : null}
+
+        {warmupDone ? <p className="session-done">{t("bioBreathWarmupDone")}</p> : null}
 
         {scanErrorKey ? <p className="bio-error">{t(scanErrorKey)}</p> : null}
 
@@ -657,10 +882,35 @@ export function SessionPlayPage() {
           <span>{session.freeTier ? t("free") : t("sessionPremium")}</span>
         </div>
 
-        <div className="player-source-row">
-          <span className="tm-pill">{sourceMode === "audio" ? t("playerSourceAudio") : t("playerSourceVoice")}</span>
-          <span className="tm-subtle">{session.audio.src ? t("playerAudioReady") : t("playerAudioPending")}</span>
-        </div>
+        {!session.audio.src ? (
+          <div className="bio-test-card">
+            <div className="bio-test-head">
+              <p className="tm-kicker tm-kicker--muted">{t("bioBreathTestTitle")}</p>
+              <p className="tm-subtle">{t("bioBreathTestLead")}</p>
+            </div>
+            <div className="player-speed-group">
+              <button
+                type="button"
+                className={`player-speed-chip ${sourceMode === "visual" ? "on" : ""}`}
+                onClick={() => setSourceMode("visual")}
+              >
+                {t("bioBreathVisualMode")}
+              </button>
+              <button
+                type="button"
+                className={`player-speed-chip ${sourceMode === "voice" ? "on" : ""}`}
+                onClick={() => setSourceMode("voice")}
+              >
+                {t("bioBreathVoiceMode")}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="player-source-row">
+            <span className="tm-pill">{sourceMode === "audio" ? t("playerSourceAudio") : t("playerSourceVoice")}</span>
+            <span className="tm-subtle">{session.audio.src ? t("playerAudioReady") : t("playerAudioPending")}</span>
+          </div>
+        )}
 
         <div className="player-progress-wrap">
           <div className="wave-meter" aria-hidden>
@@ -672,24 +922,26 @@ export function SessionPlayPage() {
           </div>
         </div>
 
-        <div className="player-speed-block">
-          <span className="player-speed-label">{t("playerSpeed")}</span>
-          <div className="player-speed-group">
-            {SPEED_OPTIONS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                className={`player-speed-chip ${speed === option ? "on" : ""}`}
-                onClick={() => {
-                  setSpeed(option);
-                  if (audioRef.current) audioRef.current.playbackRate = option;
-                }}
-              >
-                {option.toFixed(2).replace(".00", ".0")}x
-              </button>
-            ))}
+        {sourceMode !== "visual" ? (
+          <div className="player-speed-block">
+            <span className="player-speed-label">{t("playerSpeed")}</span>
+            <div className="player-speed-group">
+              {SPEED_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={`player-speed-chip ${speed === option ? "on" : ""}`}
+                  onClick={() => {
+                    setSpeed(option);
+                    if (audioRef.current) audioRef.current.playbackRate = option;
+                  }}
+                >
+                  {option.toFixed(2).replace(".00", ".0")}x
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="player-controls-grid">
           <button
@@ -744,50 +996,65 @@ export function SessionPlayPage() {
                 setBreathSeconds(0);
                 setBreathActiveSeconds(0);
                 setBreathMetrics(null);
-                setCameraAssistError(null);
-
-                if (cameraAssistOn) {
-                  try {
-                    await stillnessRef.current.start();
-                  } catch {
-                    setCameraAssistError("bioScanUnsupported");
-                    setCameraAssistOn(false);
-                  }
-                }
+                setCameraAssistStillness(null);
+                stillnessAggregateRef.current = { sum: 0, count: 0 };
               }}
             >
               {breathCoachOn ? t("bioBreathStop") : t("bioBreathStart")}
             </button>
 
-            {stillnessRef.current.supported ? (
-              <button
-                type="button"
-                className="tm-btn tm-btn-ghost"
-                onClick={() => {
-                  setCameraAssistOn((prev) => !prev);
-                  setCameraAssistError(null);
-                }}
-              >
-                {cameraAssistOn ? t("bioBreathCameraOn") : t("bioBreathCameraOff")}
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="tm-btn tm-btn-ghost"
+              onClick={() => {
+                setCameraAssistOn((prev) => !prev);
+              }}
+            >
+              {cameraAssistOn ? t("bioBreathCameraOn") : t("bioBreathCameraOff")}
+            </button>
           </div>
 
           {breathCoachOn ? (
             <div className="bio-breath-live">
-              <div className="bio-orb" style={{ transform: `scale(${phaseScale})` }}>
-                <span>{Math.round(phase.progress * 100)}%</span>
+              <div className="bio-orb" style={{ transform: `scale(${breathPhaseScale})` }}>
+                <span>{breathPhaseLabel}</span>
               </div>
-              <p className="tm-subtle">{phaseLabel}</p>
+              <p className="tm-subtle">{Math.round(breathPhase.progress * 100)}%</p>
             </div>
           ) : null}
 
-          {cameraAssistError ? <p className="bio-error">{t(cameraAssistError)}</p> : null}
+          {cameraAssistOn ? (
+            <CameraPresenceOverlay
+              active={breathCoachOn}
+              title={t("bioBreathCameraTitle")}
+              subtitle={t("bioBreathCameraSub")}
+              cameraOnLabel={t("bioBreathCameraOn")}
+              cameraOffLabel={t("bioBreathCameraOff")}
+              stateLoading={t("bioBreathCameraLoading")}
+              stateBlocked={t("bioBreathCameraBlocked")}
+              stateUnavailable={t("bioBreathCameraUnsupported")}
+              stateOff={t("bioBreathCameraIdle")}
+              stillnessLabel={t("bioBreathStillnessLabel")}
+              onStillnessSample={(value) => {
+                setCameraAssistStillness(value);
+                if (!breathCoachOn) return;
+                stillnessAggregateRef.current.sum += value;
+                stillnessAggregateRef.current.count += 1;
+              }}
+            />
+          ) : null}
 
           {breathMetrics ? (
-            <p className="tm-subtle">
-              {t("bioBreathAdherence")}: {breathMetrics.adherenceScore != null ? `${Math.round(breathMetrics.adherenceScore * 100)}%` : "—"} • {t("bioBreathStillness")}: {breathMetrics.stillnessScore != null ? `${Math.round(breathMetrics.stillnessScore * 100)}%` : "—"}
-            </p>
+            <div className="bio-result-grid">
+              <article className="bio-metric-pill">
+                <span>{t("bioBreathAdherence")}</span>
+                <strong>{breathMetrics.adherenceScore != null ? `${Math.round(breathMetrics.adherenceScore * 100)}%` : "—"}</strong>
+              </article>
+              <article className="bio-metric-pill">
+                <span>{t("bioBreathStillness")}</span>
+                <strong>{breathMetrics.stillnessScore != null ? `${Math.round(breathMetrics.stillnessScore * 100)}%` : "—"}</strong>
+              </article>
+            </div>
           ) : null}
         </div>
 
@@ -820,7 +1087,7 @@ export function SessionPlayPage() {
               <div className="wave-meter" aria-hidden>
                 <span style={{ width: `${Math.round(scanProgress * 100)}%` }} />
               </div>
-              <p className="tm-subtle">{Math.round(scanProgress * 100)}%</p>
+              <p className="tm-subtle">{t(scanStatusKey)}</p>
             </div>
           ) : null}
 
@@ -830,15 +1097,25 @@ export function SessionPlayPage() {
 
               {preReliable && postReliable ? (
                 <>
+                  <div className="bio-result-grid">
+                    <article className="bio-metric-pill">
+                      <span>{t("bioEffectPulse")}</span>
+                      <strong>
+                        {preScanRecord?.pulse ?? "—"} → {postScanRecord.pulse ?? "—"}
+                      </strong>
+                    </article>
+                    <article className="bio-metric-pill">
+                      <span>{t("bioEffectCalm")}</span>
+                      <strong>
+                        {preScanRecord?.calmScore ?? "—"} → {postScanRecord.calmScore ?? "—"}
+                      </strong>
+                    </article>
+                  </div>
+
                   <p className="tm-subtle">
-                    {t("bioEffectPulse")}: {preScanRecord?.pulse ?? "—"} → {postScanRecord.pulse ?? "—"}
+                    {t("bioEffectScore")}: <strong>{bioSessionRecord?.sessionEffect ?? "—"}</strong>
                   </p>
-                  <p className="tm-subtle">
-                    {t("bioEffectCalm")}: {preScanRecord?.calmScore ?? "—"} → {postScanRecord.calmScore ?? "—"}
-                  </p>
-                  <p className="tm-subtle">
-                    {t("bioEffectScore")}: {bioSessionRecord?.sessionEffect ?? "—"}
-                  </p>
+                  <p className="tm-subtle">{t(summaryKey(bioSessionRecord?.summaryCode))}</p>
                 </>
               ) : (
                 <p className="tm-subtle">{t("bioEffectIncomplete")}</p>

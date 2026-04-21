@@ -26,6 +26,11 @@ export type PulseScanResult = {
   rawStatus: BiofeedbackRawStatus;
   failureReason?: BiofeedbackFailureReason;
   confidence: number;
+  device?: {
+    cameraFacing: "environment" | "unknown";
+    torchAvailable: boolean;
+    torchEnabled: boolean;
+  };
 };
 
 export type BaselineReliability = "initial" | "building" | "stable";
@@ -469,10 +474,11 @@ export function summarizeBiofeedbackTrends(store: BiofeedbackStore): {
   completedSessions: number;
   avgPulseDelta: number | null;
   avgEffect: number | null;
+  recentDirection: "up" | "down" | "flat";
 } {
   const completed = store.sessions.filter((s) => s.prePulse != null && s.postPulse != null);
   if (completed.length === 0) {
-    return { completedSessions: 0, avgPulseDelta: null, avgEffect: null };
+    return { completedSessions: 0, avgPulseDelta: null, avgEffect: null, recentDirection: "flat" };
   }
 
   const pulseDelta =
@@ -485,9 +491,23 @@ export function summarizeBiofeedbackTrends(store: BiofeedbackStore): {
   const avgEffect =
     effects.length > 0 ? effects.reduce((sum, value) => sum + value, 0) / effects.length : null;
 
+  const recent = completed
+    .slice(-4)
+    .map((s) => s.sessionEffect)
+    .filter((value): value is number => typeof value === "number");
+  const recentDirection: "up" | "down" | "flat" =
+    recent.length < 2
+      ? "flat"
+      : recent[recent.length - 1] - recent[0] > 4
+        ? "up"
+        : recent[recent.length - 1] - recent[0] < -4
+          ? "down"
+          : "flat";
+
   return {
     completedSessions: completed.length,
     avgPulseDelta: Number(pulseDelta.toFixed(1)),
     avgEffect: avgEffect != null ? Number(avgEffect.toFixed(1)) : null,
+    recentDirection,
   };
 }

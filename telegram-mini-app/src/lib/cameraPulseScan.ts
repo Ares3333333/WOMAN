@@ -1,8 +1,11 @@
 ﻿import type { BiofeedbackFailureReason, PulseScanResult } from "./biofeedback";
 
+export type PulseScanState = "initializing" | "searching" | "signal_found" | "measuring";
+
 type ScanOptions = {
   durationMs?: number;
   onProgress?: (progress: number) => void;
+  onStateChange?: (state: PulseScanState) => void;
   signal?: AbortSignal;
 };
 
@@ -36,7 +39,8 @@ function sleep(ms: number): Promise<void> {
 function buildFailure(
   rawStatus: PulseScanResult["rawStatus"],
   failureReason: BiofeedbackFailureReason,
-  durationMs: number
+  durationMs: number,
+  device?: PulseScanResult["device"]
 ): PulseScanResult {
   return {
     pulse: null,
@@ -45,6 +49,7 @@ function buildFailure(
     rawStatus,
     failureReason,
     confidence: 0,
+    device,
   };
 }
 
@@ -128,8 +133,7 @@ function evaluateQuality(samples: PulseSample[]): {
     return { quality: 0, failureReason: "unstable_signal" };
   }
 
-  const redCoverage =
-    samples.filter((sample) => sample.redDominance > 1.12).length / samples.length;
+  const redCoverage = samples.filter((sample) => sample.redDominance > 1.12).length / samples.length;
 
   const brightness = avg(samples.map((sample) => sample.brightness));
   const brightnessScore =
@@ -153,23 +157,31 @@ function evaluateQuality(samples: PulseSample[]): {
   return { quality };
 }
 
-async function enableTorch(track: MediaStreamTrack): Promise<void> {
+async function enableTorch(track: MediaStreamTrack): Promise<{ available: boolean; enabled: boolean }> {
   try {
     const capabilities = track.getCapabilities?.() as MediaTrackCapabilities & { torch?: boolean };
-    if (!capabilities?.torch) return;
+    if (!capabilities?.torch) return { available: false, enabled: false };
+
     await track.applyConstraints({
       advanced: [{ torch: true } as unknown as MediaTrackConstraintSet],
     });
+
+    return { available: true, enabled: true };
   } catch {
-    /* torch is optional */
+    return { available: true, enabled: false };
   }
 }
 
 export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScanResult> {
   const durationMs = options.durationMs ?? 35000;
+  options.onStateChange?.("initializing");
 
   if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-    return buildFailure("unsupported", "camera_unavailable", 0);
+    return buildFailure("unsupported", "camera_unavailable", 0, {
+      cameraFacing: "unknown",
+      torchAvailable: false,
+      torchEnabled: false,
+    });
   }
 
   if (options.signal?.aborted) {
@@ -179,6 +191,11 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
   const startedAt = Date.now();
   let stream: MediaStream | null = null;
   let video: HTMLVideoElement | null = null;
+  let device: PulseScanResult["device"] = {
+    cameraFacing: "unknown",
+    torchAvailable: false,
+    torchEnabled: false,
+  };
 
   try {
     stream = await navigator.mediaDevices.getUserMedia({
@@ -193,10 +210,18 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
 
     const track = stream.getVideoTracks()[0];
     if (!track) {
-      return buildFailure("unsupported", "camera_unavailable", Date.now() - startedAt);
+      return buildFailure("unsupported", "camera_unavailable", Date.now() - startedAt, device);
     }
 
-    await enableTorch(track);
+    device = {
+      cameraFacing: "environment",
+      torchAvailable: false,
+      torchEnabled: false,
+    };
+
+    const torchStatus = await enableTorch(track);
+    device.torchAvailable = torchStatus.available;
+    device.torchEnabled = torchStatus.enabled;
 
     const view = document.createElement("video");
     video = view;
@@ -229,13 +254,15 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
     canvas.width = 72;
     canvas.height = 72;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return buildFailure("unsupported", "camera_unavailable", Date.now() - startedAt);
+    if (!ctx) return buildFailure("unsupported", "camera_unavailable", Date.now() - startedAt, device);
 
     const samples: PulseSample[] = [];
+    let signalFound = false;
+    options.onStateChange?.("searching");
 
     while (Date.now() - startedAt < durationMs) {
       if (options.signal?.aborted) {
-        return buildFailure("canceled", "canceled", Date.now() - startedAt);
+        return buildFailure("canceled", "canceled", Date.now() - startedAt, device);
       }
 
       ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
@@ -253,7 +280,15 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
         brightness,
       });
 
-      options.onProgress?.(Math.min(1, (Date.now() - startedAt) / durationMs));
+      const elapsed = Date.now() - startedAt;
+      options.onProgress?.(Math.min(1, elapsed / durationMs));
+
+      if (!signalFound && elapsed > 1700 && redDominance > 1.08 && brightness > 18 && brightness < 245) {
+        signalFound = true;
+        options.onStateChange?.("signal_found");
+      }
+      options.onStateChange?.(signalFound ? "measuring" : "searching");
+
       await sleep(85);
     }
 
@@ -268,6 +303,7 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
         rawStatus: "low_signal",
         failureReason: quality.failureReason ?? "unstable_signal",
         confidence: Number(Math.min(quality.quality, pulse.confidence).toFixed(2)),
+        device,
       };
     }
 
@@ -277,19 +313,20 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
       durationMs: Date.now() - startedAt,
       rawStatus: "ok",
       confidence: Number(Math.min(0.98, pulse.confidence).toFixed(2)),
+      device,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown";
 
     if (message.includes("NotAllowedError") || message.includes("PermissionDeniedError")) {
-      return buildFailure("permission_denied", "permission_denied", Date.now() - startedAt);
+      return buildFailure("permission_denied", "permission_denied", Date.now() - startedAt, device);
     }
 
     if (message.includes("NotFoundError") || message.includes("OverconstrainedError")) {
-      return buildFailure("unsupported", "camera_unavailable", Date.now() - startedAt);
+      return buildFailure("unsupported", "camera_unavailable", Date.now() - startedAt, device);
     }
 
-    return buildFailure("low_signal", "unknown", Date.now() - startedAt);
+    return buildFailure("low_signal", "unknown", Date.now() - startedAt, device);
   } finally {
     stream?.getTracks().forEach((track) => track.stop());
     if (video) {
