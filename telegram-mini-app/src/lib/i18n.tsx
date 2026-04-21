@@ -225,6 +225,10 @@ const RU: Dict = {
   profileReminderOff: "Выкл",
   profileReminderEvening: "Вечер",
   profileReminderNight: "Ночь",
+  profilePreferencesTitle: "Preferences",
+  profilePreferencesLead: "Показываем только главное. Остальные настройки - по запросу.",
+  profilePreferencesShow: "Открыть настройки",
+  profilePreferencesHide: "Скрыть настройки",
 
   profileLang: "Язык",
 
@@ -541,6 +545,10 @@ const EN: Dict = {
   profileReminderOff: "Off",
   profileReminderEvening: "Evening",
   profileReminderNight: "Night",
+  profilePreferencesTitle: "Preferences",
+  profilePreferencesLead: "We keep this screen quiet. Open advanced settings only when you need them.",
+  profilePreferencesShow: "Show settings",
+  profilePreferencesHide: "Hide settings",
 
   profileLang: "Language",
 

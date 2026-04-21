@@ -332,12 +332,12 @@ p {
 
 .tm-card {
   display: grid;
-  gap: 18px;
+  gap: 20px;
   border-radius: var(--radius-xl);
   border: 1px solid var(--line-soft);
   background: linear-gradient(170deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015));
   box-shadow: var(--shadow-surface);
-  padding: 28px;
+  padding: 30px;
 }
 
 .tm-card--quiet {
@@ -610,7 +610,7 @@ p {
   gap: 14px;
   text-decoration: none;
   color: inherit;
-  padding: 26px;
+  padding: 28px;
   border-radius: var(--radius-xl);
   border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow: var(--shadow-surface);
@@ -675,7 +675,7 @@ p {
   color: inherit;
   display: grid;
   gap: 6px;
-  padding: 18px 0;
+  padding: 20px 0;
   border-top: 1px solid var(--line-soft);
 }
 
@@ -956,7 +956,7 @@ p {
   color: inherit;
   display: grid;
   gap: 10px;
-  padding: 18px 0;
+  padding: 20px 0;
   border-top: 1px solid var(--line-soft);
 }
 
@@ -1282,9 +1282,9 @@ p {
   border-radius: 18px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.015);
-  padding: 24px;
+  padding: 26px;
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .profile-card--premium {

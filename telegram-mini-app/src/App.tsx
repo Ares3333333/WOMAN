@@ -4,7 +4,6 @@ import { Layout } from "./components/Layout";
 import { TelegramSync } from "./components/TelegramSync";
 import { detectLangFromTelegram, I18nProvider, type Lang } from "./lib/i18n";
 import { ProgressProvider } from "./lib/ProgressContext";
-import { GoalsPage } from "./pages/Goals";
 import { HomePage } from "./pages/Home";
 import { PathDetailPage } from "./pages/PathDetail";
 import { PathListPage } from "./pages/PathList";
@@ -52,7 +51,7 @@ export default function App() {
           <Route path="paths" element={<PathListPage />} />
           <Route path="path/:id" element={<PathDetailPage />} />
           <Route path="session/:slug" element={<SessionPlayPage />} />
-          <Route path="goals" element={<GoalsPage />} />
+          <Route path="goals" element={<Navigate to="/profile" replace />} />
           <Route path="premium" element={<PremiumPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

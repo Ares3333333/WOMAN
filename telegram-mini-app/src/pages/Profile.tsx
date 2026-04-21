@@ -18,6 +18,7 @@ export function ProfilePage() {
   const bot = import.meta.env.VITE_TELEGRAM_BOT as string | undefined;
 
   const [rhythm, setRhythm] = useState(() => loadRhythmProfile());
+  const [showPrefs, setShowPrefs] = useState(false);
   const mood = readOnboarding().mood;
   const rhythmInsight = buildRhythmInsightKeys({ profile: rhythm, state, mood });
   const rhythmSession = pickRhythmSession(rhythm, state);
@@ -97,60 +98,74 @@ export function ProfilePage() {
 
         <div className="tm-divider" />
 
-        <h3 className="tm-h3">{t("profileReminderTitle")}</h3>
-
         <div className="profile-tracker-group">
-          <p className="tm-subtle">{t("profileReminderSub")}</p>
-          <div className="segmented">
-            {(
-              [
-                ["off", "profileReminderOff"],
-                ["evening", "profileReminderEvening"],
-                ["night", "profileReminderNight"],
-              ] as const
-            ).map(([key, labelKey]) => (
-              <button
-                key={key}
-                type="button"
-                className={state.reminderMode === key ? "on" : ""}
-                onClick={() => setReminderMode(key)}
-              >
-                {t(labelKey)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="profile-tracker-group">
-          <p className="tm-subtle">{t("profileSensualSectionTitle")}</p>
-          <div className="segmented">
-            {(
-              [
-                ["welcome", "profileSensualWelcome"],
-                ["optional", "profileSensualOptional"],
-                ["hidden", "profileSensualHidden"],
-              ] as const
-            ).map(([key, labelKey]) => (
-              <button
-                key={key}
-                type="button"
-                className={state.sensualMode === key ? "on" : ""}
-                onClick={() => setSensual(key)}
-              >
-                {t(labelKey)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="segmented segmented-2">
-          <button type="button" className={lang === "ru" ? "on" : ""} onClick={() => setLang("ru")}>
-            Русский
-          </button>
-          <button type="button" className={lang === "en" ? "on" : ""} onClick={() => setLang("en")}>
-            English
+          <h3 className="tm-h3">{t("profilePreferencesTitle")}</h3>
+          <p className="tm-subtle">{t("profilePreferencesLead")}</p>
+          <button
+            type="button"
+            className="tm-btn tm-btn-secondary tm-btn-block"
+            onClick={() => setShowPrefs((v) => !v)}
+          >
+            {showPrefs ? t("profilePreferencesHide") : t("profilePreferencesShow")}
           </button>
         </div>
+
+        {showPrefs ? (
+          <>
+            <div className="profile-tracker-group">
+              <p className="tm-subtle">{t("profileReminderSub")}</p>
+              <div className="segmented">
+                {(
+                  [
+                    ["off", "profileReminderOff"],
+                    ["evening", "profileReminderEvening"],
+                    ["night", "profileReminderNight"],
+                  ] as const
+                ).map(([key, labelKey]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={state.reminderMode === key ? "on" : ""}
+                    onClick={() => setReminderMode(key)}
+                  >
+                    {t(labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="profile-tracker-group">
+              <p className="tm-subtle">{t("profileSensualSectionTitle")}</p>
+              <div className="segmented">
+                {(
+                  [
+                    ["welcome", "profileSensualWelcome"],
+                    ["optional", "profileSensualOptional"],
+                    ["hidden", "profileSensualHidden"],
+                  ] as const
+                ).map(([key, labelKey]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={state.sensualMode === key ? "on" : ""}
+                    onClick={() => setSensual(key)}
+                  >
+                    {t(labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="segmented segmented-2">
+              <button type="button" className={lang === "ru" ? "on" : ""} onClick={() => setLang("ru")}>
+                Русский
+              </button>
+              <button type="button" className={lang === "en" ? "on" : ""} onClick={() => setLang("en")}>
+                English
+              </button>
+            </div>
+          </>
+        ) : null}
       </section>
 
       <section className="profile-card profile-card--quiet">
