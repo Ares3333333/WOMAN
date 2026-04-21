@@ -86,7 +86,9 @@ Added inside `telegram-mini-app` as a wellness-only feature (no medical claims):
 - Rear pulse scan includes explicit camera guidance and finger placement visual.
 - Front scan estimates breathing rhythm, regularity, and calm/activation state with quality/confidence gating.
 - During practice, microphone breathing capture tracks pace consistency and produces gentle post-session feedback.
+- During practice, cameras are off by design: user follows voice + visual breathing guide while microphone tracks rhythm.
 - Post-session check compares before/after (pulse, calm score, breathing).
+- Final effect card now includes clear today/tomorrow actions plus a short motivational quote.
 - History page (`/biofeedback`) shows trend summary and recent session effects.
 
 ### Privacy and safety

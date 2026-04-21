@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { CameraPresenceOverlay } from "../components/biofeedback/CameraPresenceOverlay";
 import { SESSION_BY_SLUG, scriptToText } from "../data/sessions";
 import {
   savePostSessionCheckIn,
@@ -27,6 +26,15 @@ type SourceMode = "audio" | "voice" | "visual";
 type SmartStage = "idle" | "probing" | "dual" | "front" | "rear" | "post" | "ready" | "error";
 
 const SPEED_OPTIONS = [0.9, 1, 1.15] as const;
+const FRONT_SCAN_MS_DUAL = 18_000;
+const FRONT_SCAN_MS_FALLBACK = 16_000;
+const REAR_SCAN_MS = 24_000;
+
+type GuidancePack = {
+  todayKey: string;
+  tomorrowKey: string;
+  quoteKey: string;
+};
 
 function formatClock(totalSec: number): string {
   const safe = Math.max(0, Math.floor(totalSec));
@@ -121,6 +129,50 @@ function summaryKey(summaryCode: MeditationBiofeedbackSessionRecord["summaryCode
   return "bioEffectIncomplete";
 }
 
+function buildGuidancePack(
+  recommendation: SmartRecommendation | null,
+  micSummary: BreathAudioSummary | null,
+  summaryCode: MeditationBiofeedbackSessionRecord["summaryCode"] | undefined
+): GuidancePack {
+  if (recommendation?.mode === "sleep_prepare") {
+    return {
+      todayKey: "bioAdviceTodaySleep",
+      tomorrowKey: "bioAdviceTomorrowSleep",
+      quoteKey: "bioQuoteNight",
+    };
+  }
+
+  if (recommendation?.mode === "focus") {
+    return {
+      todayKey: "bioAdviceTodayFocus",
+      tomorrowKey: "bioAdviceTomorrowFocus",
+      quoteKey: "bioQuoteFocus",
+    };
+  }
+
+  if (micSummary?.guidance === "irregular") {
+    return {
+      todayKey: "bioAdviceTodayIrregular",
+      tomorrowKey: "bioAdviceTomorrowIrregular",
+      quoteKey: "bioQuoteGentle",
+    };
+  }
+
+  if (summaryCode === "strong") {
+    return {
+      todayKey: "bioAdviceTodayStrong",
+      tomorrowKey: "bioAdviceTomorrowStrong",
+      quoteKey: "bioQuoteStrong",
+    };
+  }
+
+  return {
+    todayKey: "bioAdviceTodayBaseline",
+    tomorrowKey: "bioAdviceTomorrowBaseline",
+    quoteKey: "bioQuoteBaseline",
+  };
+}
+
 function toFrontSnapshot(result: FrontBreathScanResult | null): FrontWellnessSnapshot | null {
   if (!result) return null;
   return {
@@ -190,8 +242,6 @@ export function SessionPlayPage() {
   const [breathSeconds, setBreathSeconds] = useState(0);
   const [breathActiveSeconds, setBreathActiveSeconds] = useState(0);
   const [breathMetrics, setBreathMetrics] = useState<BreathCoachMetrics | null>(null);
-  const [cameraAssistOn, setCameraAssistOn] = useState(false);
-  const [cameraAssistStillness, setCameraAssistStillness] = useState<number | null>(null);
 
   const [micStatus, setMicStatus] = useState<"idle" | "recording" | "analyzing" | "ready" | "blocked" | "unsupported">("idle");
   const [micSummary, setMicSummary] = useState<BreathAudioSummary | null>(null);
@@ -208,7 +258,6 @@ export function SessionPlayPage() {
   const smartAbortRef = useRef<AbortController | null>(null);
   const breathTickRef = useRef<number | null>(null);
   const visualTickRef = useRef<number | null>(null);
-  const stillnessAggregateRef = useRef<{ sum: number; count: number }>({ sum: 0, count: 0 });
   const phaseHapticRef = useRef<"inhale" | "pause" | "exhale" | null>(null);
 
   const fullText = session ? scriptToText(session.script, L) : "";
@@ -299,17 +348,13 @@ export function SessionPlayPage() {
 
     const adherenceScore =
       breathSeconds > 5 ? Number(Math.max(0, Math.min(1, breathActiveSeconds / breathSeconds)).toFixed(2)) : null;
-    const stillnessScore =
-      stillnessAggregateRef.current.count > 0
-        ? Number((stillnessAggregateRef.current.sum / stillnessAggregateRef.current.count).toFixed(2))
-        : cameraAssistStillness;
 
     setBreathMetrics({
       adherenceScore,
-      stillnessScore: stillnessScore ?? null,
+      stillnessScore: null,
     });
     setBreathCoachOn(false);
-  }, [breathCoachOn, breathSeconds, breathActiveSeconds, cameraAssistStillness]);
+  }, [breathCoachOn, breathSeconds, breathActiveSeconds]);
 
   const markSessionDone = useCallback(async () => {
     if (!session) return;
@@ -501,14 +546,14 @@ export function SessionPlayPage() {
         if (probe.supported) {
           setSmartStage(phase === "pre" ? "dual" : "post");
           [frontResult, pulseResult] = await Promise.all([
-            runFrontMeasurement(abort.signal, probe.front.id, 20_000),
-            runPulseMeasurement(phase, abort.signal, probe.rear.id, 35_000),
+            runFrontMeasurement(abort.signal, probe.front.id, FRONT_SCAN_MS_DUAL),
+            runPulseMeasurement(phase, abort.signal, probe.rear.id, REAR_SCAN_MS),
           ]);
         } else {
           setSmartStage("front");
-          frontResult = await runFrontMeasurement(abort.signal, probe.front.id, 16_000);
+          frontResult = await runFrontMeasurement(abort.signal, probe.front.id, FRONT_SCAN_MS_FALLBACK);
           setSmartStage(phase === "pre" ? "rear" : "post");
-          pulseResult = await runPulseMeasurement(phase, abort.signal, probe.rear.id, 35_000);
+          pulseResult = await runPulseMeasurement(phase, abort.signal, probe.rear.id, REAR_SCAN_MS);
         }
 
         if (frontResult.rawStatus !== "ok" || frontResult.breathingRate == null) {
@@ -819,9 +864,6 @@ export function SessionPlayPage() {
     setBreathSeconds(0);
     setBreathActiveSeconds(0);
     setBreathMetrics(null);
-    setCameraAssistOn(false);
-    setCameraAssistStillness(null);
-    stillnessAggregateRef.current = { sum: 0, count: 0 };
 
     setMicStatus("idle");
     setMicSummary(null);
@@ -917,6 +959,10 @@ export function SessionPlayPage() {
     breathPhase.id === "inhale" ? t("bioBreathInhale") : breathPhase.id === "pause" ? t("bioBreathPause") : t("bioBreathExhale");
   const breathPhaseScale = breathPhase.id === "inhale" ? 1.15 : breathPhase.id === "pause" ? 1.06 : 0.92;
   const recommendedSession = recommendation?.sessionSlug ? SESSION_BY_SLUG[recommendation.sessionSlug] : null;
+  const guidancePack = useMemo(
+    () => buildGuidancePack(recommendation, micSummary, bioSessionRecord?.summaryCode),
+    [recommendation, micSummary, bioSessionRecord?.summaryCode]
+  );
 
   return (
     <div className="tm-page session-stage">
@@ -1221,23 +1267,13 @@ export function SessionPlayPage() {
                 setBreathSeconds(0);
                 setBreathActiveSeconds(0);
                 setBreathMetrics(null);
-                setCameraAssistStillness(null);
-                stillnessAggregateRef.current = { sum: 0, count: 0 };
               }}
             >
               {breathCoachOn ? t("bioBreathStop") : t("bioBreathStart")}
             </button>
-
-            <button
-              type="button"
-              className="tm-btn tm-btn-ghost"
-              onClick={() => {
-                setCameraAssistOn((prev) => !prev);
-              }}
-            >
-              {cameraAssistOn ? t("bioBreathCameraOn") : t("bioBreathCameraOff")}
-            </button>
           </div>
+
+          <p className="tm-subtle">{t("bioPracticePhonePlacement")}</p>
 
           {breathCoachOn ? (
             <div className="bio-breath-live">
@@ -1248,27 +1284,6 @@ export function SessionPlayPage() {
             </div>
           ) : null}
 
-          {cameraAssistOn ? (
-            <CameraPresenceOverlay
-              active={breathCoachOn}
-              title={t("bioBreathCameraTitle")}
-              subtitle={t("bioBreathCameraSub")}
-              cameraOnLabel={t("bioBreathCameraOn")}
-              cameraOffLabel={t("bioBreathCameraOff")}
-              stateLoading={t("bioBreathCameraLoading")}
-              stateBlocked={t("bioBreathCameraBlocked")}
-              stateUnavailable={t("bioBreathCameraUnsupported")}
-              stateOff={t("bioBreathCameraIdle")}
-              stillnessLabel={t("bioBreathStillnessLabel")}
-              onStillnessSample={(value) => {
-                setCameraAssistStillness(value);
-                if (!breathCoachOn) return;
-                stillnessAggregateRef.current.sum += value;
-                stillnessAggregateRef.current.count += 1;
-              }}
-            />
-          ) : null}
-
           {breathMetrics ? (
             <div className="bio-result-grid">
               <article className="bio-metric-pill">
@@ -1276,8 +1291,8 @@ export function SessionPlayPage() {
                 <strong>{breathMetrics.adherenceScore != null ? `${Math.round(breathMetrics.adherenceScore * 100)}%` : "-"}</strong>
               </article>
               <article className="bio-metric-pill">
-                <span>{t("bioBreathStillness")}</span>
-                <strong>{breathMetrics.stillnessScore != null ? `${Math.round(breathMetrics.stillnessScore * 100)}%` : "-"}</strong>
+                <span>{t("bioMicRhythmLabel")}</span>
+                <strong>{micSummary?.rhythmStability != null ? `${Math.round(micSummary.rhythmStability * 100)}%` : "-"}</strong>
               </article>
             </div>
           ) : null}
@@ -1355,6 +1370,18 @@ export function SessionPlayPage() {
                   {t("bioMicAfter")}: {micSummary.breathRate ?? "-"} bpm · {t(mapMicGuidanceKey(micSummary.guidance))}
                 </p>
               ) : null}
+
+              <div className="bio-guidance-card">
+                <div className="bio-guidance-line">
+                  <span>{t("bioAdviceTodayTitle")}</span>
+                  <p className="tm-subtle">{t(guidancePack.todayKey)}</p>
+                </div>
+                <div className="bio-guidance-line">
+                  <span>{t("bioAdviceTomorrowTitle")}</span>
+                  <p className="tm-subtle">{t(guidancePack.tomorrowKey)}</p>
+                </div>
+                <div className="bio-guidance-quote">{t(guidancePack.quoteKey)}</div>
+              </div>
             </div>
           ) : !preReliable ? (
             <p className="tm-subtle">{t("bioPostNeedPre")}</p>

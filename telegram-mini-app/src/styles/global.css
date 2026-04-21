@@ -57,6 +57,20 @@ body,
   margin: 0;
 }
 
+html,
+body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
 body {
   font-family: var(--font-ui);
   color: var(--text-0);
@@ -68,6 +82,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   padding-bottom: env(safe-area-inset-bottom);
+  touch-action: pan-y;
 }
 
 body::before {
@@ -197,6 +212,7 @@ select {
   margin: 0 auto;
   min-height: 100%;
   padding: max(84px, calc(72px + env(safe-area-inset-top))) 18px calc(108px + env(safe-area-inset-bottom));
+  min-width: 0;
 }
 
 .tm-shell-nav-wrap {
@@ -264,6 +280,7 @@ select {
 .tm-page {
   display: grid;
   gap: calc(var(--space-xl) + 16px);
+  min-width: 0;
 }
 
 .tm-head {
@@ -338,6 +355,7 @@ p {
   background: linear-gradient(170deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015));
   box-shadow: var(--shadow-surface);
   padding: 30px;
+  min-width: 0;
 }
 
 .tm-card--quiet {
@@ -1551,6 +1569,39 @@ p {
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.015);
   padding: 12px;
+}
+
+.bio-guidance-card {
+  display: grid;
+  gap: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 178, 123, 0.22);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(212, 178, 123, 0.12), transparent 62%),
+    rgba(255, 255, 255, 0.012);
+  padding: 12px;
+}
+
+.bio-guidance-line {
+  display: grid;
+  gap: 4px;
+}
+
+.bio-guidance-line > span {
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  color: var(--text-2);
+  font-weight: 650;
+}
+
+.bio-guidance-quote {
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--text-1);
+  font-style: italic;
+  line-height: 1.45;
+  font-size: 0.84rem;
 }
 
 .bio-rec-card {

@@ -37,6 +37,34 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function scoreRearLabel(label: string): number {
+  const l = label.toLowerCase();
+  let score = 0;
+  if (/(rear|back|environment|main|wide|1x)/.test(l)) score += 5;
+  if (/(front|user|selfie|face)/.test(l)) score -= 6;
+  if (/(tele|macro|depth|virtual)/.test(l)) score -= 2;
+  if (l.length === 0) score -= 1;
+  return score;
+}
+
+async function pickRearDeviceId(): Promise<string | null> {
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) return null;
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter((d) => d.kind === "videoinput");
+    if (cams.length === 0) return null;
+
+    const ranked = cams
+      .map((cam) => ({ id: cam.deviceId, score: scoreRearLabel(cam.label || "") }))
+      .sort((a, b) => b.score - a.score);
+
+    const best = ranked[0];
+    return best?.score > -2 ? best.id : null;
+  } catch {
+    return null;
+  }
+}
+
 function buildFailure(
   rawStatus: PulseScanResult["rawStatus"],
   failureReason: BiofeedbackFailureReason,
@@ -174,7 +202,7 @@ async function enableTorch(track: MediaStreamTrack): Promise<{ available: boolea
 }
 
 export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScanResult> {
-  const durationMs = options.durationMs ?? 35000;
+  const durationMs = options.durationMs ?? 26000;
   options.onStateChange?.("initializing");
 
   if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -199,10 +227,11 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
   };
 
   try {
+    const selectedDeviceId = options.deviceId ?? (await pickRearDeviceId());
     stream = await navigator.mediaDevices.getUserMedia({
       video: {
-        ...(options.deviceId
-          ? { deviceId: { exact: options.deviceId } }
+        ...(selectedDeviceId
+          ? { deviceId: { exact: selectedDeviceId } }
           : { facingMode: { ideal: "environment" } }),
         width: { ideal: 640 },
         height: { ideal: 480 },
@@ -262,6 +291,7 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
 
     const samples: PulseSample[] = [];
     let signalFound = false;
+    let stableHits = 0;
     options.onStateChange?.("searching");
 
     while (Date.now() - startedAt < durationMs) {
@@ -292,6 +322,19 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
         options.onStateChange?.("signal_found");
       }
       options.onStateChange?.(signalFound ? "measuring" : "searching");
+
+      if (signalFound && elapsed > 12_000) {
+        const tail = samples.slice(-130);
+        const q = evaluateQuality(tail);
+        const p = estimatePulse(tail);
+        if (!q.failureReason && p.pulse != null && p.confidence >= 0.55) {
+          stableHits += 1;
+        } else {
+          stableHits = Math.max(0, stableHits - 1);
+        }
+
+        if (stableHits >= 8) break;
+      }
 
       await sleep(85);
     }
