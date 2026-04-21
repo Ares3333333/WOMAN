@@ -7,6 +7,7 @@ import { ProgressProvider } from "./lib/ProgressContext";
 import { HomePage } from "./pages/Home";
 import { PathDetailPage } from "./pages/PathDetail";
 import { PathListPage } from "./pages/PathList";
+import { BiofeedbackPage } from "./pages/Biofeedback";
 import { PremiumPage } from "./pages/Premium";
 import { ProfilePage } from "./pages/Profile";
 import { SessionPlayPage } from "./pages/SessionPlay";
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="paths" element={<PathListPage />} />
           <Route path="path/:id" element={<PathDetailPage />} />
           <Route path="session/:slug" element={<SessionPlayPage />} />
+          <Route path="biofeedback" element={<BiofeedbackPage />} />
           <Route path="goals" element={<Navigate to="/profile" replace />} />
           <Route path="premium" element={<PremiumPage />} />
           <Route path="profile" element={<ProfilePage />} />
