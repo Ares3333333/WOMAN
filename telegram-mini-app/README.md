@@ -75,3 +75,53 @@ telegram-mini-app/
 ```
 
 Веб-версия проекта остаётся в корне репозитория (`СНЭКЕР` / Next.js).
+
+## Biofeedback Smart Flow (Telegram Mini App)
+
+Added inside `telegram-mini-app` as a wellness-only feature (no medical claims):
+
+- Smart one-button check-in in session screen (`SessionPlay`) with dual-camera probe.
+- If dual front+rear capture is supported: front and rear scans run in parallel.
+- If not supported (common in Telegram WebView): seamless fallback runs front scan first, then rear pulse scan.
+- Rear pulse scan includes explicit camera guidance and finger placement visual.
+- Front scan estimates breathing rhythm, regularity, and calm/activation state with quality/confidence gating.
+- During practice, microphone breathing capture tracks pace consistency and produces gentle post-session feedback.
+- Post-session check compares before/after (pulse, calm score, breathing).
+- History page (`/biofeedback`) shows trend summary and recent session effects.
+
+### Privacy and safety
+
+- Positioning: wellness and mindfulness only.
+- No blood pressure, no medical-grade SpO2, no disease detection, no diagnosis.
+- Processing is on-device in browser APIs where feasible.
+- Raw video is not persisted.
+- Microphone capture is analyzed locally; raw audio is not stored as user history payload.
+
+### Key files
+
+- `src/pages/SessionPlay.tsx`
+- `src/pages/Biofeedback.tsx`
+- `src/lib/cameraPulseScan.ts`
+- `src/lib/frontBreathScan.ts`
+- `src/lib/audioBreathTracker.ts`
+- `src/lib/cameraCapabilities.ts`
+- `src/lib/smartRecommendations.ts`
+- `src/lib/biofeedback.ts`
+- `src/styles/global.css`
+- `src/lib/i18n.tsx`
+
+### Verify manually
+
+1. Open any available session in mini app (`/session/:slug`).
+2. Tap **Start smart check**.
+3. Grant camera permission.
+4. Validate rear guidance text + visual finger placement overlay.
+5. Run practice (`audio`, `voice`, or `visual mode` if no uploaded audio).
+6. Finish session and run **post-check**.
+7. Open **History & trends** and confirm saved entries.
+
+### Known hardware/webview limits
+
+- Concurrent front+rear capture depends on device + Telegram WebView policy.
+- Torch availability for rear camera is device/browser dependent.
+- Breath estimation quality depends on lighting, motion, and camera stability.

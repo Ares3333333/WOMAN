@@ -30,6 +30,7 @@ export type PulseScanResult = {
     cameraFacing: "environment" | "unknown";
     torchAvailable: boolean;
     torchEnabled: boolean;
+    cameraLabel?: string;
   };
 };
 
@@ -49,6 +50,9 @@ export type BiometricScanRecord = {
   meditationSlug: string | null;
   phase: ScanPhase;
   pulse: number | null;
+  breathingRate: number | null;
+  breathingRegularity: number | null;
+  frontStateLabel: string | null;
   signalQuality: number;
   durationMs: number;
   rawStatus: BiofeedbackRawStatus;
@@ -68,11 +72,21 @@ export type MeditationBiofeedbackSessionRecord = {
   postScanId: string | null;
   prePulse: number | null;
   postPulse: number | null;
+  preBreathingRate: number | null;
+  postBreathingRate: number | null;
+  preFrontState: string | null;
+  postFrontState: string | null;
   preCalmScore: number | null;
   postCalmScore: number | null;
   recoveryScoreAfter: number | null;
   breathAdherence: number | null;
   breathStillness: number | null;
+  micBreathRate: number | null;
+  micRhythmStability: number | null;
+  micConfidence: number | null;
+  micGuidance: string | null;
+  recommendationMode: string | null;
+  recommendedSessionSlug: string | null;
   sessionEffect: number | null;
   summaryCode: "strong" | "moderate" | "mixed" | "incomplete";
 };
@@ -93,6 +107,21 @@ export type CalmSnapshot = {
 export type BreathCoachMetrics = {
   adherenceScore: number | null;
   stillnessScore: number | null;
+};
+
+export type FrontWellnessSnapshot = {
+  breathingRate: number | null;
+  regularity: number | null;
+  stateLabel: string | null;
+  confidence: number;
+  signalQuality: number;
+};
+
+export type AudioBreathSnapshot = {
+  breathRate: number | null;
+  rhythmStability: number | null;
+  confidence: number;
+  guidance: string;
 };
 
 const STORAGE_KEY = "sora_tg_biofeedback_v1";
@@ -264,6 +293,8 @@ function appendWithLimit<T>(items: T[], next: T): T[] {
 export function savePreSessionCheckIn(input: {
   meditationSlug: string;
   scan: PulseScanResult;
+  frontSnapshot?: FrontWellnessSnapshot | null;
+  recommendation?: { mode: string; sessionSlug: string | null } | null;
 }): {
   scanRecord: BiometricScanRecord;
   sessionRecord: MeditationBiofeedbackSessionRecord | null;
@@ -284,6 +315,9 @@ export function savePreSessionCheckIn(input: {
     meditationSlug: input.meditationSlug,
     phase: "pre",
     pulse: reliable ? input.scan.pulse : null,
+    breathingRate: input.frontSnapshot?.breathingRate ?? null,
+    breathingRegularity: input.frontSnapshot?.regularity ?? null,
+    frontStateLabel: input.frontSnapshot?.stateLabel ?? null,
     signalQuality: Number(input.scan.signalQuality.toFixed(2)),
     durationMs: input.scan.durationMs,
     rawStatus: input.scan.rawStatus,
@@ -305,11 +339,21 @@ export function savePreSessionCheckIn(input: {
       postScanId: null,
       prePulse: scanRecord.pulse,
       postPulse: null,
+      preBreathingRate: scanRecord.breathingRate,
+      postBreathingRate: null,
+      preFrontState: scanRecord.frontStateLabel,
+      postFrontState: null,
       preCalmScore: scanRecord.calmScore,
       postCalmScore: null,
       recoveryScoreAfter: null,
       breathAdherence: null,
       breathStillness: null,
+      micBreathRate: null,
+      micRhythmStability: null,
+      micConfidence: null,
+      micGuidance: null,
+      recommendationMode: input.recommendation?.mode ?? null,
+      recommendedSessionSlug: input.recommendation?.sessionSlug ?? null,
       sessionEffect: null,
       summaryCode: "incomplete",
     };
@@ -349,6 +393,9 @@ export function saveStandaloneScan(input: {
     meditationSlug: input.meditationSlug,
     phase: input.phase,
     pulse: reliable ? input.scan.pulse : null,
+    breathingRate: null,
+    breathingRegularity: null,
+    frontStateLabel: null,
     signalQuality: Number(input.scan.signalQuality.toFixed(2)),
     durationMs: input.scan.durationMs,
     rawStatus: input.scan.rawStatus,
@@ -372,6 +419,8 @@ export function savePostSessionCheckIn(input: {
   bioSessionId: string;
   scan: PulseScanResult;
   breathMetrics: BreathCoachMetrics | null;
+  frontSnapshot?: FrontWellnessSnapshot | null;
+  audioSnapshot?: AudioBreathSnapshot | null;
 }): {
   scanRecord: BiometricScanRecord;
   sessionRecord: MeditationBiofeedbackSessionRecord | null;
@@ -415,6 +464,9 @@ export function savePostSessionCheckIn(input: {
     meditationSlug: session.meditationSlug,
     phase: "post",
     pulse: reliable ? input.scan.pulse : null,
+    breathingRate: input.frontSnapshot?.breathingRate ?? null,
+    breathingRegularity: input.frontSnapshot?.regularity ?? null,
+    frontStateLabel: input.frontSnapshot?.stateLabel ?? null,
     signalQuality: Number(input.scan.signalQuality.toFixed(2)),
     durationMs: input.scan.durationMs,
     rawStatus: input.scan.rawStatus,
@@ -440,10 +492,16 @@ export function savePostSessionCheckIn(input: {
       endedAt: nowIso(),
       postScanId: scanRecord.id,
       postPulse: scanRecord.pulse,
+      postBreathingRate: scanRecord.breathingRate,
+      postFrontState: scanRecord.frontStateLabel,
       postCalmScore: calm?.calmScore ?? null,
       recoveryScoreAfter: calm?.recoveryScore ?? null,
       breathAdherence: input.breathMetrics?.adherenceScore ?? null,
       breathStillness: input.breathMetrics?.stillnessScore ?? null,
+      micBreathRate: input.audioSnapshot?.breathRate ?? null,
+      micRhythmStability: input.audioSnapshot?.rhythmStability ?? null,
+      micConfidence: input.audioSnapshot?.confidence ?? null,
+      micGuidance: input.audioSnapshot?.guidance ?? null,
       sessionEffect: effect.sessionEffect,
       summaryCode: effect.summaryCode,
     };

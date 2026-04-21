@@ -1241,6 +1241,20 @@ p {
   gap: 12px;
 }
 
+.bio-smart-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.bio-smart-item {
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.014);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
 .bio-pre-mode-row {
   display: grid;
   gap: 10px;
@@ -1440,6 +1454,17 @@ p {
   padding: 12px;
 }
 
+.bio-rec-card {
+  display: grid;
+  gap: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 178, 123, 0.3);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(212, 178, 123, 0.14), transparent 62%),
+    rgba(255, 255, 255, 0.018);
+  padding: 12px;
+}
+
 .bio-result-grid {
   display: grid;
   gap: 10px;
@@ -1518,6 +1543,50 @@ p {
 .bio-test-head {
   display: grid;
   gap: 5px;
+}
+
+.bio-mic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.012);
+  padding: 11px 12px;
+}
+
+.bio-mic-badge {
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  padding: 6px 10px;
+  color: var(--text-2);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-weight: 600;
+}
+
+.bio-mic-badge.recording {
+  border-color: rgba(143, 188, 167, 0.45);
+  color: #c4ead8;
+}
+
+.bio-mic-badge.analyzing,
+.bio-mic-badge.idle {
+  border-color: rgba(212, 178, 123, 0.38);
+  color: #ecd8b7;
+}
+
+.bio-mic-badge.ready {
+  border-color: rgba(129, 190, 171, 0.45);
+  color: #bde4d2;
+}
+
+.bio-mic-badge.blocked,
+.bio-mic-badge.unsupported {
+  border-color: rgba(208, 130, 130, 0.45);
+  color: #f2c0c0;
 }
 
 .bio-camera-shell {
@@ -2077,6 +2146,10 @@ p {
   }
 
   .bio-pre-mode-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bio-smart-grid {
     grid-template-columns: 1fr 1fr;
   }
 

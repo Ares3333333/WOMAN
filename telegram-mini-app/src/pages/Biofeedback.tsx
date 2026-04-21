@@ -55,13 +55,13 @@ export function BiofeedbackPage() {
               <span className="home-value-label">{t("bioTrendSessions")}</span>
             </article>
             <article className="home-value-item">
-              <span className="home-value-number">{trend.avgPulseDelta ?? "—"}</span>
+              <span className="home-value-number">{trend.avgPulseDelta ?? "-"}</span>
               <span className="home-value-label">{t("bioTrendAvgDrop")}</span>
             </article>
           </div>
           <article className="bio-average-card">
             <span>{t("bioTrendEffectAvg")}</span>
-            <strong>{trend.avgEffect ?? "—"}</strong>
+            <strong>{trend.avgEffect ?? "-"}</strong>
           </article>
         </div>
         <p className="tm-subtle">{trendText}</p>
@@ -92,13 +92,17 @@ export function BiofeedbackPage() {
                 </div>
                 <div className="bio-history-metrics">
                   <span>
-                    {t("bioEffectPulse")}: {session.prePulse ?? "—"} → {session.postPulse ?? "—"}
+                    {t("bioEffectPulse")}: {session.prePulse ?? "-"}
+                    {" -> "}
+                    {session.postPulse ?? "-"}
                   </span>
                   <span>
-                    {t("bioEffectCalm")}: {session.preCalmScore ?? "—"} → {session.postCalmScore ?? "—"}
+                    {t("bioEffectCalm")}: {session.preCalmScore ?? "-"}
+                    {" -> "}
+                    {session.postCalmScore ?? "-"}
                   </span>
                   <strong>
-                    {t("bioEffectScore")}: {session.sessionEffect ?? "—"}
+                    {t("bioEffectScore")}: {session.sessionEffect ?? "-"}
                   </strong>
                 </div>
               </li>
@@ -109,3 +113,4 @@ export function BiofeedbackPage() {
     </div>
   );
 }
+

@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "build:deploy": "npm run build && cd server && npm install --omit=dev",
     "preview": "vite preview",
+    "test": "vitest run",
     "server:dev": "npm run dev --prefix server",
     "server:start": "npm start --prefix server",
     "dev:stack": "concurrently -n vite,api -c cyan,magenta \"npm run dev\" \"npm run server:dev\""
@@ -23,6 +24,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.1.2",
     "typescript": "^5.7.2",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vitest": "^2.1.5"
   }
 }

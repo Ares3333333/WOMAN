@@ -6,24 +6,27 @@ import {
   savePostSessionCheckIn,
   savePreSessionCheckIn,
   saveStandaloneScan,
+  type AudioBreathSnapshot,
   type BreathCoachMetrics,
   type BiometricScanRecord,
+  type FrontWellnessSnapshot,
   type MeditationBiofeedbackSessionRecord,
-  type PulseScanResult,
 } from "../lib/biofeedback";
+import { startBreathAudioCapture, type BreathAudioCapture, type BreathAudioSummary } from "../lib/audioBreathTracker";
+import { probeDualCameraSupport, type DualCameraProbe } from "../lib/cameraCapabilities";
 import { runPulseScan, type PulseScanState } from "../lib/cameraPulseScan";
+import { runFrontBreathScan, type FrontBreathScanResult } from "../lib/frontBreathScan";
 import { useI18n } from "../lib/i18n";
 import { useProgress } from "../lib/ProgressContext";
 import { canUserAccessSession } from "../lib/sessionAccess";
+import { buildSmartRecommendation, type SmartRecommendation } from "../lib/smartRecommendations";
 import { hapticLight, useTelegram } from "../telegram/useTelegram";
 
 type PlayerState = "idle" | "playing" | "paused" | "ended";
-type ScanPhase = "idle" | "pre" | "post";
-type PreMode = "pulse" | "breath";
 type SourceMode = "audio" | "voice" | "visual";
+type SmartStage = "idle" | "probing" | "dual" | "front" | "rear" | "post" | "ready" | "error";
 
 const SPEED_OPTIONS = [0.9, 1, 1.15] as const;
-const BREATH_WARMUP_SECONDS = 60;
 
 function formatClock(totalSec: number): string {
   const safe = Math.max(0, Math.floor(totalSec));
@@ -34,7 +37,7 @@ function formatClock(totalSec: number): string {
   return `${min}:${sec}`;
 }
 
-function mapScanFailureKey(result: PulseScanResult): string {
+function mapPulseFailureKey(result: { rawStatus: string; failureReason?: string }): string {
   if (result.rawStatus === "permission_denied") return "bioScanPermission";
   if (result.rawStatus === "unsupported") return "bioScanUnsupported";
   if (result.failureReason === "insufficient_light") return "bioScanLight";
@@ -43,12 +46,60 @@ function mapScanFailureKey(result: PulseScanResult): string {
   return "bioScanQualityLow";
 }
 
-function mapScanStateKey(state: PulseScanState | "idle" | "success"): string {
+function mapPulseStateKey(state: PulseScanState | "idle" | "success"): string {
   if (state === "searching") return "bioScanStatusSearching";
   if (state === "signal_found") return "bioScanStatusFound";
   if (state === "measuring") return "bioScanStatusMeasuring";
   if (state === "success") return "bioScanStatusSuccess";
   return "bioScanInstruction";
+}
+
+function mapFrontFailureKey(result: FrontBreathScanResult): string {
+  if (result.rawStatus === "permission_denied") return "bioFrontPermission";
+  if (result.rawStatus === "unsupported") return "bioFrontUnsupported";
+  if (result.failureReason === "insufficient_light") return "bioFrontLight";
+  if (result.failureReason === "high_motion" || result.failureReason === "face_unstable") return "bioFrontMotion";
+  return "bioFrontSignalLow";
+}
+
+function mapFrontStateKey(state: "idle" | "initializing" | "tracking" | "analyzing" | "done"): string {
+  if (state === "initializing") return "bioFrontStateInitializing";
+  if (state === "tracking") return "bioFrontStateTracking";
+  if (state === "analyzing") return "bioFrontStateAnalyzing";
+  if (state === "done") return "bioFrontStateDone";
+  return "bioFrontStateIdle";
+}
+
+function mapProbeReasonKey(reason: DualCameraProbe["reason"]): string {
+  if (reason === "ok") return "bioDualAvailable";
+  if (reason === "permission_denied") return "bioDualPermission";
+  if (reason === "rear_unavailable" || reason === "front_unavailable") return "bioDualDeviceMissing";
+  if (reason === "concurrency_blocked") return "bioDualFallback";
+  if (reason === "unsupported") return "bioDualUnsupported";
+  return "bioDualFallback";
+}
+
+function mapRecommendationReasonKey(reason: SmartRecommendation["rationaleKey"]): string {
+  if (reason === "high_load") return "bioRecReasonHighLoad";
+  if (reason === "sleep") return "bioRecReasonSleep";
+  if (reason === "evening_slow") return "bioRecReasonEvening";
+  if (reason === "morning_focus") return "bioRecReasonMorning";
+  return "bioRecReasonBalanced";
+}
+
+function mapFrontToneKey(state: FrontBreathScanResult["stateLabel"]): string {
+  if (state === "calm") return "bioFrontToneCalm";
+  if (state === "activated") return "bioFrontToneActivated";
+  if (state === "tense") return "bioFrontToneTense";
+  return "bioFrontToneNeutral";
+}
+
+function mapMicGuidanceKey(guidance: BreathAudioSummary["guidance"]): string {
+  if (guidance === "excellent") return "bioMicExcellent";
+  if (guidance === "good") return "bioMicGood";
+  if (guidance === "improving") return "bioMicImproving";
+  if (guidance === "irregular") return "bioMicIrregular";
+  return "bioMicInsufficient";
 }
 
 function breathPhaseAt(second: number): { id: "inhale" | "pause" | "exhale"; progress: number } {
@@ -64,6 +115,27 @@ function summaryKey(summaryCode: MeditationBiofeedbackSessionRecord["summaryCode
   if (summaryCode === "moderate") return "bioEffectSummaryModerate";
   if (summaryCode === "mixed") return "bioEffectSummaryMixed";
   return "bioEffectIncomplete";
+}
+
+function toFrontSnapshot(result: FrontBreathScanResult | null): FrontWellnessSnapshot | null {
+  if (!result) return null;
+  return {
+    breathingRate: result.breathingRate,
+    regularity: result.regularity,
+    stateLabel: result.stateLabel,
+    confidence: result.confidence,
+    signalQuality: result.signalQuality,
+  };
+}
+
+function toAudioSnapshot(summary: BreathAudioSummary | null): AudioBreathSnapshot | null {
+  if (!summary) return null;
+  return {
+    breathRate: summary.breathRate,
+    rhythmStability: summary.rhythmStability,
+    confidence: summary.confidence,
+    guidance: summary.guidance,
+  };
 }
 
 export function SessionPlayPage() {
@@ -86,19 +158,25 @@ export function SessionPlayPage() {
   const [durationSec, setDurationSec] = useState(session ? Math.max(session.audio.durationSec, session.durationMin * 60) : 0);
   const [sourceMode, setSourceMode] = useState<SourceMode>(session?.audio.src ? "audio" : "visual");
 
-  const [preMode, setPreMode] = useState<PreMode>("pulse");
-  const [scanPhase, setScanPhase] = useState<ScanPhase>("idle");
+  const [smartStage, setSmartStage] = useState<SmartStage>("idle");
+  const [smartErrorKey, setSmartErrorKey] = useState<string | null>(null);
+  const [dualProbe, setDualProbe] = useState<DualCameraProbe | null>(null);
+  const [recommendation, setRecommendation] = useState<SmartRecommendation | null>(null);
+
   const [scanProgress, setScanProgress] = useState(0);
   const [scanVisualState, setScanVisualState] = useState<PulseScanState | "idle" | "success">("idle");
   const [scanErrorKey, setScanErrorKey] = useState<string | null>(null);
-  const [lastScanDevice, setLastScanDevice] = useState<PulseScanResult["device"] | null>(null);
+  const [lastScanDeviceLabel, setLastScanDeviceLabel] = useState<string | null>(null);
+  const [lastScanTorchFallback, setLastScanTorchFallback] = useState(false);
   const [preScanRecord, setPreScanRecord] = useState<BiometricScanRecord | null>(null);
   const [postScanRecord, setPostScanRecord] = useState<BiometricScanRecord | null>(null);
   const [bioSessionRecord, setBioSessionRecord] = useState<MeditationBiofeedbackSessionRecord | null>(null);
 
-  const [warmupActive, setWarmupActive] = useState(false);
-  const [warmupSeconds, setWarmupSeconds] = useState(0);
-  const [warmupDone, setWarmupDone] = useState(false);
+  const [frontPre, setFrontPre] = useState<FrontBreathScanResult | null>(null);
+  const [frontPost, setFrontPost] = useState<FrontBreathScanResult | null>(null);
+  const [frontProgress, setFrontProgress] = useState(0);
+  const [frontScanState, setFrontScanState] = useState<"idle" | "initializing" | "tracking" | "analyzing" | "done">("idle");
+  const [frontErrorKey, setFrontErrorKey] = useState<string | null>(null);
 
   const [breathCoachOn, setBreathCoachOn] = useState(false);
   const [breathSeconds, setBreathSeconds] = useState(0);
@@ -107,16 +185,19 @@ export function SessionPlayPage() {
   const [cameraAssistOn, setCameraAssistOn] = useState(false);
   const [cameraAssistStillness, setCameraAssistStillness] = useState<number | null>(null);
 
+  const [micStatus, setMicStatus] = useState<"idle" | "recording" | "analyzing" | "ready" | "blocked" | "unsupported">("idle");
+  const [micSummary, setMicSummary] = useState<BreathAudioSummary | null>(null);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const utterRef = useRef<SpeechSynthesisUtterance | null>(null);
   const ttsTickRef = useRef<number | null>(null);
   const ttsStartedRef = useRef<number | null>(null);
   const doneOnceRef = useRef<string | null>(null);
+  const micCaptureRef = useRef<BreathAudioCapture | null>(null);
 
-  const scanAbortRef = useRef<AbortController | null>(null);
+  const smartAbortRef = useRef<AbortController | null>(null);
   const breathTickRef = useRef<number | null>(null);
   const visualTickRef = useRef<number | null>(null);
-  const warmupTickRef = useRef<number | null>(null);
   const stillnessAggregateRef = useRef<{ sum: number; count: number }>({ sum: 0, count: 0 });
   const phaseHapticRef = useRef<"inhale" | "pause" | "exhale" | null>(null);
 
@@ -137,6 +218,7 @@ export function SessionPlayPage() {
 
   const resolvedDuration = sourceMode === "voice" ? estimatedVoiceDuration : baseDuration;
   const progressPct = resolvedDuration > 0 ? Math.min(100, (elapsedSec / resolvedDuration) * 100) : 0;
+  const smartRunning = smartStage === "probing" || smartStage === "dual" || smartStage === "front" || smartStage === "rear" || smartStage === "post";
 
   const clearTtsTick = useCallback(() => {
     if (!ttsTickRef.current) return;
@@ -149,6 +231,39 @@ export function SessionPlayPage() {
     window.clearInterval(visualTickRef.current);
     visualTickRef.current = null;
   }, []);
+
+  const stopMicCapture = useCallback(async () => {
+    const capture = micCaptureRef.current;
+    if (!capture) return null;
+
+    micCaptureRef.current = null;
+    setMicStatus("analyzing");
+
+    const summary = await capture.stop();
+    setMicSummary(summary);
+    if (summary.rawStatus === "permission_denied") setMicStatus("blocked");
+    else if (summary.rawStatus === "unsupported") setMicStatus("unsupported");
+    else setMicStatus("ready");
+
+    return summary;
+  }, []);
+
+  const ensureMicCapture = useCallback(async () => {
+    if (micCaptureRef.current || micStatus === "blocked" || micStatus === "unsupported") return;
+    const capture = await startBreathAudioCapture();
+    micCaptureRef.current = capture;
+    if (capture.status === "permission_denied") {
+      setMicStatus("blocked");
+      micCaptureRef.current = null;
+      return;
+    }
+    if (capture.status === "unsupported") {
+      setMicStatus("unsupported");
+      micCaptureRef.current = null;
+      return;
+    }
+    setMicStatus("recording");
+  }, [micStatus]);
 
   const stopAllPlayback = useCallback(() => {
     clearTtsTick();
@@ -167,7 +282,6 @@ export function SessionPlayPage() {
 
   const stopBreathCoach = useCallback(async () => {
     if (!breathCoachOn) return;
-
     if (breathTickRef.current) {
       window.clearInterval(breathTickRef.current);
       breathTickRef.current = null;
@@ -175,7 +289,6 @@ export function SessionPlayPage() {
 
     const adherenceScore =
       breathSeconds > 5 ? Number(Math.max(0, Math.min(1, breathActiveSeconds / breathSeconds)).toFixed(2)) : null;
-
     const stillnessScore =
       stillnessAggregateRef.current.count > 0
         ? Number((stillnessAggregateRef.current.sum / stillnessAggregateRef.current.count).toFixed(2))
@@ -185,17 +298,16 @@ export function SessionPlayPage() {
       adherenceScore,
       stillnessScore: stillnessScore ?? null,
     });
-
     setBreathCoachOn(false);
   }, [breathCoachOn, breathSeconds, breathActiveSeconds, cameraAssistStillness]);
 
   const markSessionDone = useCallback(async () => {
     if (!session) return;
     if (doneOnceRef.current === session.slug) return;
-
     doneOnceRef.current = session.slug;
 
     await stopBreathCoach();
+    await stopMicCapture();
 
     setDone(true);
     setPlayerState("ended");
@@ -209,7 +321,7 @@ export function SessionPlayPage() {
     } catch {
       /* ignore */
     }
-  }, [session, stopBreathCoach, resolvedDuration, completeSession, selfCareToday, app]);
+  }, [session, stopBreathCoach, stopMicCapture, resolvedDuration, completeSession, selfCareToday, app]);
 
   const startVoiceTick = useCallback(
     (fromSec: number) => {
@@ -303,8 +415,166 @@ export function SessionPlayPage() {
     [session?.audio.src, speed, app]
   );
 
+  const runFrontMeasurement = useCallback(
+    async (abortSignal: AbortSignal, deviceId: string | null, durationMs: number) => {
+      setFrontProgress(0);
+      setFrontScanState("initializing");
+      const result = await runFrontBreathScan({
+        signal: abortSignal,
+        durationMs,
+        deviceId,
+        onProgress: setFrontProgress,
+        onState: setFrontScanState,
+      });
+      setFrontScanState("done");
+      return result;
+    },
+    []
+  );
+
+  const runPulseMeasurement = useCallback(
+    async (_phase: "pre" | "post", abortSignal: AbortSignal, deviceId: string | null, durationMs: number) => {
+      setScanProgress(0);
+      setScanVisualState("searching");
+      const result = await runPulseScan({
+        signal: abortSignal,
+        durationMs,
+        deviceId,
+        onProgress: setScanProgress,
+        onStateChange: setScanVisualState,
+      });
+      setScanVisualState(result.rawStatus === "ok" ? "success" : "idle");
+      setLastScanDeviceLabel(result.device?.cameraLabel ?? null);
+      setLastScanTorchFallback(Boolean(result.device?.torchAvailable && !result.device?.torchEnabled));
+      return result;
+    },
+    []
+  );
+
+  const runSmartCheck = useCallback(
+    async (phase: "pre" | "post") => {
+      if (!session || smartRunning) return;
+      setSmartErrorKey(null);
+      setScanErrorKey(null);
+      setFrontErrorKey(null);
+      setFrontScanState("idle");
+      setScanVisualState("idle");
+      setFrontProgress(0);
+      setScanProgress(0);
+
+      const abort = new AbortController();
+      smartAbortRef.current = abort;
+
+      try {
+        setSmartStage("probing");
+        const probe = await probeDualCameraSupport();
+        setDualProbe(probe);
+
+        let frontResult: FrontBreathScanResult;
+        let pulseResult: Awaited<ReturnType<typeof runPulseMeasurement>>;
+
+        if (probe.supported) {
+          setSmartStage(phase === "pre" ? "dual" : "post");
+          [frontResult, pulseResult] = await Promise.all([
+            runFrontMeasurement(abort.signal, probe.front.id, 20_000),
+            runPulseMeasurement(phase, abort.signal, probe.rear.id, 35_000),
+          ]);
+        } else {
+          setSmartStage("front");
+          frontResult = await runFrontMeasurement(abort.signal, probe.front.id, 16_000);
+          setSmartStage(phase === "pre" ? "rear" : "post");
+          pulseResult = await runPulseMeasurement(phase, abort.signal, probe.rear.id, 35_000);
+        }
+
+        if (frontResult.rawStatus !== "ok" || frontResult.breathingRate == null) {
+          setFrontErrorKey(mapFrontFailureKey(frontResult));
+        }
+        if (pulseResult.rawStatus !== "ok" || pulseResult.pulse == null) {
+          setScanErrorKey(mapPulseFailureKey(pulseResult));
+        }
+
+        if (phase === "pre") {
+          const rec = buildSmartRecommendation(
+            {
+              pulse: pulseResult.pulse,
+              calmScore: null,
+              breathingRate: frontResult.breathingRate,
+              breathingRegularity: frontResult.regularity,
+              frontState: frontResult.stateLabel,
+              hourOfDay: new Date().getHours(),
+              completedCount: state.completedSlugs.length,
+              premium: state.premium,
+            },
+            session
+          );
+
+          setFrontPre(frontResult);
+          setRecommendation(rec);
+
+          const saved = savePreSessionCheckIn({
+            meditationSlug: session.slug,
+            scan: pulseResult,
+            frontSnapshot: toFrontSnapshot(frontResult),
+            recommendation: {
+              mode: rec.mode,
+              sessionSlug: rec.sessionSlug,
+            },
+          });
+
+          setPreScanRecord(saved.scanRecord);
+          setBioSessionRecord(saved.sessionRecord);
+          setPostScanRecord(null);
+          setFrontPost(null);
+          setDone(false);
+        } else {
+          setFrontPost(frontResult);
+
+          if (bioSessionRecord?.id) {
+            const saved = savePostSessionCheckIn({
+              bioSessionId: bioSessionRecord.id,
+              scan: pulseResult,
+              breathMetrics,
+              frontSnapshot: toFrontSnapshot(frontResult),
+              audioSnapshot: toAudioSnapshot(micSummary),
+            });
+            setPostScanRecord(saved.scanRecord);
+            setBioSessionRecord(saved.sessionRecord ?? bioSessionRecord);
+          } else {
+            const standalone = saveStandaloneScan({
+              phase: "post",
+              meditationSlug: session.slug,
+              scan: pulseResult,
+            });
+            setPostScanRecord(standalone);
+          }
+        }
+
+        setSmartStage("ready");
+      } catch {
+        setSmartErrorKey("bioSmartFailed");
+        setSmartStage("error");
+      } finally {
+        smartAbortRef.current = null;
+      }
+    },
+    [session, smartRunning, state.completedSlugs.length, state.premium, runFrontMeasurement, runPulseMeasurement, bioSessionRecord, breathMetrics, micSummary]
+  );
+
+  const cancelSmartCheck = useCallback(() => {
+    smartAbortRef.current?.abort();
+    setSmartStage("idle");
+    setFrontScanState("idle");
+    setScanVisualState("idle");
+  }, []);
+
   const handlePlay = useCallback(async () => {
     if (!session || !canAccess) return;
+    if (!preScanRecord) {
+      setSmartErrorKey("bioSmartNeedPre");
+      return;
+    }
+
+    await ensureMicCapture();
 
     if (sourceMode === "visual") {
       startVisualPlayback(playerState === "ended");
@@ -337,7 +607,7 @@ export function SessionPlayPage() {
     }
 
     startVoiceFromStart();
-  }, [session, canAccess, sourceMode, playerState, startVisualPlayback, playAudio, startVoiceTick, elapsedSec, startVoiceFromStart]);
+  }, [session, canAccess, preScanRecord, ensureMicCapture, sourceMode, startVisualPlayback, playerState, playAudio, startVoiceTick, elapsedSec, startVoiceFromStart]);
 
   const handlePause = useCallback(() => {
     if (playerState !== "playing") return;
@@ -363,16 +633,18 @@ export function SessionPlayPage() {
 
   const handleStop = useCallback(() => {
     stopAllPlayback();
+    void stopMicCapture();
     doneOnceRef.current = null;
     setDone(false);
     setElapsedSec(0);
     setPlayerState("idle");
-  }, [stopAllPlayback]);
+  }, [stopAllPlayback, stopMicCapture]);
 
   const handleRestart = useCallback(async () => {
     handleStop();
 
     if (!session || !canAccess) return;
+    await ensureMicCapture();
 
     if (sourceMode === "visual") {
       startVisualPlayback(true);
@@ -386,106 +658,7 @@ export function SessionPlayPage() {
     }
 
     startVoiceFromStart();
-  }, [handleStop, session, canAccess, sourceMode, startVisualPlayback, playAudio, startVoiceFromStart]);
-
-  const startScan = useCallback(
-    async (phase: Exclude<ScanPhase, "idle">) => {
-      if (!session || scanPhase !== "idle") return;
-
-      setScanErrorKey(null);
-      setScanProgress(0);
-      setScanVisualState("searching");
-      setScanPhase(phase);
-
-      const abort = new AbortController();
-      scanAbortRef.current = abort;
-
-      try {
-        const result = await runPulseScan({
-          durationMs: 35_000,
-          signal: abort.signal,
-          onProgress: setScanProgress,
-          onStateChange: setScanVisualState,
-        });
-
-        setLastScanDevice(result.device ?? null);
-
-        if (phase === "pre") {
-          const saved = savePreSessionCheckIn({ meditationSlug: session.slug, scan: result });
-          setPreScanRecord(saved.scanRecord);
-          setBioSessionRecord(saved.sessionRecord);
-          setPostScanRecord(null);
-        } else {
-          if (bioSessionRecord?.id) {
-            const saved = savePostSessionCheckIn({
-              bioSessionId: bioSessionRecord.id,
-              scan: result,
-              breathMetrics,
-            });
-            setPostScanRecord(saved.scanRecord);
-            setBioSessionRecord(saved.sessionRecord ?? bioSessionRecord);
-          } else {
-            const standalone = saveStandaloneScan({ phase: "post", meditationSlug: session.slug, scan: result });
-            setPostScanRecord(standalone);
-          }
-        }
-
-        if (result.rawStatus !== "ok" || result.pulse == null) {
-          setScanVisualState("idle");
-          setScanErrorKey(mapScanFailureKey(result));
-        } else {
-          setScanVisualState("success");
-        }
-      } catch {
-        setScanVisualState("idle");
-        setScanErrorKey("bioScanUnknown");
-      } finally {
-        setScanPhase("idle");
-        scanAbortRef.current = null;
-      }
-    },
-    [session, scanPhase, bioSessionRecord, breathMetrics]
-  );
-
-  const cancelScan = useCallback(() => {
-    scanAbortRef.current?.abort();
-    setScanPhase("idle");
-    setScanVisualState("idle");
-  }, []);
-
-  useEffect(() => {
-    if (!warmupActive) {
-      if (warmupTickRef.current) {
-        window.clearInterval(warmupTickRef.current);
-        warmupTickRef.current = null;
-      }
-      return;
-    }
-
-    warmupTickRef.current = window.setInterval(() => {
-      setWarmupSeconds((prev) => {
-        const next = prev + 1;
-        if (next >= BREATH_WARMUP_SECONDS) {
-          if (warmupTickRef.current) {
-            window.clearInterval(warmupTickRef.current);
-            warmupTickRef.current = null;
-          }
-          setWarmupActive(false);
-          setWarmupDone(true);
-          hapticLight(app);
-          return BREATH_WARMUP_SECONDS;
-        }
-        return next;
-      });
-    }, 1000);
-
-    return () => {
-      if (warmupTickRef.current) {
-        window.clearInterval(warmupTickRef.current);
-        warmupTickRef.current = null;
-      }
-    };
-  }, [warmupActive, app]);
+  }, [handleStop, session, canAccess, ensureMicCapture, sourceMode, startVisualPlayback, playAudio, startVoiceFromStart]);
 
   useEffect(() => {
     if (!breathCoachOn) {
@@ -525,15 +698,6 @@ export function SessionPlayPage() {
   }, [app, breathCoachOn, breathPhase.id]);
 
   useEffect(() => {
-    return () => {
-      stopAllPlayback();
-      scanAbortRef.current?.abort();
-      if (breathTickRef.current) window.clearInterval(breathTickRef.current);
-      if (warmupTickRef.current) window.clearInterval(warmupTickRef.current);
-    };
-  }, [stopAllPlayback]);
-
-  useEffect(() => {
     if (!window.Telegram?.WebApp?.initData) return;
     const bb = app.BackButton;
     bb.show();
@@ -546,10 +710,54 @@ export function SessionPlayPage() {
   }, [app, nav, slug]);
 
   useEffect(() => {
+    if (!window.Telegram?.WebApp?.initData) return;
+    if (!canAccess) return;
+
+    const mb = app.MainButton;
+    const onClick = () => {
+      void runSmartCheck("pre");
+    };
+
+    if (!preScanRecord && !smartRunning) {
+      mb.setText(t("bioSmartStart"));
+      mb.enable();
+      mb.show();
+      mb.onClick(onClick);
+    } else if (smartRunning) {
+      mb.setText(t("bioSmartRunning"));
+      mb.showProgress(true);
+      mb.disable();
+      mb.show();
+      mb.onClick(onClick);
+    } else {
+      mb.hideProgress();
+      mb.hide();
+      mb.offClick(onClick);
+    }
+
+    return () => {
+      mb.hideProgress();
+      mb.offClick(onClick);
+      mb.hide();
+    };
+  }, [app, canAccess, preScanRecord, smartRunning, runSmartCheck, t]);
+
+  useEffect(() => {
+    return () => {
+      stopAllPlayback();
+      void stopMicCapture();
+      smartAbortRef.current?.abort();
+      if (breathTickRef.current) window.clearInterval(breathTickRef.current);
+    };
+  }, [stopAllPlayback, stopMicCapture]);
+
+  useEffect(() => {
     if (!session) return;
 
     stopAllPlayback();
     doneOnceRef.current = null;
+    smartAbortRef.current?.abort();
+    micCaptureRef.current = null;
 
     setSpeed(1);
     setPlayerState("idle");
@@ -558,19 +766,25 @@ export function SessionPlayPage() {
     setDurationSec(Math.max(session.audio.durationSec, session.durationMin * 60));
     setSourceMode(session.audio.src ? "audio" : "visual");
 
-    setPreMode("pulse");
-    setScanPhase("idle");
+    setSmartStage("idle");
+    setSmartErrorKey(null);
+    setDualProbe(null);
+    setRecommendation(null);
+
     setScanProgress(0);
     setScanVisualState("idle");
     setScanErrorKey(null);
-    setLastScanDevice(null);
+    setLastScanDeviceLabel(null);
+    setLastScanTorchFallback(false);
     setPreScanRecord(null);
     setPostScanRecord(null);
     setBioSessionRecord(null);
 
-    setWarmupActive(false);
-    setWarmupSeconds(0);
-    setWarmupDone(false);
+    setFrontPre(null);
+    setFrontPost(null);
+    setFrontProgress(0);
+    setFrontScanState("idle");
+    setFrontErrorKey(null);
 
     setBreathCoachOn(false);
     setBreathSeconds(0);
@@ -579,6 +793,9 @@ export function SessionPlayPage() {
     setCameraAssistOn(false);
     setCameraAssistStillness(null);
     stillnessAggregateRef.current = { sum: 0, count: 0 };
+
+    setMicStatus("idle");
+    setMicSummary(null);
 
     if (canAccess) rememberSession(session.slug);
   }, [session, canAccess, rememberSession, stopAllPlayback]);
@@ -662,29 +879,12 @@ export function SessionPlayPage() {
 
   const preReliable = Boolean(preScanRecord && preScanRecord.rawStatus === "ok" && preScanRecord.pulse != null);
   const postReliable = Boolean(postScanRecord && postScanRecord.rawStatus === "ok" && postScanRecord.pulse != null);
-
-  const recommendationKind = preScanRecord?.calmScore != null
-    ? preScanRecord.calmScore < 48
-      ? "soft"
-      : preScanRecord.calmScore >= 72
-        ? "deep"
-        : "balanced"
-    : null;
-
+  const scanStatusKey = mapPulseStateKey(scanVisualState);
+  const frontStatusKey = mapFrontStateKey(frontScanState);
   const breathPhaseLabel =
     breathPhase.id === "inhale" ? t("bioBreathInhale") : breathPhase.id === "pause" ? t("bioBreathPause") : t("bioBreathExhale");
   const breathPhaseScale = breathPhase.id === "inhale" ? 1.15 : breathPhase.id === "pause" ? 1.06 : 0.92;
-
-  const warmupPhase = breathPhaseAt(warmupSeconds);
-  const warmupPhaseLabel =
-    warmupPhase.id === "inhale"
-      ? t("bioBreathInhale")
-      : warmupPhase.id === "pause"
-        ? t("bioBreathPause")
-        : t("bioBreathExhale");
-  const warmupProgress = Math.min(1, warmupSeconds / BREATH_WARMUP_SECONDS);
-
-  const scanStatusKey = mapScanStateKey(scanVisualState);
+  const recommendedSession = recommendation?.sessionSlug ? SESSION_BY_SLUG[recommendation.sessionSlug] : null;
 
   return (
     <div className="tm-page session-stage">
@@ -694,151 +894,114 @@ export function SessionPlayPage() {
 
       <section className="tm-card tm-card--quiet bio-card">
         <div className="bio-head">
-          <p className="tm-kicker tm-kicker--muted">{t("bioPreTitle")}</p>
-          <h2 className="tm-h2">{t("bioPreLead")}</h2>
+          <p className="tm-kicker tm-kicker--muted">{t("bioSmartTitle")}</p>
+          <h2 className="tm-h2">{t("bioSmartLead")}</h2>
           <p className="tm-subtle">{t("bioWellnessDisclaimer")}</p>
+          <p className="tm-subtle">{t(mapProbeReasonKey(dualProbe?.reason ?? "concurrency_blocked"))}</p>
         </div>
 
-        <div className="bio-pre-mode-row">
-          <button
-            type="button"
-            className={`bio-mode-chip ${preMode === "pulse" ? "on" : ""}`}
-            onClick={() => setPreMode("pulse")}
-          >
-            <strong>{t("bioPreModePulse")}</strong>
-            <span>{t("bioPreModePulseHint")}</span>
-          </button>
-          <button
-            type="button"
-            className={`bio-mode-chip ${preMode === "breath" ? "on" : ""}`}
-            onClick={() => setPreMode("breath")}
-          >
-            <strong>{t("bioPreModeBreath")}</strong>
-            <span>{t("bioPreModeBreathHint")}</span>
-          </button>
-        </div>
+        <div className="bio-smart-grid">
+          <article className="bio-smart-item">
+            <p className="tm-kicker tm-kicker--muted">{t("bioFrontTitle")}</p>
+            <p className="tm-subtle">{t(frontStatusKey)}</p>
+            <div className="wave-meter" aria-hidden>
+              <span style={{ width: `${Math.round(frontProgress * 100)}%` }} />
+            </div>
+            {frontPre ? (
+              <p className="tm-subtle">
+                {t("bioFrontMetric")}: {frontPre.breathingRate ?? "-"} bpm · {t(mapFrontToneKey(frontPre.stateLabel))}
+              </p>
+            ) : null}
+            {frontErrorKey ? <p className="bio-error">{t(frontErrorKey)}</p> : null}
+          </article>
 
-        {preMode === "pulse" ? (
-          <div className="bio-pre-grid">
-            <article className="bio-guide-card">
-              <p className="tm-kicker tm-kicker--muted">{t("bioPulseGuideTitle")}</p>
-              <ul className="bio-guide-list">
-                <li>{t("bioPulseGuideRear")}</li>
-                <li>{t("bioPulseGuideCover")}</li>
-                <li>{t("bioPulseGuideStill")}</li>
-              </ul>
-            </article>
-
-            <article className="bio-pulse-visual">
-              <div className="bio-phone-mock" aria-hidden>
+          <article className="bio-smart-item">
+            <p className="tm-kicker tm-kicker--muted">{t("bioRearTitle")}</p>
+            <p className="tm-subtle">{t(scanStatusKey)}</p>
+            <div className="wave-meter" aria-hidden>
+              <span style={{ width: `${Math.round(scanProgress * 100)}%` }} />
+            </div>
+            <p className="tm-subtle">{t("bioPulseGuideRear")}</p>
+            <p className="tm-subtle">
+              {t("bioRearSelected").replace("{camera}", lastScanDeviceLabel ?? dualProbe?.rear.label ?? t("bioRearUnknown"))}
+            </p>
+            <p className="tm-subtle">{t("bioPulseGuideCover")}</p>
+            <div className="bio-pulse-visual" aria-hidden>
+              <div className="bio-phone-mock">
                 <span className="bio-phone-lens" />
                 <span className="bio-phone-flash" />
-                <span className={`bio-phone-finger ${scanPhase === "pre" ? "on" : ""}`} />
+                <span className={`bio-phone-finger ${scanVisualState === "measuring" ? "on" : ""}`} />
               </div>
-
-              <div className="bio-ring-wrap" aria-live="polite">
+              <div className="bio-ring-wrap">
                 <div className="bio-ring" style={{ ["--ring-progress" as string]: `${Math.round(scanProgress * 100)}%` }}>
                   <span>{Math.round(scanProgress * 100)}%</span>
                 </div>
-                <p className="tm-subtle">{t(scanStatusKey)}</p>
+                <p className="tm-subtle">{t("bioPulseGuideStill")}</p>
               </div>
-            </article>
-          </div>
-        ) : (
-          <div className="bio-warmup-card">
-            <div className="bio-warmup-orb" style={{ transform: `scale(${0.9 + warmupPhase.progress * 0.22})` }}>
-              <span>{warmupPhaseLabel}</span>
             </div>
-            <p className="tm-subtle">{warmupActive ? t("bioBreathWarmupRunning") : t("bioPreModeBreathHint")}</p>
-            <div className="wave-meter" aria-hidden>
-              <span style={{ width: `${Math.round(warmupProgress * 100)}%` }} />
-            </div>
-            <p className="tm-subtle">{formatClock(BREATH_WARMUP_SECONDS - warmupSeconds)}</p>
-          </div>
-        )}
+            {lastScanTorchFallback ? <p className="tm-subtle">{t("bioScanTorchFallback")}</p> : null}
+            {scanErrorKey ? <p className="bio-error">{t(scanErrorKey)}</p> : null}
+          </article>
+        </div>
 
         <div className="bio-actions">
-          {preMode === "pulse" ? (
-            <button
-              type="button"
-              className="tm-btn tm-btn-primary"
-              disabled={scanPhase !== "idle"}
-              onClick={() => void startScan("pre")}
-            >
-              {scanPhase === "pre" ? t("bioScanMeasuring") : preScanRecord ? t("bioScanRetry") : t("bioScanStart")}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="tm-btn tm-btn-primary"
-              onClick={() => {
-                if (warmupActive) {
-                  setWarmupActive(false);
-                  return;
-                }
-                setWarmupSeconds(0);
-                setWarmupDone(false);
-                setWarmupActive(true);
-              }}
-            >
-              {warmupActive ? t("bioScanCancel") : t("bioBreathWarmupStart")}
-            </button>
-          )}
-
+          <button
+            type="button"
+            className="tm-btn tm-btn-primary"
+            onClick={() => void runSmartCheck("pre")}
+            disabled={smartRunning}
+          >
+            {smartRunning ? t("bioSmartRunning") : preScanRecord ? t("bioSmartRepeat") : t("bioSmartStart")}
+          </button>
           <button type="button" className="tm-btn tm-btn-ghost" onClick={() => nav("/biofeedback")}>
             {t("bioHistoryOpen")}
           </button>
-
-          {scanPhase !== "idle" ? (
-            <button type="button" className="tm-btn tm-btn-secondary" onClick={cancelScan}>
+          {smartRunning ? (
+            <button type="button" className="tm-btn tm-btn-secondary" onClick={cancelSmartCheck}>
               {t("bioScanCancel")}
             </button>
           ) : null}
         </div>
 
-        {scanPhase !== "idle" ? (
-          <div className="bio-progress">
-            <div className="wave-meter" aria-hidden>
-              <span style={{ width: `${Math.round(scanProgress * 100)}%` }} />
-            </div>
-            <p className="tm-subtle">{Math.round(scanProgress * 100)}%</p>
-          </div>
-        ) : null}
+        {smartErrorKey ? <p className="bio-error">{t(smartErrorKey)}</p> : null}
 
-        {lastScanDevice && lastScanDevice.torchAvailable && !lastScanDevice.torchEnabled ? (
-          <p className="tm-subtle">{t("bioScanTorchFallback")}</p>
-        ) : null}
-
-        {warmupDone ? <p className="session-done">{t("bioBreathWarmupDone")}</p> : null}
-
-        {scanErrorKey ? <p className="bio-error">{t(scanErrorKey)}</p> : null}
-
-        {preScanRecord ? (
+        {preScanRecord && frontPre ? (
           <div className="bio-result">
             <p className="tm-kicker tm-kicker--muted">{t("bioPreResultTitle")}</p>
-            {preReliable ? (
-              <>
+            <div className="bio-result-grid">
+              <article className="bio-metric-pill">
+                <span>{t("bioMetricPulse")}</span>
+                <strong>{preScanRecord.pulse ?? "-"}</strong>
+              </article>
+              <article className="bio-metric-pill">
+                <span>{t("bioMetricCalm")}</span>
+                <strong>{preScanRecord.calmScore ?? "-"}</strong>
+              </article>
+              <article className="bio-metric-pill">
+                <span>{t("bioFrontMetric")}</span>
+                <strong>{frontPre.breathingRate ?? "-"} bpm</strong>
+              </article>
+              <article className="bio-metric-pill">
+                <span>{t("bioFrontState")}</span>
+                <strong>{t(mapFrontToneKey(frontPre.stateLabel))}</strong>
+              </article>
+            </div>
+
+            {recommendation ? (
+              <div className="bio-rec-card">
+                <p className="tm-subtle">{t(mapRecommendationReasonKey(recommendation.rationaleKey))}</p>
                 <p className="tm-subtle">
-                  {t("bioMetricPulse")}: {preScanRecord.pulse} bpm • {t("bioMetricQuality")}: {Math.round(preScanRecord.signalQuality * 100)}%
+                  {t("bioRecPattern")}: {recommendation.targetBreathPattern} · {t("bioRecDuration")}: {recommendation.targetDurationMin} {t("sessionMin")}
                 </p>
-                <p className="tm-subtle">
-                  {t("bioMetricCalm")}: {preScanRecord.calmScore} • {t("bioMetricRecovery")}: {preScanRecord.recoveryScore}
-                </p>
-                {recommendationKind ? (
-                  <p className="tm-subtle">
-                    {t(
-                      recommendationKind === "soft"
-                        ? "bioRecommendationSoft"
-                        : recommendationKind === "deep"
-                          ? "bioRecommendationDeep"
-                          : "bioRecommendationBalanced"
-                    )}
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <p className="tm-subtle">{t("bioScanQualityLow")}</p>
-            )}
+                {recommendedSession && recommendedSession.slug !== session.slug ? (
+                  <button type="button" className="tm-btn tm-btn-secondary" onClick={() => nav(`/session/${recommendedSession.slug}`)}>
+                    {t("bioRecSwitch").replace("{title}", recommendedSession.title[L])}
+                  </button>
+                ) : (
+                  <p className="tm-subtle">{t("bioRecCurrentFits")}</p>
+                )}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>
@@ -948,7 +1111,7 @@ export function SessionPlayPage() {
             type="button"
             className="tm-btn tm-btn-primary tm-btn-block"
             onClick={() => void handlePlay()}
-            disabled={playerState === "playing"}
+            disabled={playerState === "playing" || !preScanRecord}
           >
             {playerState === "paused" ? t("playerResume") : t("playerPlay")}
           </button>
@@ -974,6 +1137,11 @@ export function SessionPlayPage() {
           <button type="button" className="tm-btn tm-btn-ghost tm-btn-block" onClick={() => void handleRestart()}>
             {t("playerRestart")}
           </button>
+        </div>
+
+        <div className="bio-mic-row">
+          <p className="tm-subtle">{t("bioMicTitle")}</p>
+          <span className={`bio-mic-badge ${micStatus}`}>{t(`bioMicStatus_${micStatus}`)}</span>
         </div>
 
         <div className="bio-breath">
@@ -1048,18 +1216,18 @@ export function SessionPlayPage() {
             <div className="bio-result-grid">
               <article className="bio-metric-pill">
                 <span>{t("bioBreathAdherence")}</span>
-                <strong>{breathMetrics.adherenceScore != null ? `${Math.round(breathMetrics.adherenceScore * 100)}%` : "—"}</strong>
+                <strong>{breathMetrics.adherenceScore != null ? `${Math.round(breathMetrics.adherenceScore * 100)}%` : "-"}</strong>
               </article>
               <article className="bio-metric-pill">
                 <span>{t("bioBreathStillness")}</span>
-                <strong>{breathMetrics.stillnessScore != null ? `${Math.round(breathMetrics.stillnessScore * 100)}%` : "—"}</strong>
+                <strong>{breathMetrics.stillnessScore != null ? `${Math.round(breathMetrics.stillnessScore * 100)}%` : "-"}</strong>
               </article>
             </div>
           ) : null}
         </div>
 
         <p className="tm-subtle">{t("playerHint")}</p>
-
+        {!preScanRecord ? <p className="tm-subtle">{t("bioSmartNeedPreHint")}</p> : null}
         {done ? <p className="session-done">{t("sessionCompleteLine")}</p> : null}
       </section>
 
@@ -1072,24 +1240,15 @@ export function SessionPlayPage() {
             <button
               type="button"
               className="tm-btn tm-btn-primary"
-              disabled={scanPhase !== "idle"}
-              onClick={() => void startScan("post")}
+              disabled={smartRunning}
+              onClick={() => void runSmartCheck("post")}
             >
-              {scanPhase === "post" ? t("bioScanMeasuring") : t("bioPostStart")}
+              {smartRunning ? t("bioSmartRunning") : t("bioPostSmartStart")}
             </button>
             <button type="button" className="tm-btn tm-btn-ghost" onClick={() => nav("/biofeedback")}>
               {t("bioHistoryOpen")}
             </button>
           </div>
-
-          {scanPhase === "post" ? (
-            <div className="bio-progress">
-              <div className="wave-meter" aria-hidden>
-                <span style={{ width: `${Math.round(scanProgress * 100)}%` }} />
-              </div>
-              <p className="tm-subtle">{t(scanStatusKey)}</p>
-            </div>
-          ) : null}
 
           {postScanRecord ? (
             <div className="bio-result">
@@ -1101,25 +1260,44 @@ export function SessionPlayPage() {
                     <article className="bio-metric-pill">
                       <span>{t("bioEffectPulse")}</span>
                       <strong>
-                        {preScanRecord?.pulse ?? "—"} → {postScanRecord.pulse ?? "—"}
+                        {preScanRecord?.pulse ?? "-"}
+                        {" -> "}
+                        {postScanRecord.pulse ?? "-"}
                       </strong>
                     </article>
                     <article className="bio-metric-pill">
                       <span>{t("bioEffectCalm")}</span>
                       <strong>
-                        {preScanRecord?.calmScore ?? "—"} → {postScanRecord.calmScore ?? "—"}
+                        {preScanRecord?.calmScore ?? "-"}
+                        {" -> "}
+                        {postScanRecord.calmScore ?? "-"}
                       </strong>
+                    </article>
+                    <article className="bio-metric-pill">
+                      <span>{t("bioFrontMetric")}</span>
+                      <strong>
+                        {frontPre?.breathingRate ?? "-"}
+                        {" -> "}
+                        {frontPost?.breathingRate ?? "-"} bpm
+                      </strong>
+                    </article>
+                    <article className="bio-metric-pill">
+                      <span>{t("bioEffectScore")}</span>
+                      <strong>{bioSessionRecord?.sessionEffect ?? "-"}</strong>
                     </article>
                   </div>
 
-                  <p className="tm-subtle">
-                    {t("bioEffectScore")}: <strong>{bioSessionRecord?.sessionEffect ?? "—"}</strong>
-                  </p>
                   <p className="tm-subtle">{t(summaryKey(bioSessionRecord?.summaryCode))}</p>
                 </>
               ) : (
                 <p className="tm-subtle">{t("bioEffectIncomplete")}</p>
               )}
+
+              {micSummary ? (
+                <p className="tm-subtle">
+                  {t("bioMicAfter")}: {micSummary.breathRate ?? "-"} bpm · {t(mapMicGuidanceKey(micSummary.guidance))}
+                </p>
+              ) : null}
             </div>
           ) : !preReliable ? (
             <p className="tm-subtle">{t("bioPostNeedPre")}</p>
@@ -1141,3 +1319,8 @@ export function SessionPlayPage() {
     </div>
   );
 }
+
+
+
+
+

@@ -7,6 +7,7 @@ type ScanOptions = {
   onProgress?: (progress: number) => void;
   onStateChange?: (state: PulseScanState) => void;
   signal?: AbortSignal;
+  deviceId?: string | null;
 };
 
 type PulseSample = {
@@ -200,7 +201,9 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: { ideal: "environment" },
+        ...(options.deviceId
+          ? { deviceId: { exact: options.deviceId } }
+          : { facingMode: { ideal: "environment" } }),
         width: { ideal: 640 },
         height: { ideal: 480 },
         frameRate: { ideal: 30, max: 30 },
@@ -217,6 +220,7 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
       cameraFacing: "environment",
       torchAvailable: false,
       torchEnabled: false,
+      cameraLabel: track.label || undefined,
     };
 
     const torchStatus = await enableTorch(track);
