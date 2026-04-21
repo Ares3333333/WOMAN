@@ -15,6 +15,7 @@ type ScanOptions = {
   }) => void;
   signal?: AbortSignal;
   deviceId?: string | null;
+  videoConstraints?: MediaTrackConstraints;
 };
 
 type PulseSample = {
@@ -251,14 +252,16 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
   try {
     const selectedDeviceId = options.deviceId ?? (await pickRearDeviceId());
     stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        ...(selectedDeviceId
-          ? { deviceId: { exact: selectedDeviceId } }
-          : { facingMode: { ideal: "environment" } }),
-        width: { ideal: 640 },
-        height: { ideal: 480 },
-        frameRate: { ideal: 30, max: 30 },
-      },
+      video: options.videoConstraints
+        ? options.videoConstraints
+        : {
+            ...(selectedDeviceId
+              ? { deviceId: { exact: selectedDeviceId } }
+              : { facingMode: { ideal: "environment" } }),
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 30, max: 30 },
+          },
       audio: false,
     });
 

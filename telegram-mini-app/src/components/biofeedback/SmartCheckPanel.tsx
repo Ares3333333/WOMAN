@@ -7,30 +7,20 @@ type SmartCheckPanelProps = {
   disclaimer: string;
   probeHint: string;
   front: {
-    title: string;
     status: string;
     progress: number;
     quality: string;
     confidence: string;
-    motion: string;
-    tracking: string;
-    qualityLabel: string;
-    confidenceLabel: string;
-    motionLabel: string;
-    trackingLabel: string;
     hint: string;
-    metricLine?: string | null;
     error?: string | null;
     videoRef: RefObject<HTMLVideoElement>;
     overlayRef: RefObject<HTMLCanvasElement>;
     running: boolean;
   };
   rear: {
-    title: string;
     status: string;
     progress: number;
     targetHint: string;
-    rearHint: string;
     selectedCamera: string;
     coverHint: string;
     stillHint: string;
@@ -44,7 +34,7 @@ type SmartCheckPanelProps = {
     onClick: () => void;
     disabled?: boolean;
   };
-  historyAction: {
+  historyAction?: {
     label: string;
     onClick: () => void;
   };
@@ -57,98 +47,75 @@ type SmartCheckPanelProps = {
 };
 
 export function SmartCheckPanel(props: SmartCheckPanelProps) {
+  const rearLiveClass = props.rear.state === "measuring" || props.rear.state === "signal_found" ? "is-live" : "";
+
   return (
-    <section className="tm-card tm-card--quiet bio-card">
-      <div className="bio-head">
-        <p className="tm-kicker tm-kicker--muted">{props.title}</p>
-        <h2 className="tm-h2">{props.lead}</h2>
-        <p className="tm-subtle">{props.disclaimer}</p>
-        <p className="tm-subtle">{props.probeHint}</p>
-      </div>
+    <section className="smart-check">
+      <header className="smart-check-head">
+        <p className="smart-check-kicker">{props.title}</p>
+        <h2 className="smart-check-title">{props.lead}</h2>
+        <p className="smart-check-sub">{props.probeHint}</p>
+      </header>
 
-      <div className="bio-smart-grid">
-        <article className="bio-smart-item">
-          <p className="tm-kicker tm-kicker--muted">{props.front.title}</p>
-          <p className="tm-subtle">{props.front.status}</p>
-          <div className="bio-front-pip">
-            <div className="bio-front-pip-stage">
-              <video ref={props.front.videoRef} className="bio-front-pip-video" playsInline muted />
-              <canvas ref={props.front.overlayRef} className="bio-front-pip-overlay" />
-              {!props.front.running ? <p className="bio-front-pip-hint">{props.front.hint}</p> : null}
-            </div>
-            <div className="bio-front-pip-meta">
-              <span>
-                {props.front.qualityLabel}: <strong>{props.front.quality}</strong>
-              </span>
-              <span>
-                {props.front.confidenceLabel}: <strong>{props.front.confidence}</strong>
-              </span>
-              <span>
-                {props.front.motionLabel}: <strong>{props.front.motion}</strong>
-              </span>
-              <span>
-                {props.front.trackingLabel}: <strong>{props.front.tracking}</strong>
-              </span>
-            </div>
+      <div className="smart-check-stage">
+        <div className="smart-rear-stage">
+          <div className="smart-rear-topline">
+            <span className={`smart-rear-lens ${rearLiveClass}`} />
+            <p>{props.rear.targetHint}</p>
           </div>
-          <div className="wave-meter" aria-hidden>
-            <span style={{ width: `${Math.round(props.front.progress * 100)}%` }} />
-          </div>
-          {props.front.metricLine ? <p className="tm-subtle">{props.front.metricLine}</p> : null}
-          {props.front.error ? <p className="bio-error">{props.front.error}</p> : null}
-        </article>
 
-        <article className="bio-smart-item">
-          <p className="tm-kicker tm-kicker--muted">{props.rear.title}</p>
-          <p className="tm-subtle">{props.rear.status}</p>
-          <div className="wave-meter" aria-hidden>
+          <div className="smart-rear-progress" aria-hidden>
             <span style={{ width: `${Math.round(props.rear.progress * 100)}%` }} />
           </div>
 
-          <div className="bio-rear-target-row">
-            <span className={`bio-rear-lens-target ${props.rear.state === "measuring" ? "is-live" : ""}`} />
-            <p className="tm-subtle">{props.rear.targetHint}</p>
-          </div>
+          <p className="smart-rear-status">{props.rear.status}</p>
+          <p className="smart-rear-meta">{props.rear.coverHint}</p>
+          <p className="smart-rear-meta">{props.rear.stillHint}</p>
+          <p className="smart-rear-meta">{props.rear.selectedCamera}</p>
+          {props.rear.liveHint ? <p className="smart-rear-meta strong">{props.rear.liveHint}</p> : null}
+          {props.rear.torchHint ? <p className="smart-rear-meta">{props.rear.torchHint}</p> : null}
+        </div>
 
-          <p className="tm-subtle">{props.rear.rearHint}</p>
-          <p className="tm-subtle">{props.rear.selectedCamera}</p>
-          <p className="tm-subtle">{props.rear.coverHint}</p>
-          {props.rear.liveHint ? <p className="tm-subtle">{props.rear.liveHint}</p> : null}
-
-          <div className="bio-pulse-visual" aria-hidden>
-            <div className="bio-phone-mock">
-              <span className="bio-phone-lens" />
-              <span className="bio-phone-flash" />
-              <span className={`bio-phone-finger ${props.rear.state === "measuring" ? "on" : ""}`} />
-            </div>
-            <div className="bio-ring-wrap">
-              <div className="bio-ring" style={{ ["--ring-progress" as string]: `${Math.round(props.rear.progress * 100)}%` }}>
-                <span>{Math.round(props.rear.progress * 100)}%</span>
-              </div>
-              <p className="tm-subtle">{props.rear.stillHint}</p>
-            </div>
+        <div className="smart-front-pip-wrap">
+          <div className="smart-front-pip">
+            <video ref={props.front.videoRef} className="smart-front-video" playsInline muted />
+            <canvas ref={props.front.overlayRef} className="smart-front-overlay" />
+            {!props.front.running ? <p className="smart-front-hint">{props.front.hint}</p> : null}
           </div>
-          {props.rear.torchHint ? <p className="tm-subtle">{props.rear.torchHint}</p> : null}
-          {props.rear.error ? <p className="bio-error">{props.rear.error}</p> : null}
-        </article>
+          <div className="smart-front-meta">
+            <span>{props.front.status}</span>
+            <span>Q {props.front.quality}</span>
+            <span>C {props.front.confidence}</span>
+            <span>{Math.round(props.front.progress * 100)}%</span>
+          </div>
+        </div>
       </div>
 
-      <div className="bio-actions">
-        <button type="button" className="tm-btn tm-btn-primary" onClick={props.primaryAction.onClick} disabled={props.primaryAction.disabled}>
+      {props.front.error ? <p className="smart-check-error">{props.front.error}</p> : null}
+      {props.rear.error ? <p className="smart-check-error">{props.rear.error}</p> : null}
+      {props.topError ? <p className="smart-check-error">{props.topError}</p> : null}
+
+      {props.children}
+
+      <div className="smart-check-actions">
+        <button type="button" className="smart-primary-btn" onClick={props.primaryAction.onClick} disabled={props.primaryAction.disabled}>
           {props.primaryAction.label}
         </button>
-        <button type="button" className="tm-btn tm-btn-ghost" onClick={props.historyAction.onClick}>
-          {props.historyAction.label}
-        </button>
-        {props.cancelAction ? (
-          <button type="button" className="tm-btn tm-btn-secondary" onClick={props.cancelAction.onClick}>
-            {props.cancelAction.label}
-          </button>
-        ) : null}
+        <div className="smart-secondary-row">
+          {props.historyAction ? (
+            <button type="button" className="smart-text-btn" onClick={props.historyAction.onClick}>
+              {props.historyAction.label}
+            </button>
+          ) : null}
+          {props.cancelAction ? (
+            <button type="button" className="smart-text-btn" onClick={props.cancelAction.onClick}>
+              {props.cancelAction.label}
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      {props.topError ? <p className="bio-error">{props.topError}</p> : null}
-      {props.children}
+      <p className="smart-check-disclaimer">{props.disclaimer}</p>
     </section>
   );
 }

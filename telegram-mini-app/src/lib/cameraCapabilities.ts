@@ -75,6 +75,24 @@ function pickDevice(devices: MediaDeviceInfo[], role: CameraRole): CameraSelecti
   };
 }
 
+export function resolvePreferredCameras(devices: MediaDeviceInfo[]): {
+  front: CameraSelection;
+  rear: CameraSelection;
+} {
+  return {
+    front: pickDevice(devices, "front"),
+    rear: pickDevice(devices, "rear"),
+  };
+}
+
+export async function getPreferredCameras(): Promise<{
+  front: CameraSelection;
+  rear: CameraSelection;
+}> {
+  const devices = await listVideoDevices().catch(() => []);
+  return resolvePreferredCameras(devices);
+}
+
 async function listVideoDevices(): Promise<MediaDeviceInfo[]> {
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) return [];
   const devices = await navigator.mediaDevices.enumerateDevices();

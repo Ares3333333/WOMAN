@@ -81,8 +81,8 @@ telegram-mini-app/
 Added inside `telegram-mini-app` as a wellness-only feature (no medical claims):
 
 - Smart one-button check-in in session screen (`SessionPlay`) with dual-camera probe.
-- If dual front+rear capture is supported: front and rear scans run in parallel.
-- If not supported (common in Telegram WebView): seamless fallback runs front scan first, then rear pulse scan.
+- Dual-first orchestration now tries multiple true parallel front+rear strategies (exact device IDs, facingMode, low-power constraints) before any fallback.
+- Only after repeated explicit concurrency failures it switches to staged flow.
 - Rear pulse scan includes explicit camera guidance and finger placement visual.
 - Rear pulse scan now also exposes live finger-contact confidence, so users see when the lens is properly covered before full measurement.
 - Front scan estimates breathing rhythm, regularity, and calm/activation state with quality/confidence gating.

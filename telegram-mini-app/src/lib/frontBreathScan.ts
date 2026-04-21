@@ -43,6 +43,7 @@ export type FrontBreathScanOptions = {
   previewVideo?: HTMLVideoElement | null;
   previewOverlay?: HTMLCanvasElement | null;
   onFrame?: (frame: FrontFrameSignal) => void;
+  videoConstraints?: MediaTrackConstraints;
 };
 
 type SignalSample = { t: number; value: number };
@@ -279,19 +280,21 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
     options.onState?.("initializing");
 
     stream = await navigator.mediaDevices.getUserMedia({
-      video: options.deviceId
-        ? {
-            deviceId: { exact: options.deviceId },
-            width: { ideal: 420 },
-            height: { ideal: 420 },
-            frameRate: { ideal: 24, max: 30 },
-          }
-        : {
-            facingMode: { ideal: "user" },
-            width: { ideal: 420 },
-            height: { ideal: 420 },
-            frameRate: { ideal: 24, max: 30 },
-          },
+      video: options.videoConstraints
+        ? options.videoConstraints
+        : options.deviceId
+          ? {
+              deviceId: { exact: options.deviceId },
+              width: { ideal: 420 },
+              height: { ideal: 420 },
+              frameRate: { ideal: 24, max: 30 },
+            }
+          : {
+              facingMode: { ideal: "user" },
+              width: { ideal: 420 },
+              height: { ideal: 420 },
+              frameRate: { ideal: 24, max: 30 },
+            },
       audio: false,
     });
 
