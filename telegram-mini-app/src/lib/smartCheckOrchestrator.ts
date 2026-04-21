@@ -55,6 +55,10 @@ const DEFAULT_DURATIONS: SmartCheckDurations = {
   rearMs: 20_000,
 };
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 function normalizeDurations(partial?: Partial<SmartCheckDurations>): SmartCheckDurations {
   return {
     frontDualMs: partial?.frontDualMs ?? DEFAULT_DURATIONS.frontDualMs,
@@ -167,6 +171,9 @@ async function runDualAttempt(
       onState: (state) => options.onFrontState?.(state),
       onFrame: options.onFrontFrame,
     });
+
+    // Staggered start reduces WebView stream-init race without giving up true parallel measurement window.
+    await wait(280);
 
     const pulsePromise = runPulseScan({
       signal: attemptAbort.signal,
