@@ -15,6 +15,8 @@ type ScanOptions = {
   }) => void;
   signal?: AbortSignal;
   deviceId?: string | null;
+  inputStream?: MediaStream | null;
+  manageInputStream?: boolean;
   videoConstraints?: MediaTrackConstraints;
 };
 
@@ -54,6 +56,54 @@ function estimateContactConfidence(redDominance: number, brightness: number): nu
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getUserMediaWithTimeout(
+  constraints: MediaStreamConstraints,
+  timeoutMs: number,
+  signal?: AbortSignal
+): Promise<MediaStream> {
+  if (signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+
+  return new Promise<MediaStream>((resolve, reject) => {
+    let settled = false;
+
+    const done = (handler: () => void) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbort);
+      handler();
+    };
+
+    const timeout = window.setTimeout(() => {
+      done(() => reject(new Error("gum_timeout")));
+    }, timeoutMs);
+
+    const onAbort = () => {
+      done(() => reject(new DOMException("Aborted", "AbortError")));
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+
+    navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then((stream) => {
+        done(() => {
+          if (signal?.aborted) {
+            stream.getTracks().forEach((track) => track.stop());
+            reject(new DOMException("Aborted", "AbortError"));
+            return;
+          }
+          resolve(stream);
+        });
+      })
+      .catch((error) => {
+        done(() => reject(error));
+      });
+  });
 }
 
 function scoreRearLabel(label: string): number {
@@ -226,6 +276,7 @@ async function enableTorch(track: MediaStreamTrack): Promise<{ available: boolea
 
 export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScanResult> {
   const durationMs = options.durationMs ?? 26000;
+  const ownStream = options.manageInputStream ?? true;
   options.onStateChange?.("initializing");
 
   if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -250,20 +301,27 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
   };
 
   try {
-    const selectedDeviceId = options.deviceId ?? (await pickRearDeviceId());
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: options.videoConstraints
-        ? options.videoConstraints
-        : {
-            ...(selectedDeviceId
-              ? { deviceId: { exact: selectedDeviceId } }
-              : { facingMode: { ideal: "environment" } }),
-            width: { ideal: 640 },
-            height: { ideal: 480 },
-            frameRate: { ideal: 30, max: 30 },
-          },
-      audio: false,
-    });
+    stream = options.inputStream ?? null;
+    if (!stream) {
+      const selectedDeviceId = options.deviceId ?? (await pickRearDeviceId());
+      stream = await getUserMediaWithTimeout(
+        {
+          video: options.videoConstraints
+            ? options.videoConstraints
+            : {
+                ...(selectedDeviceId
+                  ? { deviceId: { exact: selectedDeviceId } }
+                  : { facingMode: { ideal: "environment" } }),
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                frameRate: { ideal: 30, max: 30 },
+              },
+          audio: false,
+        },
+        7_000,
+        options.signal
+      );
+    }
 
     const track = stream.getVideoTracks()[0];
     if (!track) {
@@ -453,13 +511,15 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
       return buildFailure("permission_denied", "permission_denied", Date.now() - startedAt, device);
     }
 
-    if (message.includes("NotFoundError") || message.includes("OverconstrainedError")) {
+    if (message.includes("NotFoundError") || message.includes("OverconstrainedError") || message.includes("gum_timeout")) {
       return buildFailure("unsupported", "camera_unavailable", Date.now() - startedAt, device);
     }
 
     return buildFailure("low_signal", "unknown", Date.now() - startedAt, device);
   } finally {
-    stream?.getTracks().forEach((track) => track.stop());
+    if (ownStream) {
+      stream?.getTracks().forEach((track) => track.stop());
+    }
     if (video) {
       const view = video;
       view.pause();

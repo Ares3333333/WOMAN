@@ -78,7 +78,7 @@ export function SmartCheckPanel(props: SmartCheckPanelProps) {
 
         <div className="smart-front-pip-wrap">
           <div className="smart-front-pip">
-            <video ref={props.front.videoRef} className="smart-front-video" playsInline muted />
+            <video ref={props.front.videoRef} className="smart-front-video" playsInline muted autoPlay />
             <canvas ref={props.front.overlayRef} className="smart-front-overlay" />
             {!props.front.running ? <p className="smart-front-hint">{props.front.hint}</p> : null}
           </div>

@@ -143,28 +143,6 @@ function toAudioSnapshot(summary: BreathAudioSummary | null): AudioBreathSnapsho
   };
 }
 
-async function ensureCameraPermissionWarmup(signal?: AbortSignal): Promise<"ok" | "denied" | "unsupported" | "failed"> {
-  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) return "unsupported";
-  if (signal?.aborted) return "failed";
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } },
-      audio: false,
-    });
-    stream.getTracks().forEach((track) => track.stop());
-    return "ok";
-  } catch (error) {
-    const name = typeof error === "object" && error && "name" in error ? String((error as { name?: unknown }).name ?? "") : "";
-    const message =
-      typeof error === "object" && error && "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
-    const token = `${name} ${message}`;
-    if (/NotAllowedError|PermissionDeniedError/i.test(token)) return "denied";
-    if (/NotFoundError|OverconstrainedError|NotReadableError/i.test(token)) return "unsupported";
-    return "failed";
-  }
-}
-
 export function SessionPlayPage() {
   const { slug } = useParams<{ slug: string }>();
   const { lang, t } = useI18n();
@@ -232,7 +210,7 @@ export function SessionPlayPage() {
   const breathTickRef = useRef<number | null>(null);
   const visualTickRef = useRef<number | null>(null);
   const phaseHapticRef = useRef<"inhale" | "pause" | "exhale" | null>(null);
-  const cameraPermissionReadyRef = useRef(false);
+  const dualDiagRef = useRef<string[]>([]);
 
   const fullText = session ? scriptToText(session.script, L) : "";
   const textWords = useMemo(() => fullText.split(/\s+/).filter(Boolean).length, [fullText]);
@@ -457,19 +435,11 @@ export function SessionPlayPage() {
 
       const abort = new AbortController();
       smartAbortRef.current = abort;
+      let guardTimeout: number | null = null;
+      dualDiagRef.current = [];
 
       try {
-        if (!cameraPermissionReadyRef.current) {
-          const warmup = await ensureCameraPermissionWarmup(abort.signal);
-          if (warmup !== "ok") {
-            setSmartStage("error");
-            setSmartErrorKey(warmup === "denied" ? "bioScanPermission" : warmup === "unsupported" ? "bioScanUnsupported" : "bioSmartFailed");
-            return;
-          }
-          cameraPermissionReadyRef.current = true;
-        }
-
-        const result = await runSmartCheckOrchestrator({
+        const runPromise = runSmartCheckOrchestrator({
           signal: abort.signal,
           onProbe: (probe) => setDualProbe(probe),
           onMode: (mode) => setSmartMode(mode),
@@ -491,9 +461,25 @@ export function SessionPlayPage() {
             setScanLiveContact(signal.contactConfidence);
             setScanLiveDetected(signal.contactDetected);
           },
+          onDiagnostics: (event) => {
+            const line = `${event.at} ${event.event}${event.detail ? `:${event.detail}` : ""}`;
+            dualDiagRef.current.push(line);
+            if (import.meta.env.DEV) {
+              console.debug("[smart-check]", line);
+            }
+          },
           previewVideo: frontPreviewVideoRef.current,
           previewOverlay: frontPreviewOverlayRef.current,
         });
+
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          guardTimeout = window.setTimeout(() => {
+            abort.abort();
+            reject(new Error("smart_timeout"));
+          }, 45_000);
+        });
+
+        const result = await Promise.race([runPromise, timeoutPromise]);
 
         setSmartStage("ready");
         setFrontScanState("done");
@@ -587,6 +573,7 @@ export function SessionPlayPage() {
         setSmartErrorKey("bioSmartFailed");
         setSmartStage("error");
       } finally {
+        if (guardTimeout) window.clearTimeout(guardTimeout);
         smartAbortRef.current = null;
       }
     },
@@ -785,7 +772,6 @@ export function SessionPlayPage() {
     doneOnceRef.current = null;
     smartAbortRef.current?.abort();
     micCaptureRef.current = null;
-    cameraPermissionReadyRef.current = false;
 
     setFlowStep("precheck");
     setSpeed(1);

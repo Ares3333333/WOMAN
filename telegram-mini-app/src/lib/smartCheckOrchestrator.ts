@@ -2,6 +2,12 @@ import { getPreferredCameras, type CameraSelection, type DualCameraProbe } from 
 import { runPulseScan, type PulseScanState } from "./cameraPulseScan";
 import { runFrontBreathScan, type FrontBreathScanResult, type FrontFrameSignal } from "./frontBreathScan";
 import type { PulseScanResult } from "./biofeedback";
+import {
+  acquireDualCameraStreams,
+  releaseDualCameraStreams,
+  type DualCameraDiagnosticsEvent,
+  type DualCameraFailureReason,
+} from "./dualCameraManager";
 
 export type SmartCheckMode = "dual" | "staged";
 
@@ -12,6 +18,7 @@ export type SmartCheckRunResult = {
   front: FrontBreathScanResult;
   pulse: PulseScanResult;
   strategyId?: string;
+  diagnostics?: DualCameraDiagnosticsEvent[];
 };
 
 type SmartCheckDurations = {
@@ -45,6 +52,7 @@ export type RunSmartCheckOptions = {
     brightness: number;
     elapsedMs: number;
   }) => void;
+  onDiagnostics?: (event: DualCameraDiagnosticsEvent) => void;
   previewVideo?: HTMLVideoElement | null;
   previewOverlay?: HTMLCanvasElement | null;
 };
@@ -54,10 +62,6 @@ const DEFAULT_DURATIONS: SmartCheckDurations = {
   frontStagedMs: 14_000,
   rearMs: 20_000,
 };
-
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
 
 function normalizeDurations(partial?: Partial<SmartCheckDurations>): SmartCheckDurations {
   return {
@@ -145,75 +149,178 @@ function buildProbe(params: {
   };
 }
 
+function buildFrontFailure(reason: DualCameraFailureReason): FrontBreathScanResult {
+  if (reason === "permission_denied") {
+    return {
+      breathingRate: null,
+      regularity: null,
+      signalQuality: 0,
+      confidence: 0,
+      stateLabel: "neutral",
+      motionScore: 0,
+      durationMs: 0,
+      rawStatus: "permission_denied",
+      failureReason: "permission_denied",
+      trackingMode: "fallback",
+    };
+  }
+
+  if (reason === "canceled") {
+    return {
+      breathingRate: null,
+      regularity: null,
+      signalQuality: 0,
+      confidence: 0,
+      stateLabel: "neutral",
+      motionScore: 0,
+      durationMs: 0,
+      rawStatus: "canceled",
+      failureReason: "canceled",
+      trackingMode: "fallback",
+    };
+  }
+
+  return {
+    breathingRate: null,
+    regularity: null,
+    signalQuality: 0,
+    confidence: 0,
+    stateLabel: "neutral",
+    motionScore: 0,
+    durationMs: 0,
+    rawStatus: "unsupported",
+    failureReason: "camera_unavailable",
+    trackingMode: "fallback",
+  };
+}
+
+function buildPulseFailure(reason: DualCameraFailureReason): PulseScanResult {
+  if (reason === "permission_denied") {
+    return {
+      pulse: null,
+      signalQuality: 0,
+      durationMs: 0,
+      rawStatus: "permission_denied",
+      failureReason: "permission_denied",
+      confidence: 0,
+      contactDetected: false,
+      contactConfidence: 0,
+      torchMode: "unavailable",
+      device: {
+        cameraFacing: "unknown",
+        torchAvailable: false,
+        torchEnabled: false,
+      },
+    };
+  }
+
+  if (reason === "canceled") {
+    return {
+      pulse: null,
+      signalQuality: 0,
+      durationMs: 0,
+      rawStatus: "canceled",
+      failureReason: "canceled",
+      confidence: 0,
+      contactDetected: false,
+      contactConfidence: 0,
+      torchMode: "unavailable",
+      device: {
+        cameraFacing: "unknown",
+        torchAvailable: false,
+        torchEnabled: false,
+      },
+    };
+  }
+
+  return {
+    pulse: null,
+    signalQuality: 0,
+    durationMs: 0,
+    rawStatus: "unsupported",
+    failureReason: "camera_unavailable",
+    confidence: 0,
+    contactDetected: false,
+    contactConfidence: 0,
+    torchMode: "unavailable",
+    device: {
+      cameraFacing: "unknown",
+      torchAvailable: false,
+      torchEnabled: false,
+    },
+  };
+}
+
 async function runDualAttempt(
   options: RunSmartCheckOptions,
   strategy: DualStrategy,
   durations: SmartCheckDurations
-): Promise<{ front: FrontBreathScanResult; pulse: PulseScanResult }> {
-  const attemptAbort = new AbortController();
-  const abortFromOuter = () => attemptAbort.abort();
-  options.signal.addEventListener("abort", abortFromOuter, { once: true });
-
+): Promise<{ front: FrontBreathScanResult; pulse: PulseScanResult; strategyId: string; diagnostics: DualCameraDiagnosticsEvent[] }> {
   options.onMode?.("dual");
   options.onStage?.("dual");
   options.onStrategy?.(strategy.id);
   options.onFrontState?.("initializing");
   options.onPulseState?.("searching");
 
+  const opened = await acquireDualCameraStreams({
+    signal: options.signal,
+    frontConstraints: strategy.frontConstraints,
+    rearConstraints: strategy.rearConstraints,
+    timeoutMs: 7_000,
+    onDiagnostics: options.onDiagnostics,
+  });
+
+  const strategyId = `${strategy.id}:${opened.strategyId}`;
+  options.onStrategy?.(strategyId);
+
+  if (!opened.ok) {
+    options.onFrontState?.("done");
+    options.onPulseState?.("idle");
+    return {
+      front: buildFrontFailure(opened.reason),
+      pulse: buildPulseFailure(opened.reason),
+      strategyId,
+      diagnostics: opened.diagnostics,
+    };
+  }
+
+  const frontStream = opened.frontStream;
+  const rearStream = opened.rearStream;
+
   try {
-    const frontPromise = runFrontBreathScan({
-      signal: attemptAbort.signal,
-      durationMs: durations.frontDualMs,
-      videoConstraints: strategy.frontConstraints,
-      previewVideo: options.previewVideo,
-      previewOverlay: options.previewOverlay,
-      onProgress: options.onFrontProgress,
-      onState: (state) => options.onFrontState?.(state),
-      onFrame: options.onFrontFrame,
-    });
-
-    // Staggered start reduces WebView stream-init race without giving up true parallel measurement window.
-    await wait(280);
-
-    const pulsePromise = runPulseScan({
-      signal: attemptAbort.signal,
-      durationMs: durations.rearMs,
-      videoConstraints: strategy.rearConstraints,
-      onProgress: options.onPulseProgress,
-      onStateChange: options.onPulseState,
-      onSignal: options.onPulseSignal,
-    });
-
-    frontPromise
-      .then((front) => {
-        if (front.rawStatus === "unsupported" && front.failureReason === "camera_unavailable") {
-          attemptAbort.abort();
-        }
-      })
-      .catch(() => {
-        attemptAbort.abort();
-      });
-
-    pulsePromise
-      .then((pulse) => {
-        if (pulse.rawStatus === "unsupported" && pulse.failureReason === "camera_unavailable") {
-          attemptAbort.abort();
-        }
-      })
-      .catch(() => {
-        attemptAbort.abort();
-      });
-
-    const [front, pulse] = await Promise.all([frontPromise, pulsePromise]);
+    const [front, pulse] = await Promise.all([
+      runFrontBreathScan({
+        signal: options.signal,
+        durationMs: durations.frontDualMs,
+        inputStream: frontStream,
+        manageInputStream: false,
+        previewVideo: options.previewVideo,
+        previewOverlay: options.previewOverlay,
+        onProgress: options.onFrontProgress,
+        onState: (state) => options.onFrontState?.(state),
+        onFrame: options.onFrontFrame,
+      }),
+      runPulseScan({
+        signal: options.signal,
+        durationMs: durations.rearMs,
+        inputStream: rearStream,
+        manageInputStream: false,
+        onProgress: options.onPulseProgress,
+        onStateChange: options.onPulseState,
+        onSignal: options.onPulseSignal,
+      }),
+    ]);
 
     options.onFrontState?.("done");
     options.onPulseState?.(pulse.rawStatus === "ok" ? "success" : "idle");
-    return { front, pulse };
+    return {
+      front,
+      pulse,
+      strategyId,
+      diagnostics: opened.diagnostics,
+    };
   } finally {
-    options.signal.removeEventListener("abort", abortFromOuter);
-    if (options.signal.aborted) {
-      attemptAbort.abort();
-    }
+    releaseDualCameraStreams(frontStream, rearStream);
   }
 }
 
@@ -265,16 +372,15 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
   const preferred = await getPreferredCameras();
   const strategies = buildDualStrategies(preferred.front, preferred.rear);
 
-  let lastDual: { front: FrontBreathScanResult; pulse: PulseScanResult; strategyId: string } | null = null;
+  let lastDual:
+    | { front: FrontBreathScanResult; pulse: PulseScanResult; strategyId: string; diagnostics: DualCameraDiagnosticsEvent[] }
+    | null = null;
   let concurrencyBlocked = false;
 
   for (const strategy of strategies) {
     if (options.signal.aborted) break;
     const dual = await runDualAttempt(options, strategy, durations);
-    lastDual = {
-      ...dual,
-      strategyId: strategy.id,
-    };
+    lastDual = dual;
 
     if (isPermissionIssue(dual.front, dual.pulse)) {
       const probe = buildProbe({
@@ -290,7 +396,8 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
         usedFallback: false,
         front: dual.front,
         pulse: dual.pulse,
-        strategyId: strategy.id,
+        strategyId: dual.strategyId,
+        diagnostics: dual.diagnostics,
       };
     }
 
@@ -308,7 +415,8 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
         usedFallback: false,
         front: dual.front,
         pulse: dual.pulse,
-        strategyId: strategy.id,
+        strategyId: dual.strategyId,
+        diagnostics: dual.diagnostics,
       };
     }
 
@@ -331,5 +439,6 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
     front: fallback.front,
     pulse: fallback.pulse,
     strategyId: lastDual?.strategyId,
+    diagnostics: lastDual?.diagnostics,
   };
 }

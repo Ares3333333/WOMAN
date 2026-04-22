@@ -40,6 +40,8 @@ export type FrontBreathScanOptions = {
   onProgress?: (value: number) => void;
   onState?: (state: "initializing" | "tracking" | "analyzing") => void;
   deviceId?: string | null;
+  inputStream?: MediaStream | null;
+  manageInputStream?: boolean;
   previewVideo?: HTMLVideoElement | null;
   previewOverlay?: HTMLCanvasElement | null;
   onFrame?: (frame: FrontFrameSignal) => void;
@@ -84,6 +86,54 @@ function detrend(values: number[]): number[] {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getUserMediaWithTimeout(
+  constraints: MediaStreamConstraints,
+  timeoutMs: number,
+  signal?: AbortSignal
+): Promise<MediaStream> {
+  if (signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+
+  return new Promise<MediaStream>((resolve, reject) => {
+    let settled = false;
+
+    const done = (handler: () => void) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbort);
+      handler();
+    };
+
+    const timeout = window.setTimeout(() => {
+      done(() => reject(new Error("gum_timeout")));
+    }, timeoutMs);
+
+    const onAbort = () => {
+      done(() => reject(new DOMException("Aborted", "AbortError")));
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+
+    navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then((stream) => {
+        done(() => {
+          if (signal?.aborted) {
+            stream.getTracks().forEach((track) => track.stop());
+            reject(new DOMException("Aborted", "AbortError"));
+            return;
+          }
+          resolve(stream);
+        });
+      })
+      .catch((error) => {
+        done(() => reject(error));
+      });
+  });
 }
 
 function computeBrightnessScore(brightness: number): number {
@@ -239,11 +289,15 @@ function mapErrorToStatus(error: unknown): { status: FrontBreathRawStatus; reaso
   if (/NotFoundError|OverconstrainedError|NotReadableError/i.test(token)) {
     return { status: "unsupported", reason: "camera_unavailable" };
   }
+  if (/gum_timeout|TimeoutError/i.test(token)) {
+    return { status: "unsupported", reason: "camera_unavailable" };
+  }
   return { status: "low_signal", reason: "unknown" };
 }
 
 export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): Promise<FrontBreathScanResult> {
   const durationMs = options.durationMs ?? 22000;
+  const ownStream = options.manageInputStream ?? true;
 
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
     return {
@@ -282,24 +336,30 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
   try {
     options.onState?.("initializing");
 
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: options.videoConstraints
-        ? options.videoConstraints
-        : options.deviceId
-          ? {
-              deviceId: { exact: options.deviceId },
-              width: { ideal: 420 },
-              height: { ideal: 420 },
-              frameRate: { ideal: 24, max: 30 },
-            }
-          : {
-              facingMode: { ideal: "user" },
-              width: { ideal: 420 },
-              height: { ideal: 420 },
-              frameRate: { ideal: 24, max: 30 },
-            },
-      audio: false,
-    });
+    stream =
+      options.inputStream ??
+      (await getUserMediaWithTimeout(
+        {
+          video: options.videoConstraints
+            ? options.videoConstraints
+            : options.deviceId
+              ? {
+                  deviceId: { exact: options.deviceId },
+                  width: { ideal: 420 },
+                  height: { ideal: 420 },
+                  frameRate: { ideal: 24, max: 30 },
+                }
+              : {
+                  facingMode: { ideal: "user" },
+                  width: { ideal: 420 },
+                  height: { ideal: 420 },
+                  frameRate: { ideal: 24, max: 30 },
+                },
+          audio: false,
+        },
+        7_000,
+        options.signal
+      ));
 
     const deviceLabel = stream.getVideoTracks()[0]?.label || undefined;
 
@@ -530,7 +590,9 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
       trackingMode: "fallback",
     };
   } finally {
-    stream?.getTracks().forEach((track) => track.stop());
+    if (ownStream) {
+      stream?.getTracks().forEach((track) => track.stop());
+    }
     if (video) {
       video.pause();
       video.srcObject = null;
