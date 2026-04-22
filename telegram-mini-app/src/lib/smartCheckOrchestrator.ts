@@ -90,17 +90,27 @@ function baseRearConstraints(rear: CameraSelection, lowPower = false): MediaTrac
 }
 
 function buildDualStrategies(front: CameraSelection, rear: CameraSelection): DualStrategy[] {
-  const strategies: DualStrategy[] = [
+  const strategies: DualStrategy[] = [];
+
+  if (front.id && rear.id && front.id !== rear.id) {
+    strategies.push({
+      id: "dual_exact_ids",
+      frontConstraints: baseFrontConstraints(front, false),
+      rearConstraints: baseRearConstraints(rear, false),
+    });
+  }
+
+  strategies.push(
     {
-      id: "dual_facing_mode",
+      id: "dual_facing_exact",
       frontConstraints: {
-        facingMode: { ideal: "user" },
+        facingMode: { exact: "user" },
         width: { ideal: 420 },
         height: { ideal: 420 },
         frameRate: { ideal: 24, max: 30 },
       },
       rearConstraints: {
-        facingMode: { ideal: "environment" },
+        facingMode: { exact: "environment" },
         width: { ideal: 640 },
         height: { ideal: 480 },
         frameRate: { ideal: 28, max: 30 },
@@ -111,15 +121,7 @@ function buildDualStrategies(front: CameraSelection, rear: CameraSelection): Dua
       frontConstraints: baseFrontConstraints(front, true),
       rearConstraints: baseRearConstraints(rear, true),
     },
-  ];
-
-  if (front.id && rear.id && front.id !== rear.id) {
-    strategies.splice(1, 0, {
-      id: "dual_exact_ids",
-      frontConstraints: baseFrontConstraints(front, false),
-      rearConstraints: baseRearConstraints(rear, false),
-    });
-  }
+  );
 
   return strategies;
 }
@@ -259,6 +261,11 @@ async function runDualAttempt(
   options.onMode?.("dual");
   options.onStage?.("dual");
   options.onStrategy?.(strategy.id);
+  options.onDiagnostics?.({
+    at: new Date().toISOString(),
+    event: "dual_strategy_selected",
+    detail: strategy.id,
+  });
   options.onFrontState?.("initializing");
   options.onPulseState?.("searching");
 
@@ -299,6 +306,12 @@ async function runDualAttempt(
         onProgress: options.onFrontProgress,
         onState: (state) => options.onFrontState?.(state),
         onFrame: options.onFrontFrame,
+        onLifecycle: (event, detail) =>
+          options.onDiagnostics?.({
+            at: new Date().toISOString(),
+            event,
+            detail,
+          }),
       }),
       runPulseScan({
         signal: options.signal,
@@ -308,6 +321,12 @@ async function runDualAttempt(
         onProgress: options.onPulseProgress,
         onStateChange: options.onPulseState,
         onSignal: options.onPulseSignal,
+        onLifecycle: (event, detail) =>
+          options.onDiagnostics?.({
+            at: new Date().toISOString(),
+            event,
+            detail,
+          }),
       }),
     ]);
 

@@ -32,6 +32,10 @@ export function deriveWellnessSnapshot(input: {
   const breathingRate = input.front?.breathingRate ?? null;
   const regularity = input.front?.regularity ?? null;
   const frontState = input.front?.stateLabel ?? "neutral";
+  const pulseQuality = clamp((input.pulse?.signalQuality ?? 0.42) * (input.pulse?.confidence ?? 0.42));
+  const frontQuality = clamp((input.front?.signalQuality ?? 0.42) * (input.front?.confidence ?? 0.42));
+  const micQuality = clamp(input.mic?.confidence ?? 0.38);
+  const blendedSignal = clamp(pulseQuality * 0.38 + frontQuality * 0.44 + micQuality * 0.18);
 
   let elevated = 0;
   let fatigue = 0;
@@ -39,30 +43,30 @@ export function deriveWellnessSnapshot(input: {
   let calm = 0;
 
   if (pulse != null) {
-    if (pulse >= 92) elevated += 0.4;
-    if (pulse <= 60) fatigue += 0.2;
-    if (pulse >= 84 && pulse < 92) tense += 0.18;
-    if (pulse < 74) calm += 0.2;
+    if (pulse >= 92) elevated += 0.4 * pulseQuality;
+    if (pulse <= 60) fatigue += 0.2 * pulseQuality;
+    if (pulse >= 84 && pulse < 92) tense += 0.18 * pulseQuality;
+    if (pulse < 74) calm += 0.2 * pulseQuality;
   }
 
   if (breathingRate != null) {
-    if (breathingRate >= 20) elevated += 0.35;
-    if (breathingRate <= 9) fatigue += 0.18;
-    if (breathingRate >= 16 && breathingRate < 20) tense += 0.15;
-    if (breathingRate >= 10 && breathingRate <= 14) calm += 0.18;
+    if (breathingRate >= 20) elevated += 0.35 * frontQuality;
+    if (breathingRate <= 9) fatigue += 0.18 * frontQuality;
+    if (breathingRate >= 16 && breathingRate < 20) tense += 0.15 * frontQuality;
+    if (breathingRate >= 10 && breathingRate <= 14) calm += 0.18 * frontQuality;
   }
 
   if (regularity != null) {
-    if (regularity < 0.38) tense += 0.28;
-    if (regularity >= 0.62) calm += 0.22;
+    if (regularity < 0.38) tense += 0.28 * frontQuality;
+    if (regularity >= 0.62) calm += 0.22 * frontQuality;
   }
 
-  if (frontState === "activated") elevated += 0.28;
-  if (frontState === "tense") tense += 0.3;
-  if (frontState === "calm") calm += 0.25;
+  if (frontState === "activated") elevated += 0.28 * frontQuality;
+  if (frontState === "tense") tense += 0.3 * frontQuality;
+  if (frontState === "calm") calm += 0.25 * frontQuality;
 
-  if (input.mic?.guidance === "irregular") tense += 0.2;
-  if (input.mic?.guidance === "good" || input.mic?.guidance === "excellent") calm += 0.14;
+  if (input.mic?.guidance === "irregular") tense += 0.2 * micQuality;
+  if (input.mic?.guidance === "good" || input.mic?.guidance === "excellent") calm += 0.14 * micQuality;
 
   if (input.hour >= 22 || input.hour < 5) {
     if (elevated > 0.35) tense += 0.12;
@@ -81,15 +85,16 @@ export function deriveWellnessSnapshot(input: {
   const best = sorted[0] ?? { state: "balanced" as WellnessState, score: 0.45 };
   const second = sorted[1] ?? { state: "balanced" as WellnessState, score: 0.35 };
 
-  const rawConfidence = 0.45 + clamp(best.score - second.score, 0, 0.45);
-  const signalQuality = Math.max(input.pulse?.signalQuality ?? 0.45, input.front?.signalQuality ?? 0.45);
-  const confidence = Number(clamp(rawConfidence * (0.7 + signalQuality * 0.3), 0.34, 0.96).toFixed(2));
+  const rawConfidence = 0.42 + clamp(best.score - second.score, 0, 0.4);
+  const confidence = Number(clamp(rawConfidence * (0.55 + blendedSignal * 0.45), 0.28, 0.96).toFixed(2));
+  const conservativeState: WellnessState =
+    confidence < 0.42 || blendedSignal < 0.35 ? "balanced" : (best.state as WellnessState);
 
   return {
-    state: best.state,
+    state: conservativeState,
     confidence,
-    headlineKey: `wellnessState_${best.state}`,
-    supportKey: `wellnessStateSupport_${best.state}`,
+    headlineKey: `wellnessState_${conservativeState}`,
+    supportKey: `wellnessStateSupport_${conservativeState}`,
   };
 }
 

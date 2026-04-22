@@ -17,6 +17,7 @@ type ScanOptions = {
   deviceId?: string | null;
   inputStream?: MediaStream | null;
   manageInputStream?: boolean;
+  onLifecycle?: (event: string, detail?: string) => void;
   videoConstraints?: MediaTrackConstraints;
 };
 
@@ -347,6 +348,7 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
     const view = document.createElement("video");
     video = view;
     view.srcObject = stream;
+    options.onLifecycle?.("rear_video_attached", track.label || "unknown");
     view.muted = true;
     view.playsInline = true;
 
@@ -361,6 +363,7 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
       };
       const onLoaded = () => {
         cleanup();
+        options.onLifecycle?.("rear_video_metadata_loaded", `${view.videoWidth}x${view.videoHeight}`);
         resolve();
       };
       const onError = () => {
@@ -380,6 +383,7 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
     });
 
     await view.play();
+    options.onLifecycle?.("rear_play_started");
     const videoEl = view;
 
     const canvas = document.createElement("canvas");
@@ -394,6 +398,7 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
     let contactDetected = false;
     let contactConfidencePeak = 0;
     options.onStateChange?.("searching");
+    options.onLifecycle?.("rear_processing_started");
 
     while (Date.now() - startedAt < durationMs) {
       if (options.signal?.aborted) {

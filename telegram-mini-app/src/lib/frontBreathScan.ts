@@ -45,6 +45,7 @@ export type FrontBreathScanOptions = {
   previewVideo?: HTMLVideoElement | null;
   previewOverlay?: HTMLCanvasElement | null;
   onFrame?: (frame: FrontFrameSignal) => void;
+  onLifecycle?: (event: string, detail?: string) => void;
   videoConstraints?: MediaTrackConstraints;
 };
 
@@ -366,6 +367,7 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
     const view = options.previewVideo ?? document.createElement("video");
     video = view;
     view.srcObject = stream;
+    options.onLifecycle?.("front_video_attached", stream.getVideoTracks()[0]?.label || "unknown");
     view.muted = true;
     view.playsInline = true;
     view.autoplay = true;
@@ -383,6 +385,7 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
 
       const onLoaded = () => {
         cleanup();
+        options.onLifecycle?.("front_video_metadata_loaded", `${view.videoWidth}x${view.videoHeight}`);
         resolve();
       };
       const onError = () => {
@@ -401,6 +404,7 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
     });
 
     await view.play();
+    options.onLifecycle?.("front_play_started");
 
     const landmarker = await loadFaceLandmarker();
     const trackingMode: FrontBreathScanResult["trackingMode"] = landmarker ? "mesh" : "fallback";
@@ -412,6 +416,7 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
     if (!processCtx) throw new Error("canvas_unavailable");
 
     options.onState?.("tracking");
+    options.onLifecycle?.("front_processing_started", trackingMode);
 
     const signalSamples: SignalSample[] = [];
     const brightnessSamples: number[] = [];

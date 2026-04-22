@@ -31,6 +31,22 @@ type PlayerState = "idle" | "playing" | "paused" | "ended";
 type SourceMode = "audio" | "voice" | "visual";
 type SmartStage = "idle" | "probing" | "dual" | "front" | "rear" | "ready" | "error";
 type FlowStep = "precheck" | "recommendation" | "practice" | "postcheck" | "result";
+type FlowTransitionReason =
+  | "scan_pre_done"
+  | "scan_post_done"
+  | "practice_start"
+  | "practice_done"
+  | "rerun"
+  | "restart"
+  | "fallback";
+
+const FLOW_ALLOWED: Record<FlowStep, FlowStep[]> = {
+  precheck: ["precheck", "recommendation"],
+  recommendation: ["recommendation", "practice", "precheck"],
+  practice: ["practice", "postcheck"],
+  postcheck: ["postcheck", "result"],
+  result: ["result", "precheck"],
+};
 
 const SPEED_OPTIONS = [0.9, 1, 1.15] as const;
 
@@ -211,6 +227,7 @@ export function SessionPlayPage() {
   const visualTickRef = useRef<number | null>(null);
   const phaseHapticRef = useRef<"inhale" | "pause" | "exhale" | null>(null);
   const dualDiagRef = useRef<string[]>([]);
+  const flowStepRef = useRef<FlowStep>("precheck");
 
   const fullText = session ? scriptToText(session.script, L) : "";
   const textWords = useMemo(() => fullText.split(/\s+/).filter(Boolean).length, [fullText]);
@@ -230,6 +247,27 @@ export function SessionPlayPage() {
   const resolvedDuration = sourceMode === "voice" ? estimatedVoiceDuration : baseDuration;
   const progressPct = resolvedDuration > 0 ? Math.min(100, (elapsedSec / resolvedDuration) * 100) : 0;
   const smartRunning = smartStage === "probing" || smartStage === "dual" || smartStage === "front" || smartStage === "rear";
+
+  const goToFlowStep = useCallback((next: FlowStep, reason: FlowTransitionReason) => {
+    setFlowStep((prev) => {
+      if (prev === next) return prev;
+      const allowed = FLOW_ALLOWED[prev].includes(next);
+      if (!allowed) {
+        if (import.meta.env.DEV) {
+          console.warn("[flow]", "blocked transition", { prev, next, reason });
+        }
+        return prev;
+      }
+      if (import.meta.env.DEV) {
+        console.debug("[flow]", "transition", { prev, next, reason });
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    flowStepRef.current = flowStep;
+  }, [flowStep]);
 
   const clearTtsTick = useCallback(() => {
     if (!ttsTickRef.current) return;
@@ -317,7 +355,7 @@ export function SessionPlayPage() {
 
     setPlayerState("ended");
     setElapsedSec(resolvedDuration);
-    setFlowStep("postcheck");
+    goToFlowStep("postcheck", "practice_done");
 
     completeSession(session.slug);
     selfCareToday();
@@ -327,7 +365,7 @@ export function SessionPlayPage() {
     } catch {
       /* ignore */
     }
-  }, [session, stopBreathCoach, stopMicCapture, resolvedDuration, completeSession, selfCareToday, app]);
+  }, [session, stopBreathCoach, stopMicCapture, resolvedDuration, completeSession, selfCareToday, app, goToFlowStep]);
 
   const startVoiceTick = useCallback(
     (fromSec: number) => {
@@ -420,6 +458,8 @@ export function SessionPlayPage() {
   const runSmartCheck = useCallback(
     async (phase: "pre" | "post") => {
       if (!session || smartRunning) return;
+      if (phase === "pre" && flowStepRef.current !== "precheck") return;
+      if (phase === "post" && flowStepRef.current !== "postcheck") return;
       setSmartErrorKey(null);
       setScanErrorKey(null);
       setFrontErrorKey(null);
@@ -537,7 +577,9 @@ export function SessionPlayPage() {
           });
           setPreWellness(wellness);
 
-          setFlowStep(saved.reliable ? "recommendation" : "precheck");
+          if (saved.reliable) {
+            goToFlowStep("recommendation", "scan_pre_done");
+          }
         } else {
           setFrontPost(result.front);
           const wellness = deriveWellnessSnapshot({
@@ -558,7 +600,9 @@ export function SessionPlayPage() {
             });
             setPostScanRecord(saved.scanRecord);
             setBioSessionRecord(saved.sessionRecord ?? bioSessionRecord);
-            setFlowStep(saved.reliable ? "result" : "postcheck");
+            if (saved.reliable) {
+              goToFlowStep("result", "scan_post_done");
+            }
           } else {
             const standalone = saveStandaloneScan({
               phase: "post",
@@ -566,7 +610,7 @@ export function SessionPlayPage() {
               scan: result.pulse,
             });
             setPostScanRecord(standalone);
-            setFlowStep("result");
+            goToFlowStep("result", "scan_post_done");
           }
         }
       } catch {
@@ -577,7 +621,7 @@ export function SessionPlayPage() {
         smartAbortRef.current = null;
       }
     },
-    [session, smartRunning, state.completedSlugs.length, state.premium, bioSessionRecord, breathMetrics, micSummary]
+    [session, smartRunning, state.completedSlugs.length, state.premium, bioSessionRecord, breathMetrics, micSummary, goToFlowStep]
   );
 
   const cancelSmartCheck = useCallback(() => {
@@ -594,7 +638,6 @@ export function SessionPlayPage() {
     if (!session || !canAccess) return;
     if (!preScanRecord) {
       setSmartErrorKey("bioSmartNeedPre");
-      setFlowStep("precheck");
       return;
     }
 
@@ -853,7 +896,6 @@ export function SessionPlayPage() {
   const scanStatusKey = mapPulseStateKey(scanVisualState);
   const frontQualityText = frontLiveSignalQuality != null ? `${Math.round(frontLiveSignalQuality * 100)}%` : "--";
   const frontConfidenceText = frontLiveConfidence != null ? `${Math.round(frontLiveConfidence * 100)}%` : "--";
-  const recommendedSession = recommendation?.sessionSlug ? SESSION_BY_SLUG[recommendation.sessionSlug] : null;
   const probeHint =
     smartMode === "dual"
       ? t("bioDualAvailable")
@@ -947,17 +989,13 @@ export function SessionPlayPage() {
           confidenceValue={preWellness ? `${Math.round(preWellness.confidence * 100)}%` : "--"}
           reason={t(mapRecommendationReasonKey(recommendation.rationaleKey))}
           patternLine={`${t("bioRecPattern")}: ${recommendation.targetBreathPattern} • ${t("bioRecDuration")}: ${recommendation.targetDurationMin} ${t("sessionMin")}`}
-          primaryLabel={recommendedSession ? t("bioRecommendationStart").replace("{title}", recommendedSession.title[L]) : t("bioRecommendationStartCurrent")}
+          primaryLabel={t("bioRecommendationStartCurrent")}
           onPrimary={() => {
-            if (recommendedSession && recommendedSession.slug !== session.slug) {
-              nav(`/session/${recommendedSession.slug}`);
-              return;
-            }
-            setFlowStep("practice");
+            goToFlowStep("practice", "practice_start");
           }}
           rerunLabel={t("bioRecommendationRerun")}
           onRerun={() => {
-            setFlowStep("precheck");
+            goToFlowStep("precheck", "rerun");
             void runSmartCheck("pre");
           }}
         />
@@ -1172,7 +1210,7 @@ export function SessionPlayPage() {
               type="button"
               className="result-reset-secondary"
               onClick={() => {
-                setFlowStep("precheck");
+                goToFlowStep("precheck", "restart");
                 void runSmartCheck("pre");
               }}
             >
