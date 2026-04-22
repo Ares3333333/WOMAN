@@ -79,7 +79,7 @@ async function requestCameraStream(
   options: AcquireOptions,
   diagnostics: DualCameraDiagnosticsEvent[]
 ): Promise<MediaStream> {
-  const timeoutMs = options.timeoutMs ?? 7000;
+  const timeoutMs = options.timeoutMs ?? 20000;
 
   if (options.signal.aborted) {
     throw new DOMException("Aborted", "AbortError");
@@ -119,7 +119,7 @@ async function requestCameraStream(
             reject(new DOMException("Aborted", "AbortError"));
             return;
           }
-          logEvent(diagnostics, options, `${role}_stream_created`, stream.getVideoTracks()[0]?.label ?? "unknown");
+          logEvent(diagnostics, options, `${role}_stream_acquired`, stream.getVideoTracks()[0]?.label ?? "unknown");
           resolve(stream);
         });
       })
@@ -137,7 +137,7 @@ async function tryParallel(
   options: AcquireOptions,
   diagnostics: DualCameraDiagnosticsEvent[]
 ): Promise<{ front: MediaStream; rear: MediaStream }> {
-  logEvent(diagnostics, options, "dual_attempt", "parallel");
+  logEvent(diagnostics, options, "dual_acquire_started", "parallel");
 
   const [frontResult, rearResult] = await Promise.allSettled([
     requestCameraStream("front", options.frontConstraints, options, diagnostics),
@@ -162,6 +162,39 @@ async function tryParallel(
   throw new Error("dual_unknown_failure");
 }
 
+async function tryChained(
+  options: AcquireOptions,
+  diagnostics: DualCameraDiagnosticsEvent[],
+  order: "rear_then_front" | "front_then_rear"
+): Promise<{ front: MediaStream; rear: MediaStream }> {
+  logEvent(diagnostics, options, "dual_acquire_started", order);
+
+  const firstRole = order === "rear_then_front" ? "rear" : "front";
+  const secondRole = firstRole === "rear" ? "front" : "rear";
+
+  const firstConstraints = firstRole === "rear" ? options.rearConstraints : options.frontConstraints;
+  const secondConstraints = secondRole === "rear" ? options.rearConstraints : options.frontConstraints;
+
+  const firstStream = await requestCameraStream(firstRole, firstConstraints, options, diagnostics);
+  let secondStream: MediaStream | null = null;
+
+  try {
+    secondStream = await requestCameraStream(secondRole, secondConstraints, options, diagnostics);
+    const rearStream = firstRole === "rear" ? firstStream : secondStream;
+    const frontStream = firstRole === "front" ? firstStream : secondStream;
+
+    if (!hasLiveTrack(frontStream) || !hasLiveTrack(rearStream)) {
+      throw new Error("dual_tracks_not_live");
+    }
+
+    return { front: frontStream, rear: rearStream };
+  } catch (error) {
+    stopStream(firstStream);
+    stopStream(secondStream);
+    throw error;
+  }
+}
+
 export async function acquireDualCameraStreams(options: AcquireOptions): Promise<DualCameraAcquireResult> {
   const diagnostics: DualCameraDiagnosticsEvent[] = [];
 
@@ -184,26 +217,51 @@ export async function acquireDualCameraStreams(options: AcquireOptions): Promise
     };
   }
 
-  try {
-    const result = await tryParallel(options, diagnostics);
-    logEvent(diagnostics, options, "dual_ready", "parallel");
-    return {
-      ok: true,
-      frontStream: result.front,
-      rearStream: result.rear,
-      strategyId: "parallel",
-      diagnostics,
-    };
-  } catch (error) {
-    const reason = mapErrorToReason(error);
-    logEvent(diagnostics, options, "dual_attempt_failed", `parallel:${reason}`);
-    return {
-      ok: false,
-      reason,
-      strategyId: "parallel",
-      diagnostics,
-    };
+  const strategies: Array<{ id: "rear_then_front" | "front_then_rear" | "parallel" }> = [
+    { id: "rear_then_front" },
+    { id: "front_then_rear" },
+    { id: "parallel" },
+  ];
+
+  let lastReason: DualCameraFailureReason = "unknown";
+  let lastStrategy: DualCameraAcquireResult["strategyId"] = "parallel";
+
+  for (const strategy of strategies) {
+    try {
+      const result =
+        strategy.id === "parallel"
+          ? await tryParallel(options, diagnostics)
+          : await tryChained(options, diagnostics, strategy.id);
+      logEvent(diagnostics, options, "dual_ready", strategy.id);
+      return {
+        ok: true,
+        frontStream: result.front,
+        rearStream: result.rear,
+        strategyId: strategy.id,
+        diagnostics,
+      };
+    } catch (error) {
+      const reason = mapErrorToReason(error);
+      lastReason = reason;
+      lastStrategy = strategy.id;
+      logEvent(diagnostics, options, "dual_attempt_failed", `${strategy.id}:${reason}`);
+      if (reason === "permission_denied" || reason === "canceled") {
+        return {
+          ok: false,
+          reason,
+          strategyId: strategy.id,
+          diagnostics,
+        };
+      }
+    }
   }
+
+  return {
+    ok: false,
+    reason: lastReason,
+    strategyId: lastStrategy,
+    diagnostics,
+  };
 }
 
 export function releaseDualCameraStreams(frontStream: MediaStream | null, rearStream: MediaStream | null): void {

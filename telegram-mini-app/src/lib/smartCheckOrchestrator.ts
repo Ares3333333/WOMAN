@@ -15,6 +15,7 @@ export type SmartCheckRunResult = {
   probe: DualCameraProbe;
   mode: SmartCheckMode;
   usedFallback: boolean;
+  dualRuntimeConfirmed: boolean;
   front: FrontBreathScanResult;
   pulse: PulseScanResult;
   strategyId?: string;
@@ -116,14 +117,49 @@ function buildDualStrategies(front: CameraSelection, rear: CameraSelection): Dua
         frameRate: { ideal: 28, max: 30 },
       },
     },
-    {
-      id: "dual_low_power",
-      frontConstraints: baseFrontConstraints(front, true),
-      rearConstraints: baseRearConstraints(rear, true),
-    },
   );
 
   return strategies;
+}
+
+function isPulseReliable(pulse: PulseScanResult): boolean {
+  return pulse.rawStatus === "ok" && pulse.pulse != null && pulse.signalQuality >= 0.45 && pulse.confidence >= 0.45;
+}
+
+async function runRearPriorityRescue(
+  options: RunSmartCheckOptions,
+  rear: CameraSelection,
+  durations: SmartCheckDurations
+): Promise<PulseScanResult> {
+  options.onDiagnostics?.({
+    at: new Date().toISOString(),
+    event: "rear_rescue_started",
+    detail: rear.label || "rear",
+  });
+  options.onPulseState?.("searching");
+
+  const pulse = await runPulseScan({
+    signal: options.signal,
+    durationMs: durations.rearMs,
+    videoConstraints: baseRearConstraints(rear, false),
+    onProgress: options.onPulseProgress,
+    onStateChange: options.onPulseState,
+    onSignal: options.onPulseSignal,
+    onLifecycle: (event, detail) =>
+      options.onDiagnostics?.({
+        at: new Date().toISOString(),
+        event,
+        detail,
+      }),
+  });
+
+  options.onPulseState?.(pulse.rawStatus === "ok" ? "success" : "idle");
+  options.onDiagnostics?.({
+    at: new Date().toISOString(),
+    event: "rear_rescue_finished",
+    detail: pulse.rawStatus,
+  });
+  return pulse;
 }
 
 function isConcurrencyIssue(front: FrontBreathScanResult, pulse: PulseScanResult): boolean {
@@ -149,6 +185,50 @@ function buildProbe(params: {
     rear: params.rear,
     checkedAt: new Date().toISOString(),
   };
+}
+
+function emitDiagnostics(
+  options: RunSmartCheckOptions,
+  diagnostics: DualCameraDiagnosticsEvent[],
+  event: string,
+  detail?: string
+): void {
+  const item = {
+    at: new Date().toISOString(),
+    event,
+    detail,
+  };
+  diagnostics.push(item);
+  options.onDiagnostics?.(item);
+}
+
+function hasDiagEvent(diagnostics: DualCameraDiagnosticsEvent[], event: string): boolean {
+  return diagnostics.some((item) => item.event === event);
+}
+
+function verifyDualRuntime(
+  diagnostics: DualCameraDiagnosticsEvent[],
+  pulse: PulseScanResult,
+  front: FrontBreathScanResult
+): boolean {
+  const required = [
+    "front_stream_acquired",
+    "rear_stream_acquired",
+    "front_video_attached",
+    "rear_video_attached",
+    "front_play_started",
+    "rear_play_started",
+    "front_processing_started",
+    "rear_processing_started",
+  ];
+
+  const diagnosticsReady = required.every((event) => hasDiagEvent(diagnostics, event));
+  const rearPulseOk =
+    pulse.rawStatus === "ok" &&
+    pulse.pulse != null &&
+    (pulse.contactDetected || (pulse.contactConfidence ?? 0) >= 0.6);
+  const frontAlive = front.rawStatus !== "unsupported" && front.rawStatus !== "permission_denied";
+  return diagnosticsReady && rearPulseOk && frontAlive;
 }
 
 function buildFrontFailure(reason: DualCameraFailureReason): FrontBreathScanResult {
@@ -261,11 +341,8 @@ async function runDualAttempt(
   options.onMode?.("dual");
   options.onStage?.("dual");
   options.onStrategy?.(strategy.id);
-  options.onDiagnostics?.({
-    at: new Date().toISOString(),
-    event: "dual_strategy_selected",
-    detail: strategy.id,
-  });
+  const diagnostics: DualCameraDiagnosticsEvent[] = [];
+  emitDiagnostics(options, diagnostics, "dual_strategy_selected", strategy.id);
   options.onFrontState?.("initializing");
   options.onPulseState?.("searching");
 
@@ -273,8 +350,11 @@ async function runDualAttempt(
     signal: options.signal,
     frontConstraints: strategy.frontConstraints,
     rearConstraints: strategy.rearConstraints,
-    timeoutMs: 7_000,
-    onDiagnostics: options.onDiagnostics,
+    timeoutMs: 20_000,
+    onDiagnostics: (item) => {
+      diagnostics.push(item);
+      options.onDiagnostics?.(item);
+    },
   });
 
   const strategyId = `${strategy.id}:${opened.strategyId}`;
@@ -287,7 +367,7 @@ async function runDualAttempt(
       front: buildFrontFailure(opened.reason),
       pulse: buildPulseFailure(opened.reason),
       strategyId,
-      diagnostics: opened.diagnostics,
+      diagnostics,
     };
   }
 
@@ -307,11 +387,7 @@ async function runDualAttempt(
         onState: (state) => options.onFrontState?.(state),
         onFrame: options.onFrontFrame,
         onLifecycle: (event, detail) =>
-          options.onDiagnostics?.({
-            at: new Date().toISOString(),
-            event,
-            detail,
-          }),
+          emitDiagnostics(options, diagnostics, event, detail),
       }),
       runPulseScan({
         signal: options.signal,
@@ -322,11 +398,7 @@ async function runDualAttempt(
         onStateChange: options.onPulseState,
         onSignal: options.onPulseSignal,
         onLifecycle: (event, detail) =>
-          options.onDiagnostics?.({
-            at: new Date().toISOString(),
-            event,
-            detail,
-          }),
+          emitDiagnostics(options, diagnostics, event, detail),
       }),
     ]);
 
@@ -336,7 +408,7 @@ async function runDualAttempt(
       front,
       pulse,
       strategyId,
-      diagnostics: opened.diagnostics,
+      diagnostics,
     };
   } finally {
     releaseDualCameraStreams(frontStream, rearStream);
@@ -350,10 +422,31 @@ async function runStagedFallback(
   durations: SmartCheckDurations
 ): Promise<{ front: FrontBreathScanResult; pulse: PulseScanResult }> {
   options.onMode?.("staged");
-  options.onStage?.("front");
+  options.onStage?.("rear");
   options.onStrategy?.("staged_fallback");
-  options.onFrontState?.("initializing");
+  options.onPulseState?.("searching");
+  let pulseResult = await runPulseScan({
+    signal: options.signal,
+    durationMs: durations.rearMs,
+    videoConstraints: baseRearConstraints(rear, false),
+    onProgress: options.onPulseProgress,
+    onStateChange: options.onPulseState,
+    onSignal: options.onPulseSignal,
+    onLifecycle: (event, detail) =>
+      options.onDiagnostics?.({
+        at: new Date().toISOString(),
+        event,
+        detail,
+      }),
+  });
+  options.onPulseState?.(pulseResult.rawStatus === "ok" ? "success" : "idle");
 
+  if (!isPulseReliable(pulseResult) && !options.signal.aborted) {
+    pulseResult = await runRearPriorityRescue(options, rear, durations);
+  }
+
+  options.onStage?.("front");
+  options.onFrontState?.("initializing");
   const frontResult = await runFrontBreathScan({
     signal: options.signal,
     durationMs: durations.frontStagedMs,
@@ -363,20 +456,14 @@ async function runStagedFallback(
     onProgress: options.onFrontProgress,
     onState: (state) => options.onFrontState?.(state),
     onFrame: options.onFrontFrame,
+    onLifecycle: (event, detail) =>
+      options.onDiagnostics?.({
+        at: new Date().toISOString(),
+        event,
+        detail,
+      }),
   });
   options.onFrontState?.("done");
-
-  options.onStage?.("rear");
-  options.onPulseState?.("searching");
-  const pulseResult = await runPulseScan({
-    signal: options.signal,
-    durationMs: durations.rearMs,
-    videoConstraints: baseRearConstraints(rear, true),
-    onProgress: options.onPulseProgress,
-    onStateChange: options.onPulseState,
-    onSignal: options.onPulseSignal,
-  });
-  options.onPulseState?.(pulseResult.rawStatus === "ok" ? "success" : "idle");
 
   return {
     front: frontResult,
@@ -399,7 +486,7 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
   for (const strategy of strategies) {
     if (options.signal.aborted) break;
     const dual = await runDualAttempt(options, strategy, durations);
-    lastDual = dual;
+    let bestDual = dual;
 
     if (isPermissionIssue(dual.front, dual.pulse)) {
       const probe = buildProbe({
@@ -413,6 +500,7 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
         probe,
         mode: "dual",
         usedFallback: false,
+        dualRuntimeConfirmed: false,
         front: dual.front,
         pulse: dual.pulse,
         strategyId: dual.strategyId,
@@ -420,7 +508,24 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
       };
     }
 
-    if (!isConcurrencyIssue(dual.front, dual.pulse)) {
+    if (!isConcurrencyIssue(dual.front, dual.pulse) && !isPulseReliable(bestDual.pulse) && !options.signal.aborted) {
+      const rescuedPulse = await runRearPriorityRescue(options, preferred.rear, durations);
+      bestDual = {
+        ...bestDual,
+        pulse: rescuedPulse,
+      };
+    }
+
+    lastDual = bestDual;
+
+    const dualRuntimeConfirmed = verifyDualRuntime(bestDual.diagnostics ?? [], bestDual.pulse, bestDual.front);
+    if (!dualRuntimeConfirmed) {
+      concurrencyBlocked = true;
+      emitDiagnostics(options, bestDual.diagnostics ?? [], "dual_runtime_unconfirmed", bestDual.strategyId);
+      continue;
+    }
+
+    if (!isConcurrencyIssue(bestDual.front, bestDual.pulse)) {
       const probe = buildProbe({
         front: preferred.front,
         rear: preferred.rear,
@@ -432,10 +537,11 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
         probe,
         mode: "dual",
         usedFallback: false,
-        front: dual.front,
-        pulse: dual.pulse,
-        strategyId: dual.strategyId,
-        diagnostics: dual.diagnostics,
+        dualRuntimeConfirmed,
+        front: bestDual.front,
+        pulse: bestDual.pulse,
+        strategyId: bestDual.strategyId,
+        diagnostics: bestDual.diagnostics,
       };
     }
 
@@ -443,6 +549,11 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
   }
 
   const fallback = await runStagedFallback(options, preferred.front, preferred.rear, durations);
+  options.onDiagnostics?.({
+    at: new Date().toISOString(),
+    event: "fallback_triggered",
+    detail: concurrencyBlocked ? "concurrency_blocked" : "unknown",
+  });
   const probe = buildProbe({
     front: preferred.front,
     rear: preferred.rear,
@@ -455,6 +566,7 @@ export async function runSmartCheckOrchestrator(options: RunSmartCheckOptions): 
     probe,
     mode: "staged",
     usedFallback: true,
+    dualRuntimeConfirmed: false,
     front: fallback.front,
     pulse: fallback.pulse,
     strategyId: lastDual?.strategyId,

@@ -358,7 +358,7 @@ export async function runFrontBreathScan(options: FrontBreathScanOptions = {}): 
                 },
           audio: false,
         },
-        7_000,
+        20_000,
         options.signal
       ));
 

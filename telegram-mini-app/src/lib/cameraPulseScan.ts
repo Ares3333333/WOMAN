@@ -319,7 +319,7 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
               },
           audio: false,
         },
-        7_000,
+        20_000,
         options.signal
       );
     }
@@ -454,6 +454,7 @@ export async function runPulseScan(options: ScanOptions = {}): Promise<PulseScan
 
       if (!signalFound && elapsed > 1700 && redDominance > 1.08 && brightness > 18 && brightness < 245) {
         signalFound = true;
+        options.onLifecycle?.("rear_signal_detected");
         options.onStateChange?.("signal_found");
       }
       options.onStateChange?.(signalFound ? "measuring" : "searching");

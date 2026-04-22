@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { OutcomeGuidanceCard } from "../components/biofeedback/OutcomeGuidanceCard";
 import { RecommendationPanel } from "../components/biofeedback/RecommendationPanel";
 import { SmartCheckPanel } from "../components/biofeedback/SmartCheckPanel";
+import { DevRuntimeOverlay } from "../components/biofeedback/DevRuntimeOverlay";
 import { SESSION_BY_SLUG, scriptToText } from "../data/sessions";
 import {
   savePostSessionCheckIn,
@@ -39,6 +40,34 @@ type FlowTransitionReason =
   | "rerun"
   | "restart"
   | "fallback";
+
+type DevRuntimeStatus = {
+  rear_stream_acquired: boolean;
+  front_stream_acquired: boolean;
+  rear_video_attached: boolean;
+  front_video_attached: boolean;
+  rear_play_started: boolean;
+  front_play_started: boolean;
+  rear_processing_started: boolean;
+  front_processing_started: boolean;
+  rear_signal_detected: boolean;
+  fallback_triggered: boolean;
+  fallback_reason: string | null;
+};
+
+const EMPTY_RUNTIME_STATUS: DevRuntimeStatus = {
+  rear_stream_acquired: false,
+  front_stream_acquired: false,
+  rear_video_attached: false,
+  front_video_attached: false,
+  rear_play_started: false,
+  front_play_started: false,
+  rear_processing_started: false,
+  front_processing_started: false,
+  rear_signal_detected: false,
+  fallback_triggered: false,
+  fallback_reason: null,
+};
 
 const FLOW_ALLOWED: Record<FlowStep, FlowStep[]> = {
   precheck: ["precheck", "recommendation"],
@@ -213,6 +242,9 @@ export function SessionPlayPage() {
 
   const [micStatus, setMicStatus] = useState<"idle" | "recording" | "analyzing" | "ready" | "blocked" | "unsupported">("idle");
   const [micSummary, setMicSummary] = useState<BreathAudioSummary | null>(null);
+  const [devDiagEvents, setDevDiagEvents] = useState<string[]>([]);
+  const [devRuntimeStatus, setDevRuntimeStatus] = useState<DevRuntimeStatus>(EMPTY_RUNTIME_STATUS);
+  const [dualRuntimeConfirmed, setDualRuntimeConfirmed] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const frontPreviewVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -477,6 +509,9 @@ export function SessionPlayPage() {
       smartAbortRef.current = abort;
       let guardTimeout: number | null = null;
       dualDiagRef.current = [];
+      setDevDiagEvents([]);
+      setDevRuntimeStatus(EMPTY_RUNTIME_STATUS);
+      setDualRuntimeConfirmed(false);
 
       try {
         const runPromise = runSmartCheckOrchestrator({
@@ -504,6 +539,24 @@ export function SessionPlayPage() {
           onDiagnostics: (event) => {
             const line = `${event.at} ${event.event}${event.detail ? `:${event.detail}` : ""}`;
             dualDiagRef.current.push(line);
+            setDevDiagEvents((prev) => [...prev.slice(-25), line]);
+            setDevRuntimeStatus((prev) => {
+              const next = { ...prev };
+              if (event.event === "rear_stream_acquired") next.rear_stream_acquired = true;
+              if (event.event === "front_stream_acquired") next.front_stream_acquired = true;
+              if (event.event === "rear_video_attached") next.rear_video_attached = true;
+              if (event.event === "front_video_attached") next.front_video_attached = true;
+              if (event.event === "rear_play_started") next.rear_play_started = true;
+              if (event.event === "front_play_started") next.front_play_started = true;
+              if (event.event === "rear_processing_started") next.rear_processing_started = true;
+              if (event.event === "front_processing_started") next.front_processing_started = true;
+              if (event.event === "rear_signal_detected") next.rear_signal_detected = true;
+              if (event.event === "fallback_triggered") {
+                next.fallback_triggered = true;
+                next.fallback_reason = event.detail ?? "unknown";
+              }
+              return next;
+            });
             if (import.meta.env.DEV) {
               console.debug("[smart-check]", line);
             }
@@ -522,6 +575,7 @@ export function SessionPlayPage() {
         const result = await Promise.race([runPromise, timeoutPromise]);
 
         setSmartStage("ready");
+        setDualRuntimeConfirmed(result.dualRuntimeConfirmed);
         setFrontScanState("done");
         setScanVisualState(result.pulse.rawStatus === "ok" ? "success" : "idle");
         setLastScanDeviceLabel(result.pulse.device?.cameraLabel ?? result.probe.rear.label ?? null);
@@ -614,6 +668,7 @@ export function SessionPlayPage() {
           }
         }
       } catch {
+        setDualRuntimeConfirmed(false);
         setSmartErrorKey("bioSmartFailed");
         setSmartStage("error");
       } finally {
@@ -628,6 +683,7 @@ export function SessionPlayPage() {
     smartAbortRef.current?.abort();
     setSmartStage("idle");
     setSmartMode(null);
+    setDualRuntimeConfirmed(false);
     setFrontScanState("idle");
     setScanVisualState("idle");
     setScanLiveContact(null);
@@ -825,6 +881,7 @@ export function SessionPlayPage() {
 
     setSmartStage("idle");
     setSmartMode(null);
+    setDualRuntimeConfirmed(false);
     setSmartErrorKey(null);
     setDualProbe(null);
     setRecommendation(null);
@@ -857,6 +914,8 @@ export function SessionPlayPage() {
 
     setMicStatus("idle");
     setMicSummary(null);
+    setDevDiagEvents([]);
+    setDevRuntimeStatus(EMPTY_RUNTIME_STATUS);
 
     if (canAccess) rememberSession(session.slug);
   }, [session, canAccess, rememberSession, stopAllPlayback]);
@@ -896,10 +955,29 @@ export function SessionPlayPage() {
   const scanStatusKey = mapPulseStateKey(scanVisualState);
   const frontQualityText = frontLiveSignalQuality != null ? `${Math.round(frontLiveSignalQuality * 100)}%` : "--";
   const frontConfidenceText = frontLiveConfidence != null ? `${Math.round(frontLiveConfidence * 100)}%` : "--";
+  const simultaneousCoreReady =
+    devRuntimeStatus.rear_stream_acquired &&
+    devRuntimeStatus.front_stream_acquired &&
+    devRuntimeStatus.rear_video_attached &&
+    devRuntimeStatus.front_video_attached &&
+    devRuntimeStatus.rear_play_started &&
+    devRuntimeStatus.front_play_started &&
+    devRuntimeStatus.rear_processing_started &&
+    devRuntimeStatus.front_processing_started;
+  const rearPulseAlive =
+    devRuntimeStatus.rear_signal_detected ||
+    scanVisualState === "success" ||
+    (scanLiveDetected && (scanLiveContact ?? 0) >= 0.68);
+  const strictDualReady =
+    smartMode === "dual" &&
+    dualRuntimeConfirmed &&
+    simultaneousCoreReady &&
+    rearPulseAlive &&
+    !devRuntimeStatus.fallback_triggered;
   const probeHint =
-    smartMode === "dual"
+    strictDualReady
       ? t("bioDualAvailable")
-      : smartMode === "staged"
+      : smartMode === "staged" || devRuntimeStatus.fallback_triggered || (smartMode === "dual" && !dualRuntimeConfirmed)
         ? t("bioDualFallback")
         : t(mapProbeReasonKey(dualProbe?.reason ?? "concurrency_blocked"));
   const pulseLiveHint =
@@ -932,51 +1010,64 @@ export function SessionPlayPage() {
       </section>
 
       {flowStep === "precheck" ? (
-        <SmartCheckPanel
-          title={t("bioSmartTitle")}
-          lead={t("bioSmartLead")}
-          disclaimer={t("bioWellnessDisclaimer")}
-          probeHint={probeHint}
-          front={{
-            status: t(frontStatusKey),
-            progress: frontProgress,
-            quality: frontQualityText,
-            confidence: frontConfidenceText,
-            hint: t("bioFrontPreviewHint"),
-            error: frontErrorKey ? t(frontErrorKey) : null,
-            videoRef: frontPreviewVideoRef,
-            overlayRef: frontPreviewOverlayRef,
-            running: smartRunning,
-          }}
-          rear={{
-            status: t(scanStatusKey),
-            progress: scanProgress,
-            targetHint: t("bioPulseGuideTarget"),
-            selectedCamera: t("bioRearSelected").replace("{camera}", lastScanDeviceLabel ?? dualProbe?.rear.label ?? t("bioRearUnknown")),
-            coverHint: t("bioPulseGuideCover"),
-            liveHint: pulseLiveHint,
-            stillHint: t("bioPulseGuideStill"),
-            torchHint: preScanRecord || scanProgress > 0 ? t(mapTorchKey(lastTorchMode)) : null,
-            error: scanErrorKey ? t(scanErrorKey) : null,
-            state: scanVisualState,
-          }}
-          primaryAction={{
-            label: smartRunning ? t("bioSmartRunning") : preScanRecord ? t("bioSmartRepeat") : t("bioSmartStart"),
-            onClick: () => void runSmartCheck("pre"),
-            disabled: smartRunning,
-          }}
-          historyAction={{ label: t("bioHistoryOpen"), onClick: () => nav("/biofeedback") }}
-          cancelAction={smartRunning ? { label: t("bioScanCancel"), onClick: cancelSmartCheck } : undefined}
-          topError={smartErrorKey ? t(smartErrorKey) : null}
-        >
-          {preScanRecord && frontPre ? (
-            <div className="bio-result">
-              <p className="tm-subtle">
-                {t("bioMetricPulse")}: {preScanRecord.pulse ?? "-"} · {t("bioMetricCalm")}: {preScanRecord.calmScore ?? "-"}
-              </p>
-            </div>
-          ) : null}
-        </SmartCheckPanel>
+        <>
+          <SmartCheckPanel
+            title={t("bioSmartTitle")}
+            lead={t("bioSmartLead")}
+            disclaimer={t("bioWellnessDisclaimer")}
+            probeHint={probeHint}
+            front={{
+              status: t(frontStatusKey),
+              progress: frontProgress,
+              quality: frontQualityText,
+              confidence: frontConfidenceText,
+              hint: t("bioFrontPreviewHint"),
+              error: frontErrorKey ? t(frontErrorKey) : null,
+              videoRef: frontPreviewVideoRef,
+              overlayRef: frontPreviewOverlayRef,
+              running: smartRunning,
+            }}
+            rear={{
+              status: t(scanStatusKey),
+              progress: scanProgress,
+              targetHint: t("bioPulseGuideTarget"),
+              selectedCamera: t("bioRearSelected").replace("{camera}", lastScanDeviceLabel ?? dualProbe?.rear.label ?? t("bioRearUnknown")),
+              coverHint: t("bioPulseGuideCover"),
+              liveHint: pulseLiveHint,
+              stillHint: t("bioPulseGuideStill"),
+              torchHint: preScanRecord || scanProgress > 0 ? t(mapTorchKey(lastTorchMode)) : null,
+              error: scanErrorKey ? t(scanErrorKey) : null,
+              state: scanVisualState,
+            }}
+            primaryAction={{
+              label: smartRunning ? t("bioSmartRunning") : preScanRecord ? t("bioSmartRepeat") : t("bioSmartStart"),
+              onClick: () => void runSmartCheck("pre"),
+              disabled: smartRunning,
+            }}
+            historyAction={{ label: t("bioHistoryOpen"), onClick: () => nav("/biofeedback") }}
+            cancelAction={smartRunning ? { label: t("bioScanCancel"), onClick: cancelSmartCheck } : undefined}
+            topError={smartErrorKey ? t(smartErrorKey) : null}
+          >
+            {preScanRecord && frontPre ? (
+              <div className="bio-result">
+                <p className="tm-subtle">
+                  {t("bioMetricPulse")}: {preScanRecord.pulse ?? "-"} · {t("bioMetricCalm")}: {preScanRecord.calmScore ?? "-"}
+                </p>
+              </div>
+            ) : null}
+          </SmartCheckPanel>
+          <DevRuntimeOverlay
+            phase={`flow=${flowStep} smart=${smartStage}`}
+            logs={devDiagEvents}
+            summary={{
+              simultaneousCoreReady,
+              rearPulseAlive,
+              strictDualReady,
+              fallbackTriggered: devRuntimeStatus.fallback_triggered,
+              fallbackReason: devRuntimeStatus.fallback_reason,
+            }}
+          />
+        </>
       ) : null}
 
       {flowStep === "recommendation" && recommendation ? (
@@ -1106,45 +1197,58 @@ export function SessionPlayPage() {
         </section>
       ) : null}
       {flowStep === "postcheck" ? (
-        <SmartCheckPanel
-          title={t("bioPostTitle")}
-          lead={t("bioPostLead")}
-          disclaimer={t("bioWellnessDisclaimer")}
-          probeHint={probeHint}
-          front={{
-            status: t(frontStatusKey),
-            progress: frontProgress,
-            quality: frontQualityText,
-            confidence: frontConfidenceText,
-            hint: t("bioFrontPreviewHint"),
-            error: frontErrorKey ? t(frontErrorKey) : null,
-            videoRef: frontPreviewVideoRef,
-            overlayRef: frontPreviewOverlayRef,
-            running: smartRunning,
-          }}
-          rear={{
-            status: t(scanStatusKey),
-            progress: scanProgress,
-            targetHint: t("bioPulseGuideTarget"),
-            selectedCamera: t("bioRearSelected").replace("{camera}", lastScanDeviceLabel ?? dualProbe?.rear.label ?? t("bioRearUnknown")),
-            coverHint: t("bioPulseGuideCover"),
-            liveHint: pulseLiveHint,
-            stillHint: t("bioPulseGuideStill"),
-            torchHint: postScanRecord || scanProgress > 0 ? t(mapTorchKey(lastTorchMode)) : null,
-            error: scanErrorKey ? t(scanErrorKey) : null,
-            state: scanVisualState,
-          }}
-          primaryAction={{
-            label: smartRunning ? t("bioSmartRunning") : t("bioPostSmartStart"),
-            onClick: () => void runSmartCheck("post"),
-            disabled: smartRunning || !preReliable,
-          }}
-          historyAction={{ label: t("bioHistoryOpen"), onClick: () => nav("/biofeedback") }}
-          cancelAction={smartRunning ? { label: t("bioScanCancel"), onClick: cancelSmartCheck } : undefined}
-          topError={smartErrorKey ? t(smartErrorKey) : null}
-        >
-          {!preReliable ? <p className="tm-subtle">{t("bioPostNeedPre")}</p> : null}
-        </SmartCheckPanel>
+        <>
+          <SmartCheckPanel
+            title={t("bioPostTitle")}
+            lead={t("bioPostLead")}
+            disclaimer={t("bioWellnessDisclaimer")}
+            probeHint={probeHint}
+            front={{
+              status: t(frontStatusKey),
+              progress: frontProgress,
+              quality: frontQualityText,
+              confidence: frontConfidenceText,
+              hint: t("bioFrontPreviewHint"),
+              error: frontErrorKey ? t(frontErrorKey) : null,
+              videoRef: frontPreviewVideoRef,
+              overlayRef: frontPreviewOverlayRef,
+              running: smartRunning,
+            }}
+            rear={{
+              status: t(scanStatusKey),
+              progress: scanProgress,
+              targetHint: t("bioPulseGuideTarget"),
+              selectedCamera: t("bioRearSelected").replace("{camera}", lastScanDeviceLabel ?? dualProbe?.rear.label ?? t("bioRearUnknown")),
+              coverHint: t("bioPulseGuideCover"),
+              liveHint: pulseLiveHint,
+              stillHint: t("bioPulseGuideStill"),
+              torchHint: postScanRecord || scanProgress > 0 ? t(mapTorchKey(lastTorchMode)) : null,
+              error: scanErrorKey ? t(scanErrorKey) : null,
+              state: scanVisualState,
+            }}
+            primaryAction={{
+              label: smartRunning ? t("bioSmartRunning") : t("bioPostSmartStart"),
+              onClick: () => void runSmartCheck("post"),
+              disabled: smartRunning || !preReliable,
+            }}
+            historyAction={{ label: t("bioHistoryOpen"), onClick: () => nav("/biofeedback") }}
+            cancelAction={smartRunning ? { label: t("bioScanCancel"), onClick: cancelSmartCheck } : undefined}
+            topError={smartErrorKey ? t(smartErrorKey) : null}
+          >
+            {!preReliable ? <p className="tm-subtle">{t("bioPostNeedPre")}</p> : null}
+          </SmartCheckPanel>
+          <DevRuntimeOverlay
+            phase={`flow=${flowStep} smart=${smartStage}`}
+            logs={devDiagEvents}
+            summary={{
+              simultaneousCoreReady,
+              rearPulseAlive,
+              strictDualReady,
+              fallbackTriggered: devRuntimeStatus.fallback_triggered,
+              fallbackReason: devRuntimeStatus.fallback_reason,
+            }}
+          />
+        </>
       ) : null}
 
       {flowStep === "result" ? (

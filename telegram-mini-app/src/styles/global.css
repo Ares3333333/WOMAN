@@ -2896,6 +2896,77 @@ p {
   color: var(--text-1);
 }
 
+.dev-runtime-overlay {
+  border-radius: 12px;
+  border: 1px dashed rgba(133, 175, 217, 0.4);
+  background: rgba(9, 18, 30, 0.68);
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.dev-runtime-title {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: #9ac0e3;
+  font-weight: 700;
+}
+
+.dev-runtime-phase {
+  margin: 0;
+  color: #d4e4f2;
+  font-size: 0.73rem;
+}
+
+.dev-runtime-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dev-runtime-pill {
+  margin: 0;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+}
+
+.dev-runtime-pill.ok {
+  color: #c4edd8;
+  border-color: rgba(106, 181, 141, 0.45);
+  background: rgba(34, 86, 67, 0.45);
+}
+
+.dev-runtime-pill.bad {
+  color: #efc8c8;
+  border-color: rgba(189, 112, 112, 0.45);
+  background: rgba(92, 40, 40, 0.45);
+}
+
+.dev-runtime-pill.neutral {
+  color: #cbd8e4;
+  border-color: rgba(131, 154, 179, 0.45);
+  background: rgba(30, 44, 58, 0.45);
+}
+
+.dev-runtime-list {
+  display: grid;
+  gap: 4px;
+  max-height: 170px;
+  overflow: auto;
+}
+
+.dev-runtime-line {
+  margin: 0;
+  color: #b5c9dd;
+  font-size: 0.66rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 @media (max-width: 390px) {
   .smart-check-stage {
     grid-template-columns: 1fr;
